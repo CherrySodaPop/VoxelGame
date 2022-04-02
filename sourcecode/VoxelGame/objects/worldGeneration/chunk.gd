@@ -7,23 +7,40 @@ func _ready():
 	# is chunk generated?
 	#	LoadChunkData();
 	# else
+	
+	var beforeGeneration = OS.get_system_time_msecs();
 	Generate();
-	#ConstructMesh();
+	var afterGeneration = OS.get_system_time_msecs();
+	print("ChunkGenerationTime: %d" % [afterGeneration - beforeGeneration]);
+	
+	var beforeConstruct = OS.get_system_time_msecs();
+	ConstructMesh();
+	var afterConstruct = OS.get_system_time_msecs();
+	print("MeshContructionTime: %d" % [afterConstruct - beforeConstruct]);
+	
+	#BegimMeshConstruction();
+	#BuildFace(get_parent().meshFaces.TOP, Vector3(0,0,0));
+	#BuildFace(get_parent().meshFaces.TOP, Vector3(1,0,0));
+	#BuildFace(get_parent().meshFaces.TOP, Vector3(2,0,0));
+	#BuildFace(get_parent().meshFaces.TOP, Vector3(3,0,0));
+	#BuildFace(get_parent().meshFaces.BOTTOM, Vector3(1,0,0));
+	#CommitMesh();
+	#var packer = PackedScene.new();
+	#packer.pack(self);
+	#ResourceSaver.save("res://assets/debug/chunk.tscn", packer);
 
 func Generate():
 	var noise:OpenSimplexNoise = get_parent().simplexNoise;
 	var chunkSize = get_parent().chunkSize;
 	
-	BegimMeshConstruction();
+	#BegimMeshConstruction();
 	
 	# terrain generation
 	for _x in range(chunkSize.x):
 		for _z in range(chunkSize.z):
-			print(noise.get_noise_2d(_x + transform.origin.x, _z + transform.origin.z));
-			var noiseHeight:int = noise.get_noise_2d(_x + transform.origin.x, _z + transform.origin.z);
-			print(str(noiseHeight) + " " + str(Vector2(_x,_z)) + "\n")
-			var terrainAmp:int = 1.0;
-			var terrainPeak:int = int(chunkSize.y * ((noiseHeight / 2) + 0.5));
+			var noiseHeight:float = noise.get_noise_2d(_x + transform.origin.x, _z + transform.origin.z);
+			var terrainAmp:float = 0.1;
+			var terrainPeak:int = int(chunkSize.y * ((noiseHeight / 2) + 0.5) * terrainAmp);
 			var blockData = get_parent().blockData;
 			
 			for _y in range(chunkSize.y, -1, -1):
@@ -33,9 +50,9 @@ func Generate():
 				if (_y == terrainPeak):
 					data[Vector3(_x,_y,_z)] = [blockData.id.STONE, {}];
 					continue;
-				data[Vector3(_x,_y,_z)] = [blockData.id.AIR, {}];
-			BuildFace(get_parent().meshFaces.TOP, Vector3(_x, terrainPeak, _z));
-	CommitMesh();
+				data[Vector3(_x,_y,_z)] = [blockData.id.STONE, {}];
+			#BuildFace(get_parent().meshFaces.TOP, Vector3(_x, terrainPeak, _z));
+	#CommitMesh();
 
 func ConstructMesh():
 	var chunkSize = get_parent().chunkSize;
@@ -46,55 +63,68 @@ func ConstructMesh():
 		for _z in range(chunkSize.z):
 			for _y in range(chunkSize.y):
 				var trueBlockPos:Vector3 = transform.origin + Vector3(_x, _y, _z);
-				#var pickedBlockData = get_parent().GetBlock(trueBlockPos + Vector3(0, -1, 0);
+				# check if im not an air block
+				if (get_parent().GetBlock(trueBlockPos) == null || get_parent().GetBlock(trueBlockPos)[get_parent().BLOCKDATA_ID] == blockData.id.AIR):
+					continue;
 				# top check
 				if (_y == chunkSize.y || IsFaceVisibleBlock( get_parent().GetBlock(trueBlockPos + Vector3(0, 1, 0)) )):
-					BuildFace(get_parent().meshFaces.TOP, Vector3(_x, _y, _z));
+					BuildFace(get_parent().meshFaceType.TOP, Vector3(_x, _y, _z));
 				# bottom check
-				#if (_y == 0 || IsFaceVisibleBlock( get_parent().GetBlock(trueBlockPos + Vector3(0, -1, 0)) )):
-				#	BuildFace(get_parent().meshFaces.BOTTOM, Vector3(_x, _y, _z));
+				if (_y == 0 || IsFaceVisibleBlock( get_parent().GetBlock(trueBlockPos + Vector3(0, -1, 0)) )):
+					BuildFace(get_parent().meshFaceType.BOTTOM, Vector3(_x, _y, _z));
 				# left check
-				#if (IsFaceVisibleBlock( get_parent().GetBlock(trueBlockPos + Vector3(-1, 0, 0)) )):
-				#	BuildFace(get_parent().meshFaces.LEFT, Vector3(_x, _y, _z));
+				if (IsFaceVisibleBlock( get_parent().GetBlock(trueBlockPos + Vector3(-1, 0, 0)) )):
+					BuildFace(get_parent().meshFaceType.LEFT, Vector3(_x, _y, _z));
 				# right check
-				#if (IsFaceVisibleBlock( get_parent().GetBlock(trueBlockPos + Vector3(1, 0, 0)) )):
-				#	BuildFace(get_parent().meshFaces.RIGHT, Vector3(_x, _y, _z));
+				if (IsFaceVisibleBlock( get_parent().GetBlock(trueBlockPos + Vector3(1, 0, 0)) )):
+					BuildFace(get_parent().meshFaceType.RIGHT, Vector3(_x, _y, _z));
 				# front check
-				#if (IsFaceVisibleBlock( get_parent().GetBlock(trueBlockPos + Vector3(0, 0, 1)) )):
-				#	BuildFace(get_parent().meshFaces.FRONT, Vector3(_x, _y, _z));
+				if (IsFaceVisibleBlock( get_parent().GetBlock(trueBlockPos + Vector3(0, 0, 1)) )):
+					BuildFace(get_parent().meshFaceType.FRONT, Vector3(_x, _y, _z));
 				# back check
-				#if (IsFaceVisibleBlock( get_parent().GetBlock(trueBlockPos + Vector3(0, 0, -1)) )):
-				#	BuildFace(get_parent().meshFaces.BACK, Vector3(_x, _y, _z));
+				if (IsFaceVisibleBlock( get_parent().GetBlock(trueBlockPos + Vector3(0, 0, -1)) )):
+					BuildFace(get_parent().meshFaceType.BACK, Vector3(_x, _y, _z));
 	CommitMesh();
 
 func BegimMeshConstruction():
 	surfaceToolInstance.begin(Mesh.PRIMITIVE_TRIANGLES);
 
-func BuildFace(faceType:Array, pos:Vector3 = Vector3.ZERO):
-	surfaceToolInstance.add_color(Color(1, 1, 1));
+func BuildFace(faceType:int, pos:Vector3 = Vector3.ZERO):
 	surfaceToolInstance.add_uv(Vector2(0, 0));
+	surfaceToolInstance.add_normal(get_parent().meshFaceNormal[faceType]);
 	for i in range(6):
-		surfaceToolInstance.add_vertex(faceType[i] + Vector3(pos));
+		surfaceToolInstance.add_vertex(get_parent().meshFacePos[faceType][i] + Vector3(pos));
 
 func CommitMesh():
 	$mesh.mesh = surfaceToolInstance.commit();
 
 func IsFaceVisibleBlock(pickedBlockData) -> bool:
 	var blockData = get_parent().blockData;
-	return !(pickedBlockData == null || pickedBlockData[get_parent().BLOCKDATA_ID] == blockData.id.AIR);
+	return (pickedBlockData == null || pickedBlockData[get_parent().BLOCKDATA_ID] == blockData.id.AIR);
 	# || !pickedBlockData[get_parent().BLOCKDATA_META].has("fullBlock") || pickedBlockData[get_parent().BLOCKDATA_META]["fullBlock"] == false);
 
 func _process(delta):
-	pass
-#	var returnMesh:ArrayMesh = BuildFace(get_parent().meshFaces.TOP);
-#	$mesh1.mesh = returnMesh;
-#	returnMesh = BuildFace(get_parent().meshFaces.BOTTOM);
-#	$mesh2.mesh = returnMesh;
-#	returnMesh = BuildFace(get_parent().meshFaces.LEFT);
-#	$mesh3.mesh = returnMesh;
-#	returnMesh = BuildFace(get_parent().meshFaces.RIGHT);
-#	$mesh4.mesh = returnMesh;
-#	returnMesh = BuildFace(get_parent().meshFaces.FRONT);
-#	$mesh5.mesh = returnMesh;
-#	returnMesh = BuildFace(get_parent().meshFaces.BACK);
-#	$mesh6.mesh = returnMesh;
+	return;
+	BegimMeshConstruction();
+	BuildFace(get_parent().meshFaceType.TOP);
+	$mesh1.mesh = surfaceToolInstance.commit();
+	
+	BegimMeshConstruction();
+	BuildFace(get_parent().meshFaceType.BOTTOM);
+	$mesh2.mesh = surfaceToolInstance.commit();
+	
+	BegimMeshConstruction();
+	BuildFace(get_parent().meshFaceType.LEFT);
+	$mesh3.mesh = surfaceToolInstance.commit();
+	
+	BegimMeshConstruction();
+	BuildFace(get_parent().meshFaceType.RIGHT);
+	$mesh4.mesh = surfaceToolInstance.commit();
+	
+	BegimMeshConstruction();
+	BuildFace(get_parent().meshFaceType.FRONT);
+	$mesh5.mesh = surfaceToolInstance.commit();
+	
+	BegimMeshConstruction();
+	BuildFace(get_parent().meshFaceType.BACK);
+	$mesh6.mesh = surfaceToolInstance.commit();

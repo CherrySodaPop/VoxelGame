@@ -10,13 +10,29 @@ var chunkData:Dictionary = {};
 var chunkSize:Vector3 = Vector3(32, 256, 32);
 var chunkScene = preload("res://objects/worldGeneration/chunk.tscn"); 
 var blockData = preload("res://objects/worldGeneration/blockData.gd");
-const meshFaces = {
-	TOP = [Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3(1, 0, 0), Vector3(1, 0, 1), Vector3(0, 0, 1)],
-	BOTTOM = [Vector3(0, -1, 1), Vector3(1, -1, 1), Vector3(0, -1, 0), Vector3(1, -1, 1), Vector3(1, -1, 0), Vector3(0, -1, 0)],
-	LEFT = [Vector3(0, 0, 0), Vector3(0, 0, 1), Vector3(0, -1, 0), Vector3(0, 0, 1), Vector3(0, -1, 1), Vector3(0, -1, 0)],
-	RIGHT = [Vector3(1, 0, 1), Vector3(1, 0, 0), Vector3(1, -1, 1), Vector3(1, -1, 0), Vector3(1, -1, 1), Vector3(1, 0, 0)],
-	FRONT = [Vector3(0, -1, 1), Vector3(0, 0, 1), Vector3(1, 0, 1), Vector3(1, 0, 1), Vector3(1, -1, 1), Vector3(0, -1, 1)],
-	BACK = [Vector3(1, -1, 0), Vector3(1, 0, 0), Vector3(0, 0, 0), Vector3(0, 0, 0), Vector3(0, -1, 0), Vector3(1, -1, 0)], }
+enum meshFaceType {
+	TOP,
+	BOTTOM,
+	LEFT,
+	RIGHT,
+	FRONT,
+	BACK,
+}
+const meshFacePos = {
+	meshFaceType.TOP : [Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3(1, 0, 0), Vector3(1, 0, 1), Vector3(0, 0, 1)],
+	meshFaceType.BOTTOM : [Vector3(0, -1, 1), Vector3(1, -1, 1), Vector3(0, -1, 0), Vector3(1, -1, 1), Vector3(1, -1, 0), Vector3(0, -1, 0)],
+	meshFaceType.LEFT : [Vector3(0, 0, 0), Vector3(0, 0, 1), Vector3(0, -1, 0), Vector3(0, 0, 1), Vector3(0, -1, 1), Vector3(0, -1, 0)],
+	meshFaceType.RIGHT : [Vector3(1, 0, 1), Vector3(1, 0, 0), Vector3(1, -1, 1), Vector3(1, -1, 0), Vector3(1, -1, 1), Vector3(1, 0, 0)],
+	meshFaceType.FRONT : [Vector3(0, -1, 1), Vector3(0, 0, 1), Vector3(1, 0, 1), Vector3(1, 0, 1), Vector3(1, -1, 1), Vector3(0, -1, 1)],
+	meshFaceType.BACK : [Vector3(1, -1, 0), Vector3(1, 0, 0), Vector3(0, 0, 0), Vector3(0, 0, 0), Vector3(0, -1, 0), Vector3(1, -1, 0)], }
+const meshFaceNormal = {
+	meshFaceType.TOP : Vector3(0, 1, 0),
+	meshFaceType.BOTTOM : Vector3(0, -1, 0),
+	meshFaceType.LEFT : Vector3(-1, 0, 0),
+	meshFaceType.RIGHT : Vector3(1, 0, 0),
+	meshFaceType.FRONT : Vector3(0, 0, 1),
+	meshFaceType.BACK : Vector3(0, 0, -1),
+}
 const BLOCKDATA_ID = 0; 
 const BLOCKDATA_META = 1;
 
@@ -26,7 +42,9 @@ func _ready():
 	textureNoise.set_flags(0);
 	$TextureRect.texture = textureNoise;
 	
-	GenerateChunk(0,0);
+	for _x in range(1):
+		for _y in range(1):
+			GenerateChunk(_x, _y);
 	#for _x in range(1):
 	#	for _z in range(1):
 	#		var objChunk = chunkScene.instance();
