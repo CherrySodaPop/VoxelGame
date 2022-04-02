@@ -17,3 +17,11 @@ disabled = true
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0 )
 current = true
 fov = 100.0
+far = 2000.0
+
+[node name="Label" type="Label" parent="."]
+margin_left = 9.0
+margin_top = 264.0
+margin_right = 120.0
+margin_bottom = 278.0
+text = "OOGA BOOGA!!!!"
