@@ -20,7 +20,7 @@ enum meshFaceType {
 }
 const meshFacePos = {
 	meshFaceType.TOP : [Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3(1, 0, 0), Vector3(1, 0, 1), Vector3(0, 0, 1)],
-	meshFaceType.BOTTOM : [Vector3(0, -1, 1), Vector3(1, -1, 1), Vector3(0, -1, 0), Vector3(1, -1, 1), Vector3(1, -1, 0), Vector3(0, -1, 0)],
+	meshFaceType.BOTTOM : [Vector3(0, -1, 1), Vector3(1, 1, 1), Vector3(0, -1, 0), Vector3(1, -1, 1), Vector3(1, -1, 0), Vector3(0, -1, 0)],
 	meshFaceType.LEFT : [Vector3(0, 0, 0), Vector3(0, 0, 1), Vector3(0, -1, 0), Vector3(0, 0, 1), Vector3(0, -1, 1), Vector3(0, -1, 0)],
 	meshFaceType.RIGHT : [Vector3(1, 0, 1), Vector3(1, 0, 0), Vector3(1, -1, 1), Vector3(1, -1, 0), Vector3(1, -1, 1), Vector3(1, 0, 0)],
 	meshFaceType.FRONT : [Vector3(0, -1, 1), Vector3(0, 0, 1), Vector3(1, 0, 1), Vector3(1, 0, 1), Vector3(1, -1, 1), Vector3(0, -1, 1)],
@@ -42,8 +42,8 @@ func _ready():
 	textureNoise.set_flags(0);
 	$TextureRect.texture = textureNoise;
 	
-	for _x in range(1):
-		for _y in range(1):
+	for _x in range(2):
+		for _y in range(2):
 			GenerateChunk(_x, _y);
 	#for _x in range(1):
 	#	for _z in range(1):
