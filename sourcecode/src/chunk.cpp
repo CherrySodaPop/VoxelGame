@@ -11,6 +11,7 @@ void chunk::_register_methods()
     register_method((char*)"_ready", &chunk::_ready);
     register_method((char*)"_process", &chunk::_process);
     register_method((char*)"GetData", &chunk::GetData);
+    register_property("data", &chunk::data, {});
 }
 
 chunk::chunk()
@@ -49,7 +50,7 @@ void chunk::Generate()
             Vector2 trueBlockPos = Vector2(_x + this->get_transform().origin.x, _z + this->get_transform().origin.z);
             float noiseHeight = noise->get_noise_2dv(trueBlockPos);
             float terrainAmp = 0.1;
-            int terrainPeak = int(chunkSize.y * ((noiseHeight / 2.0) + 0.5));
+            int terrainPeak = int(chunkSize.y * ((noiseHeight / 2.0) + 0.5) * terrainAmp);
 
             for (int _y = chunkSize.y; _y > -1; _y--)
             {
@@ -59,6 +60,7 @@ void chunk::Generate()
                     Dictionary d;
                     blockData.append(blockId::AIR);
                     blockData.append(d);
+                    data[Vector3(_x, _y, _z)] = blockData;
                     continue;
                 }
                 if (_y <= terrainPeak)
@@ -67,6 +69,7 @@ void chunk::Generate()
                     Dictionary d;
                     blockData.append(blockId::STONE);
                     blockData.append(d);
+                    data[Vector3(_x, _y, _z)] = blockData;
                     continue;
                 }
             }
@@ -88,8 +91,7 @@ void chunk::ConstructMesh()
             {
                 Vector3 trueBlockPos = get_transform().origin + Vector3(_x, _y, _z);
                 Array blockData = get_parent()->call("GetBlock", trueBlockPos);
-                Godot::print(blockData.size());
-                /*
+                
                 int blockDataId = (int)blockData[BLOCKDATA_ID];
 
                 // check if we're not air
@@ -101,7 +103,41 @@ void chunk::ConstructMesh()
                 {
                     BuildFace(blockFaceType::TOP, Vector3(_x, _y, _z));
                 }
-                */
+
+                // bottom check
+                blockData = get_parent()->call("GetBlock", trueBlockPos + Vector3(0, -1, 0));
+                if (_y == chunkSize.y || IsFaceVisibleBlock(blockData))
+                {
+                    BuildFace(blockFaceType::BOTTOM, Vector3(_x, _y, _z));
+                }
+
+                // left check
+                blockData = get_parent()->call("GetBlock", trueBlockPos + Vector3(-1, 0, 0));
+                if (_y == chunkSize.y || IsFaceVisibleBlock(blockData))
+                {
+                    BuildFace(blockFaceType::LEFT, Vector3(_x, _y, _z));
+                }
+
+                // right check
+                blockData = get_parent()->call("GetBlock", trueBlockPos + Vector3(1, 0, 0));
+                if (_y == chunkSize.y || IsFaceVisibleBlock(blockData))
+                {
+                    BuildFace(blockFaceType::RIGHT, Vector3(_x, _y, _z));
+                }
+
+                // front check
+                blockData = get_parent()->call("GetBlock", trueBlockPos + Vector3(0, 0, 1));
+                if (_y == chunkSize.y || IsFaceVisibleBlock(blockData))
+                {
+                    BuildFace(blockFaceType::FRONT, Vector3(_x, _y, _z));
+                }
+
+                // back check
+                blockData = get_parent()->call("GetBlock", trueBlockPos + Vector3(0, 0, -1));
+                if (_y == chunkSize.y || IsFaceVisibleBlock(blockData))
+                {
+                    BuildFace(blockFaceType::BACK, Vector3(_x, _y, _z));
+                }
             }
         }
     }
@@ -131,7 +167,6 @@ void chunk::BuildFace(int faceType, Vector3 pos)
 void chunk::CommitMesh()
 {
     MeshInstance *mesh = (MeshInstance*)get_node("mesh");
-
     mesh->set_mesh(surfaceToolInstance->commit());
 }
 

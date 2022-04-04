@@ -81,7 +81,7 @@ func GetBlock(blockPos:Vector3 = Vector3.ZERO):
 	
 	# check if the chunk is already loaded in-game before reading the disk
 	if (is_instance_valid(_chunk) && _chunk.data.has(Vector3(_chunkBlockPosX, blockPos.y, _chunkBlockPosZ))):
-		var blockData = _chunk.data[Vector3(_chunkBlockPosX, blockPos.y, _chunkBlockPosZ)]; # format: block id, directory storing meta data (example: a chest with items)
+		var blockData = _chunk.GetData()[Vector3(_chunkBlockPosX, blockPos.y, _chunkBlockPosZ)]; # format: block id, directory storing meta data (example: a chest with items)
 		return blockData;
 	
 	# if the above fails, check if it's saved on the drive instead, once that's actually implemented

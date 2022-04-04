@@ -14,3 +14,5 @@ build/
 .vscode/
 .vs
 /sourcecode/src/chunkGeneration
+*.dblite
+*.os
