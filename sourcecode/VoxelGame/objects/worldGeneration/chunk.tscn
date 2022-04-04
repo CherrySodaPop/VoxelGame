@@ -1,20 +1,8 @@
 [gd_scene load_steps=2 format=2]
 
-[ext_resource path="res://objects/worldGeneration/chunk.gd" type="Script" id=1]
+[ext_resource path="res://objects/worldGeneration/chunk.gdns" type="Script" id=1]
 
 [node name="chunk" type="Spatial"]
 script = ExtResource( 1 )
 
 [node name="mesh" type="MeshInstance" parent="."]
-
-[node name="mesh1" type="MeshInstance" parent="."]
-
-[node name="mesh2" type="MeshInstance" parent="."]
-
-[node name="mesh3" type="MeshInstance" parent="."]
-
-[node name="mesh4" type="MeshInstance" parent="."]
-
-[node name="mesh5" type="MeshInstance" parent="."]
-
-[node name="mesh6" type="MeshInstance" parent="."]

@@ -12,3 +12,5 @@ build/
 
 # Visual Studio ignores
 .vscode/
+.vs
+/sourcecode/src/chunkGeneration

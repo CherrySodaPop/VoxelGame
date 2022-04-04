@@ -88,4 +88,4 @@ func GetBlock(blockPos:Vector3 = Vector3.ZERO):
 	# ...
 	
 	# all has failed, panic!
-	return null;
+	return [-1];
