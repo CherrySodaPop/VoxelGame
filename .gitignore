@@ -16,3 +16,7 @@ build/
 /sourcecode/src/chunkGeneration
 *.dblite
 *.os
+
+# Compiled Godot bins ignores
+/sourcecode/VoxelGame/bins/*
+!/sourcecode/VoxelGame/bins/eeeee.gdnlib
