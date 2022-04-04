@@ -21,6 +21,7 @@ func _process(delta):
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE);
 	
 	HandleMovement(delta);
+	$Label.text = str(global_transform.origin);
 
 func _input(event:InputEvent):
 	if (event is InputEventMouseMotion):
@@ -51,16 +52,16 @@ func HandleMovement(delta):
 		desiredVec2Dir.x += 1;
 	if (Input.is_action_pressed("playerMoveRight")):
 		desiredVec2Dir.x -= 1;
-	desiredVec2Dir = CorrectRotation(desiredVec2Dir.normalized());
+	desiredVec2Dir = CorrectRotation(desiredVec2Dir.normalized() * 10.0);
 	var velocityVec2 = Vector2(velocity.x, velocity.z);
 	var storedInterpolateVelocityVec2 = velocityVec2.linear_interpolate(desiredVec2Dir * walkSpeed, acceleration * delta)
 	velocity = Vector3(storedInterpolateVelocityVec2.x, velocity.y, storedInterpolateVelocityVec2.y);
 	
 	var desiredUpDownDir:float = 0.0;
 	if (Input.is_action_pressed("playerJump")):
-		desiredUpDownDir += 1;
+		desiredUpDownDir += 10;
 	if (Input.is_action_pressed("playerCrouch")):
-		desiredUpDownDir -= 1;
+		desiredUpDownDir -= 10;
 	
 	velocity.y += ((desiredUpDownDir * walkSpeed) - velocity.y) * acceleration * delta;
 	
