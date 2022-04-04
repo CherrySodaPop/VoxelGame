@@ -4,5 +4,6 @@
 
 [node name="chunk" type="Spatial"]
 script = ExtResource( 1 )
+data = null
 
 [node name="mesh" type="MeshInstance" parent="."]
