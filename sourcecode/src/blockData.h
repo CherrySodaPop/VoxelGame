@@ -11,6 +11,10 @@
 
 #define BLOCKDATA_MISSING -1
 
+#define CHUNK_X_SIZE 32
+#define CHUNK_Z_SIZE 32
+#define CHUNK_Y_SIZE 256
+
 enum blockId {
 	AIR,
 	GRASS,

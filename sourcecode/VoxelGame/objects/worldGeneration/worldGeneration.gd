@@ -42,8 +42,8 @@ func _ready():
 	textureNoise.set_flags(0);
 	$TextureRect.texture = textureNoise;
 	
-	for _x in range(6):
-		for _y in range(6):
+	for _x in range(1):
+		for _y in range(1):
 			GenerateChunk(_x, _y);
 	#for _x in range(1):
 	#	for _z in range(1):

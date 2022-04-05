@@ -2,7 +2,7 @@
 #include <Mesh.hpp>
 #include <MeshInstance.hpp>
 #include <ArrayMesh.hpp>
-#include "blockData.h"
+#include <string>
 
 using namespace godot;
 
@@ -10,8 +10,6 @@ void chunk::_register_methods()
 {
     register_method((char*)"_ready", &chunk::_ready);
     register_method((char*)"_process", &chunk::_process);
-    register_method((char*)"GetData", &chunk::GetData);
-    register_property("data", &chunk::data, {});
 }
 
 chunk::chunk()
@@ -30,11 +28,29 @@ void chunk::_init()
 void chunk::_ready()
 {
     Generate();
-    ConstructMesh();
+    
+    //ConstructMesh();
+    /*
+    for (_x = 0; _x < 32; _x++)
+    {
+        for (_z = 0; _z < 32; _z++)
+        {
+            for (_y = 0; _y < 256; _y++)
+            {
+                newData[ _x  ]
+            }
+        }
+    }
+    */
 }
 
 void chunk::_process(float delta)
 {
+}
+
+int chunk::GetBlockId(int _x, int _y, int _z)
+{
+    return dataBlockId[ _x + (_z * CHUNK_X_SIZE) + (_y * CHUNK_X_SIZE * CHUNK_Z_SIZE) ];
 }
 
 void chunk::Generate()
@@ -43,33 +59,35 @@ void chunk::Generate()
     Vector3 chunkSize = get_parent()->get("chunkSize");
     //Dictionary blockData = (get_parent()->get("blockData/info"));
 
-    for (int _x = 0; _x < chunkSize.x; _x++)
+    for (int _x = 0; _x < CHUNK_X_SIZE; _x++)
     {
-        for (int _z = 0; _z < chunkSize.z; _z++)
+        for (int _z = 0; _z < CHUNK_Z_SIZE; _z++)
         {
             Vector2 trueBlockPos = Vector2(_x + this->get_transform().origin.x, _z + this->get_transform().origin.z);
             float noiseHeight = noise->get_noise_2dv(trueBlockPos);
             float terrainAmp = 0.1;
-            int terrainPeak = int(chunkSize.y * ((noiseHeight / 2.0) + 0.5) * terrainAmp);
+            int terrainPeak = int(CHUNK_Y_SIZE * ((noiseHeight / 2.0) + 0.5) * terrainAmp);
 
-            for (int _y = chunkSize.y; _y > -1; _y--)
+            for (int _y = CHUNK_Z_SIZE; _y > -1; _y--)
             {
                 if (_y > terrainPeak)
                 {
-                    Array blockData;
-                    Dictionary d;
-                    blockData.append(blockId::AIR);
-                    blockData.append(d);
-                    data[Vector3(_x, _y, _z)] = blockData;
+                    //Array blockData;
+                    //Dictionary d;
+                    //blockData.append(blockId::AIR);
+                    //blockData.append(d);
+                    //data[Vector3(_x, _y, _z)] = blockData;
+                    dataBlockId[ _x + (_z * CHUNK_X_SIZE) + (_y * CHUNK_X_SIZE * CHUNK_Z_SIZE) ] = blockId::AIR;
                     continue;
                 }
                 if (_y <= terrainPeak)
                 {
-                    Array blockData;
-                    Dictionary d;
-                    blockData.append(blockId::STONE);
-                    blockData.append(d);
-                    data[Vector3(_x, _y, _z)] = blockData;
+                    //Array blockData;
+                    //Dictionary d;
+                    //blockData.append(blockId::STONE);
+                    //blockData.append(d);
+                    //data[Vector3(_x, _y, _z)] = blockData;
+                    dataBlockId[ _x + (_z * CHUNK_X_SIZE) + (_y * CHUNK_X_SIZE * CHUNK_Z_SIZE) ] = blockId::STONE;
                     continue;
                 }
             }
