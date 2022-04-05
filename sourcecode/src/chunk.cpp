@@ -10,6 +10,7 @@ void chunk::_register_methods()
 {
     register_method((char*)"_ready", &chunk::_ready);
     register_method((char*)"_process", &chunk::_process);
+    register_method((char*)"GetDataBlockId", &chunk::GetDataBlockId);
 }
 
 chunk::chunk()
@@ -51,6 +52,17 @@ void chunk::_process(float delta)
 int chunk::GetBlockId(int _x, int _y, int _z)
 {
     return dataBlockId[ _x + (_z * CHUNK_X_SIZE) + (_y * CHUNK_X_SIZE * CHUNK_Z_SIZE) ];
+}
+
+Array chunk::GetDataBlockId()
+{
+    Array godotArray;
+    godotArray.resize(CHUNK_X_SIZE * CHUNK_Y_SIZE * CHUNK_Z_SIZE);
+    for (int i = 0; i < (CHUNK_X_SIZE * CHUNK_Y_SIZE * CHUNK_Z_SIZE); i++)
+    {
+        godotArray[i] = Variant(dataBlockId[i]);
+    }
+    return godotArray;
 }
 
 void chunk::Generate()
@@ -101,11 +113,11 @@ void chunk::ConstructMesh()
 
     BeginMeshConstruction();
 
-    for (int _x = 0; _x < chunkSize.x; _x++)
+    for (int _x = 0; _x < CHUNK_X_SIZE; _x++)
     {
-        for (int _z = 0; _z < chunkSize.z; _z++)
+        for (int _z = 0; _z < CHUNK_Z_SIZE; _z++)
         {
-            for (int _y = 0; _y < chunkSize.y; _y++)
+            for (int _y = 0; _y < CHUNK_Y_SIZE; _y++)
             {
                 Vector3 trueBlockPos = get_transform().origin + Vector3(_x, _y, _z);
                 Array blockData = get_parent()->call("GetBlock", trueBlockPos);

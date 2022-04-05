@@ -20,6 +20,9 @@ namespace godot
         void _process(float delta);
 
         int GetBlockId(int _x, int _y, int _z);
+
+        Array GetDataBlockId();
+
         void Generate();
         void ConstructMesh();
         void BeginMeshConstruction();
@@ -29,7 +32,6 @@ namespace godot
 
     private:
         SurfaceTool *surfaceToolInstance;
-
         int dataBlockId[CHUNK_X_SIZE * CHUNK_Y_SIZE * CHUNK_Z_SIZE];
     };
 }

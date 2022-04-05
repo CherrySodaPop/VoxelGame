@@ -16,8 +16,7 @@ enum meshFaceType {
 	LEFT,
 	RIGHT,
 	FRONT,
-	BACK,
-}
+	BACK, }
 const meshFacePos = {
 	meshFaceType.TOP : [Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3(1, 0, 0), Vector3(1, 0, 1), Vector3(0, 0, 1)],
 	meshFaceType.BOTTOM : [Vector3(0, -1, 1), Vector3(1, -1, 1), Vector3(0, -1, 0), Vector3(1, -1, 1), Vector3(1, -1, 0), Vector3(0, -1, 0)],
@@ -31,10 +30,12 @@ const meshFaceNormal = {
 	meshFaceType.LEFT : Vector3(-1, 0, 0),
 	meshFaceType.RIGHT : Vector3(1, 0, 0),
 	meshFaceType.FRONT : Vector3(0, 0, 1),
-	meshFaceType.BACK : Vector3(0, 0, -1),
-}
+	meshFaceType.BACK : Vector3(0, 0, -1), }
 const BLOCKDATA_ID = 0; 
 const BLOCKDATA_META = 1;
+const CHUNK_X_SIZE = 32;
+const CHUNK_Y_SIZE = 256;
+const CHUNK_Z_SIZE = 32;
 
 func _ready():
 	simplexNoise.seed = 1;
