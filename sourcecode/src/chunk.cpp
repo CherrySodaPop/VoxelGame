@@ -10,7 +10,6 @@ void chunk::_register_methods()
 {
     register_method((char*)"_ready", &chunk::_ready);
     register_method((char*)"_process", &chunk::_process);
-    //register_method((char*)"GetLocalBlockId", &chunk::GetLocalBlockId);
     register_method((char*)"ConstructMesh", &chunk::ConstructMesh);
 }
 
@@ -30,8 +29,6 @@ void chunk::_init()
 void chunk::_ready()
 {
     parent = (worldGeneration*)get_parent();
-    //meshFaceNormals = parent->get("meshFaceNormals");
-    //meshFacePositions = parent->meshFacePositions;
     transformOrigin = get_transform().origin;
     Generate();
 }
