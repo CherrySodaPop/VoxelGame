@@ -32,6 +32,7 @@ void chunk::_ready()
     parent = get_parent();
     meshFaceNormals = parent->get("meshFaceNormals");
     meshFacePositions = parent->get("meshFacePositions");
+    transformOrigin = get_transform().origin;
     Generate();
 }
 
@@ -54,7 +55,6 @@ void chunk::Generate()
 {
     OpenSimplexNoise *noise = parent->get("simplexNoise");
     Vector3 chunkSize = parent->get("chunkSize");
-    Vector3 transformOrigin = this->get_transform().origin;
     for (int _x = 0; _x < CHUNK_X_SIZE; _x++)
     {
         for (int _z = 0; _z < CHUNK_Z_SIZE; _z++)
@@ -113,7 +113,8 @@ void chunk::ConstructMesh()
         {
             for (int _y = 0; _y < CHUNK_Y_SIZE; _y++)
             {
-                Vector3 trueBlockPos = get_transform().origin + Vector3(_x, _y, _z);
+                Vector3 localBlockPos = Vector3(_x, _y, _z);
+                Vector3 trueBlockPos = transformOrigin + localBlockPos;
                 int blockDataId = GetWorldBlockId(trueBlockPos.x, trueBlockPos.y, trueBlockPos.z);
 
                 // check if we're not air
@@ -123,27 +124,27 @@ void chunk::ConstructMesh()
 
                 // top check
                 if (ShouldBuildFace(0, 1, 0))
-                    BuildFace(blockFaceType::TOP, Vector3(_x, _y, _z));
+                    BuildFace(blockFaceType::TOP, localBlockPos);
 
                 // bottom check
                 if (ShouldBuildFace(0, -1, 0))
-                    BuildFace(blockFaceType::BOTTOM, Vector3(_x, _y, _z));
+                    BuildFace(blockFaceType::BOTTOM, localBlockPos);
 
                 // left check
                 if (ShouldBuildFace(-1, 0, 0))
-                    BuildFace(blockFaceType::LEFT, Vector3(_x, _y, _z));
+                    BuildFace(blockFaceType::LEFT, localBlockPos);
 
                 // right check
                 if (ShouldBuildFace(1, 0, 0))
-                    BuildFace(blockFaceType::RIGHT, Vector3(_x, _y, _z));
+                    BuildFace(blockFaceType::RIGHT, localBlockPos);
 
                 // front check
                 if (ShouldBuildFace(0, 0, 1))
-                    BuildFace(blockFaceType::FRONT, Vector3(_x, _y, _z));
+                    BuildFace(blockFaceType::FRONT, localBlockPos);
 
                 // back check
                 if (ShouldBuildFace(0, 0, -1))
-                    BuildFace(blockFaceType::BACK, Vector3(_x, _y, _z));
+                    BuildFace(blockFaceType::BACK, localBlockPos);
             }
         }
     }

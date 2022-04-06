@@ -32,10 +32,11 @@ namespace godot
         void CommitMesh();
 
     private:
+        int dataBlockId[CHUNK_X_SIZE][CHUNK_Y_SIZE][CHUNK_Z_SIZE];
         Node *parent;
         SurfaceTool *surfaceToolInstance;
-        int dataBlockId[CHUNK_X_SIZE][CHUNK_Y_SIZE][CHUNK_Z_SIZE];
         Array meshFacePositions;
         PoolVector3Array meshFaceNormals;
+        Vector3 transformOrigin;
     };
 }
