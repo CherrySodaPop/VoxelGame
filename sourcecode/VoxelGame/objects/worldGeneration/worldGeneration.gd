@@ -43,8 +43,8 @@ func _ready():
 	textureNoise.set_flags(0);
 	$TextureRect.texture = textureNoise;
 	
-	for _x in range(1):
-		for _y in range(1):
+	for _x in range(6):
+		for _y in range(6):
 			GenerateChunk(_x, _y);
 	#for _x in range(1):
 	#	for _z in range(1):
@@ -83,7 +83,7 @@ func GetBlockId(blockPos:Vector3 = Vector3.ZERO):
 	# check if the chunk is already loaded in-game before reading the disk
 	# todo: when threads are added, add a check here making sure the chunk has actually finished generating
 	if (is_instance_valid(_chunk)):
-		return _chunk.GetBlockId();
+		return _chunk.GetBlockId(_chunkBlockPosX, blockPos.y, _chunkBlockPosZ);
 		#return _chunkBlockIdData[ _chunkBlockPosX + (_chunkBlockPosZ * CHUNK_X_SIZE) + (blockPos.y * CHUNK_X_SIZE * CHUNK_Z_SIZE) ];
 	
 	# if the above fails, check if it's saved on the drive instead, once that's actually implemented

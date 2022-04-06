@@ -30,19 +30,16 @@ void chunk::_init()
 void chunk::_ready()
 {
     Generate();
-    //ConstructMesh();
+    ConstructMesh();
 }
 
 void chunk::_process(float delta)
 {
 }
 
-Variant chunk::GetBlockId(int _x, int _y, int _z)
+int chunk::GetBlockId(int _x, int _y, int _z)
 {
-    //char thing[256];
-    //snprintf(thing, sizeof(thing), "%d", dataBlockId[_x][_y][_z]);
-    //Godot::print(thing);
-    return Variant(dataBlockId[_x][_y][_z]);
+    return dataBlockId[_x][_y][_z];
 }
 
 /*
@@ -61,7 +58,6 @@ Array chunk::GetData_BlockId()
 void chunk::Generate()
 {
     OpenSimplexNoise *noise = get_parent()->get("simplexNoise");
-    //Vector3 chunkSize = get_parent()->get("chunkSize");
 
     for (int _x = 0; _x < CHUNK_X_SIZE; _x++)
     {
@@ -76,24 +72,10 @@ void chunk::Generate()
             {
                 if (_y > terrainPeak)
                 {
-                    //Array blockData;
-                    //Dictionary d;
-                    //blockData.append(blockId::AIR);
-                    //blockData.append(d);
-                    //data[Vector3(_x, _y, _z)] = blockData;
                     dataBlockId[_x][_y][_z] = blockId::AIR;
                     continue;
                 }
-                if (_y <= terrainPeak)
-                {
-                    //Array blockData;
-                    //Dictionary d;
-                    //blockData.append(blockId::STONE);
-                    //blockData.append(d);
-                    //data[Vector3(_x, _y, _z)] = blockData;
-                    dataBlockId[_x][_y][_z] = blockId::STONE;
-                    continue;
-                }
+                dataBlockId[_x][_y][_z] = blockId::STONE;
             }
         }
     }

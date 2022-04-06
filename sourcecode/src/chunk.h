@@ -19,7 +19,7 @@ namespace godot
         void _ready();
         void _process(float delta);
 
-        Variant GetBlockId(int _x, int _y, int _z);
+        int GetBlockId(int _x, int _y, int _z);
 
         //Array GetChunkData_BlockId(); - godot converters
 

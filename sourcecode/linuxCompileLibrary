@@ -1,2 +1,2 @@
 #!/bin/bash
-scons platform=linux target=release bits=64 -j4
+scons platform=linux target=debug bits=64 -j4
