@@ -40,8 +40,29 @@ void chunk::_process(float delta)
 {
 }
 
-// TODO: GetDataBlockId needs to be re-implemented now that a 3D array
-//       is being used.
+Array chunk::ChunkData_BlockId()
+{
+    Array _chunkData;
+    _chunkData.resize(CHUNK_X_SIZE);
+
+    for (int _x = 0; _x < CHUNK_X_SIZE; _x++)
+    {
+        for (int _y = CHUNK_Y_SIZE - 1; _y > -1; _y++)
+        {
+            for (int _z = 0; _z < CHUNK_Z_SIZE; _z++)
+            {
+                Array _arrayY;
+                Array _arrayZ;
+
+                _arrayZ[_z] = dataBlockId[_x][_y][_z];
+                _arrayY[_y] = _arrayZ;
+                _chunkData[_x] = _arrayY;
+            }
+        }
+    }
+
+    return _chunkData;
+}
 
 int chunk::GetLocalBlockId(int _x, int _y, int _z)
 {
@@ -64,7 +85,7 @@ void chunk::Generate()
             float terrainAmp = 0.1;
             int terrainPeak = int(CHUNK_Y_SIZE * ((noiseHeight / 2.0) + 0.5) * terrainAmp);
 
-            for (int _y = CHUNK_Z_SIZE; _y > -1; _y--)
+            for (int _y = CHUNK_Y_SIZE - 1; _y > -1; _y--)
             {
                 if (_y > terrainPeak)
                 {

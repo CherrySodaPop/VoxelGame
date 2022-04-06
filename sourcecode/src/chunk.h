@@ -19,11 +19,16 @@ namespace godot
         void _ready();
         void _process(float delta);
 
+        // converts from C array to Godot array
+        Array ChunkData_BlockId();
+        
+        // get block info
         int GetLocalBlockId(int _x, int _y, int _z);
+        
         int GetWorldBlockId(int x, int y, int z);
         int GetWorldBlockId(Vector3 blockPos);
-        Array GetDataBlockId();
 
+        // mesh generation
         void Generate();
         void ConstructMesh();
         void BeginMeshConstruction();
@@ -33,10 +38,12 @@ namespace godot
 
     private:
         int dataBlockId[CHUNK_X_SIZE][CHUNK_Y_SIZE][CHUNK_Z_SIZE];
-        Node *parent;
+
         SurfaceTool *surfaceToolInstance;
         Array meshFacePositions;
         PoolVector3Array meshFaceNormals;
+
+        Node *parent;
         Vector3 transformOrigin;
     };
 }

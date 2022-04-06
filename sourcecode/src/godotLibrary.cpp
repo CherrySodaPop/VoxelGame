@@ -1,3 +1,4 @@
+#include "worldGeneration.h"
 #include "chunk.h"
 
 using namespace godot;
@@ -16,4 +17,5 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void* handle)
 {
 	Godot::nativescript_init(handle);
 	register_class<chunk>();
+	register_class<worldGeneration>();
 }
