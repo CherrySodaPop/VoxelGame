@@ -10,7 +10,8 @@ void chunk::_register_methods()
 {
     register_method((char*)"_ready", &chunk::_ready);
     register_method((char*)"_process", &chunk::_process);
-    register_method((char*)"GetDataBlockId", &chunk::GetDataBlockId);
+    //register_method((char*)"GetData_BlockId", &chunk::GetData_BlockId);
+    register_method((char*)"GetBlockId", &chunk::GetBlockId);
 }
 
 chunk::chunk()
@@ -29,32 +30,23 @@ void chunk::_init()
 void chunk::_ready()
 {
     Generate();
-    
     //ConstructMesh();
-    /*
-    for (_x = 0; _x < 32; _x++)
-    {
-        for (_z = 0; _z < 32; _z++)
-        {
-            for (_y = 0; _y < 256; _y++)
-            {
-                newData[ _x  ]
-            }
-        }
-    }
-    */
 }
 
 void chunk::_process(float delta)
 {
 }
 
-int chunk::GetBlockId(int _x, int _y, int _z)
+Variant chunk::GetBlockId(int _x, int _y, int _z)
 {
-    return dataBlockId[ _x + (_z * CHUNK_X_SIZE) + (_y * CHUNK_X_SIZE * CHUNK_Z_SIZE) ];
+    //char thing[256];
+    //snprintf(thing, sizeof(thing), "%d", dataBlockId[_x][_y][_z]);
+    //Godot::print(thing);
+    return Variant(dataBlockId[_x][_y][_z]);
 }
 
-Array chunk::GetDataBlockId()
+/*
+Array chunk::GetData_BlockId()
 {
     Array godotArray;
     godotArray.resize(CHUNK_X_SIZE * CHUNK_Y_SIZE * CHUNK_Z_SIZE);
@@ -64,12 +56,12 @@ Array chunk::GetDataBlockId()
     }
     return godotArray;
 }
+*/
 
 void chunk::Generate()
 {
     OpenSimplexNoise *noise = get_parent()->get("simplexNoise");
-    Vector3 chunkSize = get_parent()->get("chunkSize");
-    //Dictionary blockData = (get_parent()->get("blockData/info"));
+    //Vector3 chunkSize = get_parent()->get("chunkSize");
 
     for (int _x = 0; _x < CHUNK_X_SIZE; _x++)
     {
@@ -80,7 +72,7 @@ void chunk::Generate()
             float terrainAmp = 0.1;
             int terrainPeak = int(CHUNK_Y_SIZE * ((noiseHeight / 2.0) + 0.5) * terrainAmp);
 
-            for (int _y = CHUNK_Z_SIZE; _y > -1; _y--)
+            for (int _y = CHUNK_Y_SIZE - 1; _y > -1; _y--)
             {
                 if (_y > terrainPeak)
                 {
@@ -89,7 +81,7 @@ void chunk::Generate()
                     //blockData.append(blockId::AIR);
                     //blockData.append(d);
                     //data[Vector3(_x, _y, _z)] = blockData;
-                    dataBlockId[ _x + (_z * CHUNK_X_SIZE) + (_y * CHUNK_X_SIZE * CHUNK_Z_SIZE) ] = blockId::AIR;
+                    dataBlockId[_x][_y][_z] = blockId::AIR;
                     continue;
                 }
                 if (_y <= terrainPeak)
@@ -99,7 +91,7 @@ void chunk::Generate()
                     //blockData.append(blockId::STONE);
                     //blockData.append(d);
                     //data[Vector3(_x, _y, _z)] = blockData;
-                    dataBlockId[ _x + (_z * CHUNK_X_SIZE) + (_y * CHUNK_X_SIZE * CHUNK_Z_SIZE) ] = blockId::STONE;
+                    dataBlockId[_x][_y][_z] = blockId::STONE;
                     continue;
                 }
             }
@@ -120,51 +112,49 @@ void chunk::ConstructMesh()
             for (int _y = 0; _y < CHUNK_Y_SIZE; _y++)
             {
                 Vector3 trueBlockPos = get_transform().origin + Vector3(_x, _y, _z);
-                Array blockData = get_parent()->call("GetBlock", trueBlockPos);
+                int blockDataId = get_parent()->call("GetBlockId", trueBlockPos);
                 
-                int blockDataId = (int)blockData[BLOCKDATA_ID];
-
                 // check if we're not air
                 if (blockDataId == BLOCKDATA_MISSING || blockDataId == blockId::AIR) continue;
 
                 // top check
-                blockData = get_parent()->call("GetBlock", trueBlockPos + Vector3(0, 1, 0));
-                if (_y == chunkSize.y || IsFaceVisibleBlock(blockData))
+                blockDataId = get_parent()->call("GetBlockId", trueBlockPos + Vector3(0, 1, 0));
+                if (_y == CHUNK_Y_SIZE || IsFaceVisibleBlock(blockDataId))
                 {
                     BuildFace(blockFaceType::TOP, Vector3(_x, _y, _z));
                 }
 
                 // bottom check
-                blockData = get_parent()->call("GetBlock", trueBlockPos + Vector3(0, -1, 0));
-                if (_y == chunkSize.y || IsFaceVisibleBlock(blockData))
+                blockDataId = get_parent()->call("GetBlockId", trueBlockPos + Vector3(0, -1, 0));
+                if (_y == CHUNK_Y_SIZE || IsFaceVisibleBlock(blockDataId))
                 {
                     BuildFace(blockFaceType::BOTTOM, Vector3(_x, _y, _z));
                 }
 
                 // left check
-                blockData = get_parent()->call("GetBlock", trueBlockPos + Vector3(-1, 0, 0));
-                if (_y == chunkSize.y || IsFaceVisibleBlock(blockData))
+                blockDataId = get_parent()->call("GetBlockId", trueBlockPos + Vector3(-1, 0, 0));
+                if (_y == CHUNK_Y_SIZE || IsFaceVisibleBlock(blockDataId))
                 {
                     BuildFace(blockFaceType::LEFT, Vector3(_x, _y, _z));
                 }
 
                 // right check
-                blockData = get_parent()->call("GetBlock", trueBlockPos + Vector3(1, 0, 0));
-                if (_y == chunkSize.y || IsFaceVisibleBlock(blockData))
+                blockDataId = get_parent()->call("GetBlockId", trueBlockPos + Vector3(1, 0, 0));
+                if (_y == CHUNK_Y_SIZE || IsFaceVisibleBlock(blockDataId))
                 {
                     BuildFace(blockFaceType::RIGHT, Vector3(_x, _y, _z));
                 }
 
                 // front check
-                blockData = get_parent()->call("GetBlock", trueBlockPos + Vector3(0, 0, 1));
-                if (_y == chunkSize.y || IsFaceVisibleBlock(blockData))
+                blockDataId = get_parent()->call("GetBlockId", trueBlockPos + Vector3(0, 0, 1));
+                if (_y == CHUNK_Y_SIZE || IsFaceVisibleBlock(blockDataId))
                 {
                     BuildFace(blockFaceType::FRONT, Vector3(_x, _y, _z));
                 }
 
                 // back check
-                blockData = get_parent()->call("GetBlock", trueBlockPos + Vector3(0, 0, -1));
-                if (_y == chunkSize.y || IsFaceVisibleBlock(blockData))
+                blockDataId = get_parent()->call("GetBlockId", trueBlockPos + Vector3(0, 0, -1));
+                if (_y == CHUNK_Y_SIZE || IsFaceVisibleBlock(blockDataId))
                 {
                     BuildFace(blockFaceType::BACK, Vector3(_x, _y, _z));
                 }
@@ -200,8 +190,7 @@ void chunk::CommitMesh()
     mesh->set_mesh(surfaceToolInstance->commit());
 }
 
-bool chunk::IsFaceVisibleBlock(Array blockData)
+bool chunk::IsFaceVisibleBlock(int blockId)
 {
-    int blockDataId = (int)blockData[BLOCKDATA_ID];
-    return (blockDataId == BLOCKDATA_MISSING || blockDataId == blockId::AIR);
+    return (blockId == BLOCKDATA_MISSING || blockId == blockId::AIR);
 }

@@ -67,7 +67,7 @@ func GenerateChunk(_x:int, _z:int):
 	chunkData[Vector2(_x, _z)] = objChunk;
 	add_child(objChunk);
 
-func GetBlock(blockPos:Vector3 = Vector3.ZERO):
+func GetBlockId(blockPos:Vector3 = Vector3.ZERO):
 	blockPos.x = int(floor(blockPos.x));
 	blockPos.y = int(floor(blockPos.y));
 	blockPos.z = int(floor(blockPos.z));
@@ -81,12 +81,13 @@ func GetBlock(blockPos:Vector3 = Vector3.ZERO):
 	var _chunkBlockPosZ = (blockPos.z - (_chunkZ * chunkSize.z));
 	
 	# check if the chunk is already loaded in-game before reading the disk
-	if (is_instance_valid(_chunk) && _chunk.data.has(Vector3(_chunkBlockPosX, blockPos.y, _chunkBlockPosZ))):
-		var blockData = _chunk.GetData()[Vector3(_chunkBlockPosX, blockPos.y, _chunkBlockPosZ)]; # format: block id, directory storing meta data (example: a chest with items)
-		return blockData;
+	# todo: when threads are added, add a check here making sure the chunk has actually finished generating
+	if (is_instance_valid(_chunk)):
+		return _chunk.GetBlockId();
+		#return _chunkBlockIdData[ _chunkBlockPosX + (_chunkBlockPosZ * CHUNK_X_SIZE) + (blockPos.y * CHUNK_X_SIZE * CHUNK_Z_SIZE) ];
 	
 	# if the above fails, check if it's saved on the drive instead, once that's actually implemented
 	# ...
 	
 	# all has failed, panic!
-	return [-1];
+	return -1;
