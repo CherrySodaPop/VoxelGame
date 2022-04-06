@@ -6,4 +6,4 @@ const char *blockNames[] =
     "GRASS",
     "DIRT",
     "STONE",
-}
+};

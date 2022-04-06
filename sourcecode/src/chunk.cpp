@@ -10,7 +10,7 @@ void chunk::_register_methods()
 {
     register_method((char*)"_ready", &chunk::_ready);
     register_method((char*)"_process", &chunk::_process);
-    register_method((char*)"GetLocalBlockId", &chunk::GetLocalBlockId);
+    //register_method((char*)"GetLocalBlockId", &chunk::GetLocalBlockId);
     register_method((char*)"ConstructMesh", &chunk::ConstructMesh);
 }
 
@@ -29,9 +29,9 @@ void chunk::_init()
 
 void chunk::_ready()
 {
-    parent = get_parent();
-    meshFaceNormals = parent->get("meshFaceNormals");
-    meshFacePositions = parent->get("meshFacePositions");
+    parent = (worldGeneration*)get_parent();
+    //meshFaceNormals = parent->get("meshFaceNormals");
+    //meshFacePositions = parent->meshFacePositions;
     transformOrigin = get_transform().origin;
     Generate();
 }
@@ -66,16 +66,20 @@ Array chunk::ChunkData_BlockId()
 
 int chunk::GetLocalBlockId(int _x, int _y, int _z)
 {
-    if (_x < 0 || _y < 0 || _z < 0) {
+    // if we somehow are outside the chunk, DIE
+    if (_x < 0 || _y < 0 || _z < 0 ||
+        _x >= CHUNK_X_SIZE || _y >= CHUNK_Y_SIZE || _z >= CHUNK_Z_SIZE)
+    {
         return -1;
     }
+
     return dataBlockId[_x][_y][_z];
 }
 
 void chunk::Generate()
 {
-    OpenSimplexNoise *noise = parent->get("simplexNoise");
-    Vector3 chunkSize = parent->get("chunkSize");
+    OpenSimplexNoise *noise = parent->GetNoise();
+    //Vector3 chunkSize = parent->get("chunkSize");
     for (int _x = 0; _x < CHUNK_X_SIZE; _x++)
     {
         for (int _z = 0; _z < CHUNK_Z_SIZE; _z++)
@@ -100,6 +104,7 @@ void chunk::Generate()
 
 // This is pretty much just a faster version of GetWorldBlock from worldGeneration.gd.
 // (It does the world coords -> chunk coords conversion here, instead of in GDScript)
+/*
 int chunk::GetWorldBlockId(int x, int y, int z)
 {
     int chunkX = x / CHUNK_X_SIZE;
@@ -117,9 +122,10 @@ int chunk::GetWorldBlockId(int x, int y, int z)
 int chunk::GetWorldBlockId(Vector3 blockPos) {
     return GetWorldBlockId(blockPos.x, blockPos.y, blockPos.z);
 }
+*/
 
 // Macros to avoid repetition when checking adjacent blocks
-#define GetNearbyBlockId(x, y, z) GetWorldBlockId(trueBlockPos + Vector3(x, y, z))
+#define GetNearbyBlockId(xx, yy, zz) parent->GetWorldBlockId(trueBlockPos.x + xx, trueBlockPos.y + yy, trueBlockPos.z + zz)
 #define ShouldBuildFace(x, y, z) atYMax || IsFaceVisibleBlock(GetNearbyBlockId(x, y, z))
 
 void chunk::ConstructMesh()
@@ -136,7 +142,7 @@ void chunk::ConstructMesh()
             {
                 Vector3 localBlockPos = Vector3(_x, _y, _z);
                 Vector3 trueBlockPos = transformOrigin + localBlockPos;
-                int blockDataId = GetWorldBlockId(trueBlockPos.x, trueBlockPos.y, trueBlockPos.z);
+                int blockDataId = parent->GetWorldBlockId(trueBlockPos.x, trueBlockPos.y, trueBlockPos.z);
 
                 // check if we're not air
                 if (blockDataId == BLOCKDATA_MISSING || blockDataId == blockId::AIR) continue;
@@ -181,12 +187,12 @@ void chunk::BeginMeshConstruction()
 void chunk::BuildFace(int faceType, Vector3 pos)
 {
     surfaceToolInstance->add_uv(Vector2(0, 0));
-    surfaceToolInstance->add_normal(meshFaceNormals[faceType]);
+    surfaceToolInstance->add_normal(parent->GetMeshFaceNormal()[faceType]);
 
-    Array meshPosInfoArray = meshFacePositions[faceType];
+    std::array< std::array<Vector3, 6> , 6 > meshPosInfoArray = parent->GetMeshFacePos();
     for (int i = 0; i < 6; i++)
     {
-        surfaceToolInstance->add_vertex((Vector3)meshPosInfoArray[i] + pos);
+        surfaceToolInstance->add_vertex(meshPosInfoArray[faceType][i] + pos);
     }
 }
 

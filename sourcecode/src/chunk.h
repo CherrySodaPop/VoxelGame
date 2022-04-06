@@ -4,6 +4,7 @@
 #include <Spatial.hpp>
 #include <SurfaceTool.hpp>
 #include <OpenSimplexNoise.hpp>
+#include "worldGeneration.h"
 #include "blockData.h"
 
 namespace godot
@@ -25,8 +26,8 @@ namespace godot
         // get block info
         int GetLocalBlockId(int _x, int _y, int _z);
         
-        int GetWorldBlockId(int x, int y, int z);
-        int GetWorldBlockId(Vector3 blockPos);
+        //int GetWorldBlockId(int x, int y, int z);
+        //int GetWorldBlockId(Vector3 blockPos);
 
         // mesh generation
         void Generate();
@@ -40,10 +41,10 @@ namespace godot
         int dataBlockId[CHUNK_X_SIZE][CHUNK_Y_SIZE][CHUNK_Z_SIZE];
 
         SurfaceTool *surfaceToolInstance;
-        Array meshFacePositions;
-        PoolVector3Array meshFaceNormals;
+        //Array meshFacePositions;
+        //PoolVector3Array meshFaceNormals;
 
-        Node *parent;
+        worldGeneration *parent;
         Vector3 transformOrigin;
     };
 }
