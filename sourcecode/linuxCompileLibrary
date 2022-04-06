@@ -1,2 +1,0 @@
-#!/bin/bash
-scons platform=linux bits=64 -j4
