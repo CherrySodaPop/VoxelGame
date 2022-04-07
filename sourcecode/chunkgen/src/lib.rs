@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use gdnative::{
     api::{Mesh, MeshInstance, OpenSimplexNoise, SurfaceTool},
     prelude::*,
@@ -63,42 +65,58 @@ const MESH_FACE_NORMALS: [Vector3; 6] = [
     Vector3::new(0.0, 0.0, -1.0),
 ];
 
-const CHUNK_SIZE_X: usize = 32;
-const CHUNK_SIZE_Y: usize = 256;
-const CHUNK_SIZE_Z: usize = 32;
+// These don't need to be isizes, but it reduces the amount
+// of "as isize" that would be present otherwise.
+const CHUNK_SIZE_X: isize = 32;
+const CHUNK_SIZE_Y: isize = 256;
+const CHUNK_SIZE_Z: isize = 32;
 
+#[derive(Debug)]
 /// Represents a block's position in *world* space.
 struct BlockPosition {
-    // TODO: Use isizes once chunks can generate in the negative axes.
-    x: usize,
-    y: usize,
-    z: usize,
-    chunk: [usize; 2],
+    x: isize,
+    y: isize,
+    z: isize,
+    chunk: [isize; 2],
 }
 
 impl BlockPosition {
-    fn new(x: usize, y: usize, z: usize) -> Self {
+    fn new(x: isize, y: isize, z: isize) -> Self {
+        let xn = if x < 0 { 1 } else { 0 };
+        let zn = if z < 0 { 1 } else { 0 };
+        //                                             -------------- Round *downwards* in the negatives, instead of
+        //                                             |              towards zero.
+        //                                             |
+        //                        ----------------------------------- Avoid "flicking" to the next chunk at 32, 64, etc.,
+        //                        |                    |              do it at 33, 65, and so on instead.
+        //                        |                    |
+        //                        |                    |
+        let chunk_x = ((xn + x) / CHUNK_SIZE_X) - xn;
+        let chunk_z = ((zn + z) / CHUNK_SIZE_Z) - zn;
         BlockPosition {
             x,
             y,
             z,
-            chunk: [x / CHUNK_SIZE_X, z / CHUNK_SIZE_Z],
+            chunk: [chunk_x, chunk_z],
         }
     }
 
     fn local_position(&self) -> [usize; 3] {
         [
-            self.x - (self.chunk[0] * CHUNK_SIZE_X),
-            self.y,
-            self.z - (self.chunk[1] * CHUNK_SIZE_Z),
+            (self.x - (self.chunk[0] * CHUNK_SIZE_X)).abs() as usize,
+            self.y.abs() as usize,
+            (self.z - (self.chunk[1] * CHUNK_SIZE_Z)).abs() as usize,
         ]
     }
 
-    fn from_local_position(chunk: [usize; 2], local_position: [usize; 3]) -> Self {
+    fn from_local_position(chunk: [isize; 2], local_position: [isize; 3]) -> Self {
+        if local_position[0] > CHUNK_SIZE_X - 1 || local_position[2] > CHUNK_SIZE_Z - 1 {
+            panic!("invalid local_position: {:?}", local_position);
+        }
         Self::new(
-            local_position[0] + (chunk[0] * CHUNK_SIZE_X),
-            local_position[1],
-            local_position[2] + (chunk[1] * CHUNK_SIZE_Z),
+            local_position[0] as isize + (chunk[0] * CHUNK_SIZE_X),
+            local_position[1] as isize,
+            local_position[2] as isize + (chunk[1] * CHUNK_SIZE_Z),
         )
     }
 
@@ -106,22 +124,14 @@ impl BlockPosition {
         Vector3::new(self.x as f32, self.y as f32, self.z as f32)
     }
 
-    // These dumb methods can be replaced once The Great isize Switch occurs
-    fn offset_add(&self, x: usize, y: usize, z: usize) -> BlockPosition {
+    fn offset(&self, x: isize, y: isize, z: isize) -> BlockPosition {
         BlockPosition::new(self.x + x, self.y + y, self.z + z)
-    }
-
-    fn offset_sub(&self, x: usize, y: usize, z: usize) -> BlockPosition {
-        let new_x = self.x.checked_sub(x).unwrap_or(0);
-        let new_y = self.y.checked_sub(y).unwrap_or(0);
-        let new_z = self.z.checked_sub(z).unwrap_or(0);
-        BlockPosition::new(new_x, new_y, new_z)
     }
 }
 
 struct Chunk {
-    terrain: [[[u16; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X],
-    origin: [usize; 2],
+    terrain: [[[u16; CHUNK_SIZE_Z as usize]; CHUNK_SIZE_Y as usize]; CHUNK_SIZE_X as usize],
+    origin: [isize; 2],
     spatial: Ref<Spatial, Unique>,
 }
 
@@ -137,24 +147,20 @@ impl std::fmt::Debug for Chunk {
 #[derive(NativeClass)]
 #[inherit(Node)]
 pub struct ChunkGenerator {
-    chunks: Vec<Vec<Option<Chunk>>>,
+    chunks: BTreeMap<[isize; 2], Chunk>,
 }
 
 #[methods]
 impl ChunkGenerator {
     fn new(_owner: &Node) -> Self {
         ChunkGenerator {
-            chunks: vec![vec![]],
+            chunks: BTreeMap::new(),
         }
     }
 
     fn world_block(&self, block_position: BlockPosition) -> u16 {
         let chunk_origin = block_position.chunk;
-        let chunk = self
-            .chunks
-            .get(chunk_origin[0])
-            .and_then(|rock| rock.get(chunk_origin[1]))
-            .unwrap_or(&None);
+        let chunk = self.chunks.get(&chunk_origin);
         if let Some(chunk) = chunk {
             let chunk_coords = block_position.local_position();
             chunk.terrain[chunk_coords[0]][chunk_coords[1]][chunk_coords[2]]
@@ -163,30 +169,24 @@ impl ChunkGenerator {
         }
     }
 
-    fn all_chunks(&self) -> std::iter::Flatten<std::slice::Iter<'_, Vec<Option<Chunk>>>> {
-        self.chunks.iter().flatten()
-    }
-
     #[export]
     fn _ready(&mut self, _owner: &Node) {
         let simplex_noise = OpenSimplexNoise::new();
-        for z in 0..12usize {
-            for x in 0..12usize {
-                let mut new_chunk = Chunk::new([z, x]);
+        for x in -4..5isize {
+            for z in -4..5isize {
+                let origin = [x, z];
+                let mut new_chunk = Chunk::new(origin);
                 godot_print!("Generating new chunk {:?}", new_chunk);
                 new_chunk.generate(&*simplex_noise);
-                self.chunks[z].push(Some(new_chunk));
+                self.chunks.insert(origin, new_chunk);
             }
-            self.chunks.push(Vec::new());
         }
 
-        for chunk in self.all_chunks() {
-            if let Some(chunk) = chunk {
-                godot_print!("Constructing mesh for {:?}", chunk);
-                chunk.construct_mesh(self);
-                unsafe {
-                    _owner.add_child(chunk.spatial.assume_shared(), true);
-                }
+        for chunk in self.chunks.values() {
+            godot_print!("Constructing mesh for {:?}", chunk);
+            chunk.construct_mesh(self);
+            unsafe {
+                _owner.add_child(chunk.spatial.assume_shared(), true);
             }
         }
     }
@@ -194,18 +194,23 @@ impl ChunkGenerator {
 
 // Chunk implementation
 impl Chunk {
-    fn new(origin: [usize; 2]) -> Self {
+    fn new(origin: [isize; 2]) -> Self {
         let spatial = Spatial::new();
+        let spatial_transform = Self::spatial_transform(origin);
         spatial.set_transform(spatial.transform().translated(Vector3::new(
-            (origin[0] * CHUNK_SIZE_X) as f32,
-            0.0,
-            (origin[1] * CHUNK_SIZE_Z) as f32,
+            spatial_transform[0] as f32,
+            spatial_transform[1] as f32,
+            spatial_transform[2] as f32,
         )));
         Chunk {
-            terrain: [[[0; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X],
+            terrain: [[[0; CHUNK_SIZE_Z as usize]; CHUNK_SIZE_Y as usize]; CHUNK_SIZE_X as usize],
             origin,
             spatial,
         }
+    }
+
+    fn spatial_transform(origin: [isize; 2]) -> [isize; 3] {
+        [(origin[0] * CHUNK_SIZE_X), 0, (origin[1] * CHUNK_SIZE_Z)]
     }
 
     fn generate(&mut self, simplex_noise: &OpenSimplexNoise) {
@@ -216,12 +221,12 @@ impl Chunk {
                 let noise_height: f64 = simplex_noise
                     .get_noise_2dv(Vector2::new(world_block_x as f32, world_block_z as f32));
                 let terrain_peak =
-                    ((CHUNK_SIZE_Y as f64) * ((noise_height / 2.0) + 0.5) * 0.1) as usize;
+                    ((CHUNK_SIZE_Y as f64) * ((noise_height / 2.0) + 0.5) * 0.1) as isize;
                 for y in 0..CHUNK_SIZE_Y {
                     if y > terrain_peak {
                         continue;
                     }
-                    self.terrain[x][y][z] = 3;
+                    self.terrain[x as usize][y as usize][z as usize] = 3;
                 }
             }
         }
@@ -231,7 +236,7 @@ impl Chunk {
         &self,
         face_type: usize,
         surface_tool: &Ref<SurfaceTool, Unique>,
-        local_position: [usize; 3],
+        local_position: [isize; 3],
     ) {
         surface_tool.add_uv(Vector2::new(0.0, 0.0));
         surface_tool.add_normal(MESH_FACE_NORMALS[face_type]);
@@ -261,7 +266,7 @@ impl Chunk {
         for x in 0..CHUNK_SIZE_X {
             for y in 0..CHUNK_SIZE_Y {
                 for z in 0..CHUNK_SIZE_Z {
-                    let block_id = self.terrain[x][y][z];
+                    let block_id = self.terrain[x as usize][y as usize][z as usize];
                     if block_id == 0 {
                         continue;
                     }
@@ -273,22 +278,22 @@ impl Chunk {
                     // TODO: Maybe switch left and right enum values to make this
                     //       section easily replacable with a for-loop
 
-                    if self.check_nearby(block_position.offset_add(0, 1, 0), generator) == 0 {
+                    if self.check_nearby(block_position.offset(0, 1, 0), generator) == 0 {
                         self.construct_face(0, &surface_tool, local_position);
                     }
-                    if self.check_nearby(block_position.offset_sub(0, 1, 0), generator) == 0 {
+                    if self.check_nearby(block_position.offset(0, -1, 0), generator) == 0 {
                         self.construct_face(1, &surface_tool, local_position);
                     }
-                    if self.check_nearby(block_position.offset_sub(1, 0, 0), generator) == 0 {
+                    if self.check_nearby(block_position.offset(-1, 0, 0), generator) == 0 {
                         self.construct_face(2, &surface_tool, local_position);
                     }
-                    if self.check_nearby(block_position.offset_add(1, 0, 0), generator) == 0 {
+                    if self.check_nearby(block_position.offset(1, 0, 0), generator) == 0 {
                         self.construct_face(3, &surface_tool, local_position);
                     }
-                    if self.check_nearby(block_position.offset_add(0, 0, 1), generator) == 0 {
+                    if self.check_nearby(block_position.offset(0, 0, 1), generator) == 0 {
                         self.construct_face(4, &surface_tool, local_position);
                     }
-                    if self.check_nearby(block_position.offset_sub(0, 0, 1), generator) == 0 {
+                    if self.check_nearby(block_position.offset(0, 0, -1), generator) == 0 {
                         self.construct_face(5, &surface_tool, local_position);
                     }
                 }
@@ -308,3 +313,84 @@ fn init(handle: InitHandle) {
 }
 
 godot_init!(init);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_block_position() {
+        let bp = BlockPosition::new(0, 0, 0);
+        assert_eq!(bp.chunk, [0, 0]);
+        assert_eq!(bp.local_position(), [0, 0, 0]);
+        let bp = BlockPosition::new(31, 0, 31);
+        assert_eq!(bp.chunk, [0, 0]);
+        assert_eq!(bp.local_position(), [31, 0, 31]);
+        let bp = BlockPosition::new(32, 0, 32);
+        assert_eq!(bp.chunk, [1, 1]);
+        assert_eq!(bp.local_position(), [0, 0, 0]);
+        let bp = BlockPosition::new(63, 0, 63);
+        assert_eq!(bp.chunk, [1, 1]);
+        assert_eq!(bp.local_position(), [31, 0, 31]);
+        let bp = BlockPosition::new(64, 0, 64);
+        assert_eq!(bp.chunk, [2, 2]);
+        assert_eq!(bp.local_position(), [0, 0, 0]);
+        let bp = BlockPosition::new(-1, 0, -1);
+        assert_eq!(bp.chunk, [-1, -1]);
+        let bp = BlockPosition::new(-32, 0, -32);
+        assert_eq!(bp.chunk, [-1, -1]);
+        assert_eq!(bp.local_position(), [0, 0, 0]);
+        let bp = BlockPosition::new(-33, 0, -33);
+        assert_eq!(bp.chunk, [-2, -2]);
+        assert_eq!(bp.local_position(), [31, 0, 31]);
+        let bp = BlockPosition::new(-64, 0, -100);
+        assert_eq!(bp.chunk, [-2, -4]);
+        assert_eq!(bp.local_position(), [0, 0, 28]);
+        let bp = BlockPosition::new(-64, 0, -97);
+        assert_eq!(bp.chunk, [-2, -4]);
+        assert_eq!(bp.local_position(), [0, 0, 31]);
+        let bp = BlockPosition::new(-64, 0, -96);
+        assert_eq!(bp.chunk, [-2, -3]);
+        assert_eq!(bp.local_position(), [0, 0, 0]);
+    }
+
+    #[test]
+    fn test_spatial_transform() {
+        let origin = [0, 0];
+        assert_eq!(Chunk::spatial_transform(origin), [0, 0, 0]);
+        let origin = [-1, -1];
+        assert_eq!(Chunk::spatial_transform(origin), [-32, 0, -32]);
+        let origin = [-2, -2];
+        assert_eq!(Chunk::spatial_transform(origin), [-64, 0, -64]);
+        let origin = [3, 3];
+        assert_eq!(Chunk::spatial_transform(origin), [96, 0, 96]);
+    }
+
+    #[test]
+    fn test_from_local_position() {
+        let bp = BlockPosition::from_local_position([0, 0], [0, 0, 0]);
+        assert_eq!([bp.x, bp.y, bp.z], [0, 0, 0]);
+        let bp = BlockPosition::from_local_position([1, 1], [0, 0, 0]);
+        assert_eq!([bp.x, bp.y, bp.z], [32, 0, 32]);
+        let bp = BlockPosition::from_local_position([1, 1], [31, 0, 31]);
+        assert_eq!([bp.x, bp.y, bp.z], [63, 0, 63]);
+        let bp = BlockPosition::from_local_position([2, 2], [0, 0, 0]);
+        assert_eq!([bp.x, bp.y, bp.z], [64, 0, 64]);
+        let bp = BlockPosition::from_local_position([-1, -2], [0, 0, 0]);
+        assert_eq!([bp.x, bp.y, bp.z], [-32, 0, -64]);
+        let bp = BlockPosition::from_local_position([-2, -3], [1, 0, 1]);
+        assert_eq!([bp.x, bp.y, bp.z], [-63, 0, -95]);
+        let bp = BlockPosition::from_local_position([-2, -2], [31, 0, 31]);
+        assert_eq!([bp.x, bp.y, bp.z], [-33, 0, -33]);
+        let bp = BlockPosition::from_local_position([-1, -1], [0, 0, 0]);
+        assert_eq!([bp.x, bp.y, bp.z], [-32, 0, -32]);
+        let bp = BlockPosition::from_local_position([-1, -1], [31, 0, 31]);
+        assert_eq!([bp.x, bp.y, bp.z], [-1, 0, -1]);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_invalid_from_local_position() {
+        BlockPosition::from_local_position([-1, -1], [32, 0, 32]);
+    }
+}
