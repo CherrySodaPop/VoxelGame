@@ -1,8 +1,7 @@
-extends KinematicBody
+extends CharacterBody3D
 
 # with time, this stuff will moved to the server, but for its early staging, it's fine
 
-var velocity:Vector3 = Vector3.ZERO;
 var acceleration:float = 16.0
 var walkSpeed:float = 4.317
 var runSpeed:float = 5.612
@@ -54,7 +53,7 @@ func HandleMovement(delta):
 		desiredVec2Dir.x -= 1;
 	desiredVec2Dir = CorrectRotation(desiredVec2Dir.normalized() * 10.0);
 	var velocityVec2 = Vector2(velocity.x, velocity.z);
-	var storedInterpolateVelocityVec2 = velocityVec2.linear_interpolate(desiredVec2Dir * walkSpeed, acceleration * delta)
+	var storedInterpolateVelocityVec2 = velocityVec2.lerp(desiredVec2Dir * walkSpeed, acceleration * delta)
 	velocity = Vector3(storedInterpolateVelocityVec2.x, velocity.y, storedInterpolateVelocityVec2.y);
 	
 	var desiredUpDownDir:float = 0.0;
@@ -65,7 +64,7 @@ func HandleMovement(delta):
 	
 	velocity.y += ((desiredUpDownDir * walkSpeed) - velocity.y) * acceleration * delta;
 	
-	move_and_slide(velocity);
+	move_and_slide();
 
 func CorrectRotation(direction:Vector2):
 	var OffsetCalc1:Vector2 = Vector2(cos(-$camera.rotation.y), sin(-$camera.rotation.y)) * -direction.x;

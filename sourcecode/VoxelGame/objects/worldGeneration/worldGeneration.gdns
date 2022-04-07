@@ -1,8 +1,0 @@
-[gd_resource type="NativeScript" load_steps=2 format=2]
-
-[ext_resource path="res://bins/libChunkGeneration.gdnlib" type="GDNativeLibrary" id=1]
-
-[resource]
-resource_name = "worldGeneration"
-class_name = "worldGeneration"
-library = ExtResource( 1 )

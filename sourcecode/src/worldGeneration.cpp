@@ -61,10 +61,6 @@ void worldGeneration::_process()
 
 void worldGeneration::GenerateChunk(int _x, int _z)
 {
-    //char info[256];
-    //snprintf(info, sizeof(info), "Generating: %d, %d", _x, _z);
-    //Godot::print(info);
-
     chunk *objChunk = (chunk *)chunkScene->instance();
     int _xChunkPos = _x * CHUNK_X_SIZE;
     int _zChunkPos = _z * CHUNK_X_SIZE;
