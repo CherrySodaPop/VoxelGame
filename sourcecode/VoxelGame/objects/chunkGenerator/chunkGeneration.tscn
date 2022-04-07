@@ -1,0 +1,25 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://objects/chunkGenerator/NiceDay.gd" type="Script" id=1]
+[ext_resource path="res://objects/chunkGenerator/chunkGeneration.gdns" type="Script" id=2]
+
+[node name="chunkGeneration" type="Node"]
+script = ExtResource( 2 )
+
+[node name="TextureRect" type="TextureRect" parent="."]
+margin_left = 4.0
+margin_top = 3.0
+margin_right = 222.0
+margin_bottom = 233.0
+expand = true
+stretch_mode = 5
+
+[node name="RichTextLabel" type="Label" parent="."]
+margin_left = 5.0
+margin_top = 239.0
+margin_right = 294.0
+margin_bottom = 272.0
+text = "hello - have a nice day!!!!"
+align = 3
+valign = 3
+script = ExtResource( 1 )
