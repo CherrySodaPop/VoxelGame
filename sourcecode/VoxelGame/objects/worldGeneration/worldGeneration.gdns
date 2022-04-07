@@ -1,0 +1,8 @@
+[gd_resource type="NativeScript" load_steps=2 format=2]
+
+[ext_resource path="res://bins/chunkgen.gdnlib" type="GDNativeLibrary" id=1]
+
+[resource]
+resource_name = "ChunkGenerator"
+class_name = "ChunkGenerator"
+library = ExtResource( 1 )
