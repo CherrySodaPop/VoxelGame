@@ -1,11 +1,10 @@
 # Voxel Game
-This is a very early development of a "voxel based Animal Crossing" sandbox game.
+This is a very early development of a "voxel based Animal Crossing" sandbox game in Godot.
 
 # Things of Importance
-- Project version: 3.4.4
+- Godot Project version: 3.4.4
 
   You will have to compile the Rust crates for world generation, easy build scripts are provided!
-
 
 # Todo
 - Seperate chunk generation on seperate threads<br>
