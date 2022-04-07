@@ -1,2 +1,2 @@
 cargo build --release
-copy target\release\libchunkgeneration.dll ..\VoxelGame\bins
+copy target\release\chunkgeneration.dll ..\VoxelGame\bins\libchunkgeneration.dll
