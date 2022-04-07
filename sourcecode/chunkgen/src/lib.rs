@@ -87,12 +87,12 @@ impl BlockPosition {
         //                                             -------------- Round *downwards* in the negatives, instead of
         //                                             |              towards zero.
         //                                             |
-        //                        ----------------------------------- Avoid "flicking" to the next chunk at 32, 64, etc.,
-        //                        |                    |              do it at 33, 65, and so on instead.
+        //                        ----------------------------------- Avoid "flicking" to the next chunk at -32, -64, etc.,
+        //                        |                    |              do it at -33, -65, and so on instead.
         //                        |                    |
         //                        |                    |
-        let chunk_x = ((xn + x) / CHUNK_SIZE_X) - xn;
-        let chunk_z = ((zn + z) / CHUNK_SIZE_Z) - zn;
+        let chunk_x: isize = ((xn + x) / CHUNK_SIZE_X) - xn;
+        let chunk_z: isize = ((zn + z) / CHUNK_SIZE_Z) - zn;
         BlockPosition {
             x,
             y,
