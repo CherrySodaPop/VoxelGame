@@ -53,6 +53,7 @@ const MESH_FACE_POSITIONS: [[Vector3; 6]; 6] = [
         Vector3::new(1.0, -1.0, 0.0),
     ],
 ];
+
 const MESH_FACE_NORMALS: [Vector3; 6] = [
     Vector3::new(0.0, 1.0, 0.0),
     Vector3::new(0.0, -1.0, 0.0),
@@ -65,10 +66,6 @@ const MESH_FACE_NORMALS: [Vector3; 6] = [
 const CHUNK_SIZE_X: usize = 32;
 const CHUNK_SIZE_Y: usize = 256;
 const CHUNK_SIZE_Z: usize = 32;
-
-// const CHUNK_SIZE_X: usize = 4;
-// const CHUNK_SIZE_Y: usize = 32;
-// const CHUNK_SIZE_Z: usize = 4;
 
 struct Chunk {
     terrain: [[[u16; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X],
@@ -84,6 +81,91 @@ impl std::fmt::Debug for Chunk {
     }
 }
 
+// Chunk generator implementation
+#[derive(NativeClass)]
+#[inherit(Node)]
+pub struct ChunkGenerator {
+    chunks: Vec<Vec<Option<Chunk>>>,
+}
+
+#[methods]
+impl ChunkGenerator {
+    fn new(_owner: &Node) -> Self {
+        ChunkGenerator {
+            chunks: vec![vec![]],
+        }
+    }
+
+    fn world_to_chunk_coords(chunk_origin: [usize; 2], world_coords: Vector3) -> Vector3 {
+        Vector3::new(
+            world_coords.x - (chunk_origin[0] * CHUNK_SIZE_X) as f32,
+            world_coords.y,
+            world_coords.z - (chunk_origin[1] * CHUNK_SIZE_Z) as f32
+        )
+    }
+
+    fn chunk_of_world_position(world_coords: Vector3) -> [usize; 2] {
+        [
+            world_coords.x as usize / CHUNK_SIZE_X,
+            world_coords.z as usize / CHUNK_SIZE_Z,
+        ]
+    }
+
+    fn world_block(&self, block_position: Vector3) -> u16 {
+        let chunk_origin = Self::chunk_of_world_position(block_position);
+        let chunk = self
+            .chunks
+            .get(chunk_origin[0])
+            .and_then(|rock| rock.get(chunk_origin[1]))
+            .unwrap_or(&None);
+        if let Some(chunk) = chunk {
+            let chunk_coords = Self::world_to_chunk_coords(chunk.origin, block_position);
+            chunk.terrain[chunk_coords.x as usize][chunk_coords.y as usize][chunk_coords.z as usize]
+        } else {
+            0
+        }
+    }
+
+    fn all_chunks(&self) -> std::iter::Flatten<std::slice::Iter<'_, Vec<Option<Chunk>>>> {
+        self.chunks.iter().flatten()
+    }
+
+    #[export]
+    fn _ready(&mut self, _owner: &Node) {
+        let simplex_noise = OpenSimplexNoise::new();
+        for z in 0..12usize {
+            for x in 0..12usize {
+                let mut new_chunk = Chunk::new([z, x]);
+                godot_print!("Generating new chunk {:?}", new_chunk);
+                new_chunk.generate(&*simplex_noise);
+                // let chunk_node = Spatial::new();
+                // new_chunk.construct_mesh(&chunk_node, self);
+                // unsafe {
+                //     _owner.add_child(chunk_node.assume_shared(), true);
+                // }
+                self.chunks[z].push(Some(new_chunk));
+            }
+            self.chunks.push(Vec::new());
+        }
+
+        for chunk in self.all_chunks() {
+            if let Some(chunk) = chunk {
+                godot_print!("Constructing mesh for {:?}", chunk);
+                chunk.construct_mesh(self);
+                unsafe {
+                    _owner.add_child(chunk.spatial.assume_shared(), true);
+                }
+            }
+        }
+        //godot_print!("{:#?}", self.chunks);
+    }
+}
+
+fn init(handle: InitHandle) {
+    handle.add_class::<ChunkGenerator>();
+}
+
+// Chunk implementation
 impl Chunk {
     fn new(origin: [usize; 2]) -> Self {
         let spatial = Spatial::new();
@@ -104,8 +186,7 @@ impl Chunk {
             for z in 0..CHUNK_SIZE_Z {
                 let world_block_x = x + (self.origin[0] * CHUNK_SIZE_X);
                 let world_block_z = z + (self.origin[1] * CHUNK_SIZE_Z);
-                let noise_height: f64 = simplex_noise
-                    .get_noise_2dv(Vector2::new(world_block_x as f32, world_block_z as f32));
+                let noise_height: f64 = simplex_noise.get_noise_2dv(Vector2::new(world_block_x as f32, world_block_z as f32));
                 let terrain_peak =
                     ((CHUNK_SIZE_Y as f64) * ((noise_height / 2.0) + 0.5) * 0.1) as usize;
                 for y in 0..CHUNK_SIZE_Y {
@@ -142,8 +223,6 @@ impl Chunk {
         generator: &ChunkGenerator,
     ) -> u16 {
         let checking_world_position = world_position + offset;
-        // generator.world_block(checking_world_position)
-
         if ChunkGenerator::chunk_of_world_position(checking_world_position) == self.origin {
             let local_position =
                 ChunkGenerator::world_to_chunk_coords(self.origin, checking_world_position);
@@ -223,125 +302,4 @@ impl Chunk {
     }
 }
 
-#[derive(NativeClass)]
-#[inherit(Node)]
-pub struct ChunkGenerator {
-    chunks: Vec<Vec<Option<Chunk>>>,
-}
-
-#[methods]
-impl ChunkGenerator {
-    fn new(_owner: &Node) -> Self {
-        ChunkGenerator {
-            chunks: vec![vec![]],
-        }
-    }
-
-    fn world_to_chunk_coords(chunk_origin: [usize; 2], world_coords: Vector3) -> Vector3 {
-        //godot_print!("Chunk origin is {:?}", chunk_origin);
-        Vector3::new(
-            world_coords.x - (chunk_origin[0] * CHUNK_SIZE_X) as f32,
-            world_coords.y,
-            world_coords.z - (chunk_origin[1] * CHUNK_SIZE_Z) as f32
-        )
-    }
-
-    // SAFE
-    fn chunk_of_world_position(world_coords: Vector3) -> [usize; 2] {
-        [
-            world_coords.x as usize / CHUNK_SIZE_X,
-            world_coords.z as usize / CHUNK_SIZE_Z,
-        ]
-    }
-
-    fn world_block(&self, block_position: Vector3) -> u16 {
-        let chunk_origin = Self::chunk_of_world_position(block_position);
-        let chunk = self
-            .chunks
-            .get(chunk_origin[0])
-            .and_then(|rock| rock.get(chunk_origin[1]))
-            .unwrap_or(&None);
-        if let Some(chunk) = chunk {
-            let chunk_coords = Self::world_to_chunk_coords(chunk.origin, block_position);
-            //godot_print!("Block position {} {} {}", block_position.x, block_position.y, block_position.z);
-            //godot_print!("Get coords {} {} {}", chunk_coords.x, chunk_coords.y, chunk_coords.z);
-            chunk.terrain[chunk_coords.x as usize][chunk_coords.y as usize][chunk_coords.z as usize]
-        } else {
-            0
-        }
-    }
-
-    fn all_chunks(&self) -> std::iter::Flatten<std::slice::Iter<'_, Vec<Option<Chunk>>>> {
-        self.chunks.iter().flatten()
-    }
-
-    #[export]
-    fn _ready(&mut self, _owner: &Node) {
-        /*
-            [
-                [(0, 0), (1, 0), (2, 0), (3, 0)],
-                [(0, 1), (1, 1), (2, 1), (3, 1)]
-            ]
-        */
-        for z in 0..12usize {
-            for x in 0..12usize {
-                let mut new_chunk = Chunk::new([z, x]);
-                godot_print!("Generating new chunk {:?}", new_chunk);
-                let simplex_noise = OpenSimplexNoise::new();
-                new_chunk.generate(&*simplex_noise);
-                // let chunk_node = Spatial::new();
-                // new_chunk.construct_mesh(&chunk_node, self);
-                // unsafe {
-                //     _owner.add_child(chunk_node.assume_shared(), true);
-                // }
-                self.chunks[z].push(Some(new_chunk));
-            }
-            self.chunks.push(Vec::new());
-        }
-
-        for chunk in self.all_chunks() {
-            if let Some(chunk) = chunk {
-                godot_print!("Constructing mesh for {:?}", chunk);
-                chunk.construct_mesh(self);
-                unsafe {
-                    _owner.add_child(chunk.spatial.assume_shared(), true);
-                }
-            }
-        }
-        //godot_print!("{:#?}", self.chunks);
-    }
-}
-
-fn init(handle: InitHandle) {
-    handle.add_class::<ChunkGenerator>();
-}
-
 godot_init!(init);
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_chunk_of_world_position() {
-        assert_eq!(
-            ChunkGenerator::chunk_of_world_position(Vector3::new(0.0, 0.0, 0.0)),
-            [0, 0]
-        );
-        assert_eq!(
-            ChunkGenerator::chunk_of_world_position(Vector3::new(32.0, 128.0, 32.0)),
-            [1, 1]
-        );
-        assert_eq!(
-            ChunkGenerator::chunk_of_world_position(Vector3::new(32.0, 0.0, 0.0)),
-            [1, 0]
-        );
-    }
-    // fn test_world_block() {
-    //     let cg = ChunkGenerator {
-    //         chunks: vec![
-    //             vec![Chunk::new([0, 0])]
-    //         ]
-    //     }
-    // }
-}

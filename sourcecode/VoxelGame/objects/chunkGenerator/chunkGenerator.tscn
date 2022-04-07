@@ -1,10 +1,10 @@
 [gd_scene load_steps=3 format=2]
 
-[ext_resource path="res://objects/worldGeneration/worldGeneration.gdns" type="Script" id=1]
-[ext_resource path="res://objects/worldGeneration/NiceDay.gd" type="Script" id=2]
+[ext_resource path="res://objects/chunkGenerator/NiceDay.gd" type="Script" id=1]
+[ext_resource path="res://objects/chunkGenerator/chunkGenerator.gdns" type="Script" id=2]
 
-[node name="worldGeneration" type="Node"]
-script = ExtResource( 1 )
+[node name="chunkGenerator" type="Node"]
+script = ExtResource( 2 )
 
 [node name="TextureRect" type="TextureRect" parent="."]
 margin_left = 4.0
@@ -22,4 +22,4 @@ margin_bottom = 272.0
 text = "hello - have a nice day!!!!"
 align = 3
 valign = 3
-script = ExtResource( 2 )
+script = ExtResource( 1 )
