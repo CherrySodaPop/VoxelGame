@@ -188,13 +188,30 @@ impl ChunkGenerator {
         }
     }
 
-    fn chunk_node(&mut self, _owner: &Node, _origin: [isize; 2]) -> Option<Ref<Spatial, Unique>> {
+    #[export]
+    // returns chunk node - godot specific 
+    fn chunk_node_gd(&mut self, _owner: &Node, _origin: Vector2) -> Option<Ref<Spatial, Unique>> {
+        let origin: [isize; 2] = [
+            _origin.x as isize,
+            _origin.y as isize,
+        ];
+        self.chunk_node(origin)
+        /*
+        let _chunk = self.chunks.get(&origin);
+        if let Some(_chunk) = _chunk {
+            _chunk
+        } else {
+            self
+        }
+        */
+    }
+
+    // return chunk node
+    fn chunk_node(&mut self, _origin: [isize; 2]) -> Option<Ref<Spatial, Unique>> {
         let _chunk = self.chunks.get(&_origin);
         if let Some(_chunk) = _chunk {
             Some(_chunk.spatial)
-        }
-        else
-        {
+        } else {
             None
         }
     }
@@ -293,10 +310,21 @@ impl Chunk {
     }
 
     fn construct_mesh(&self, generator: &ChunkGenerator) {
-        let chunkNode: &Node = generator.chunk_node;
-        if (ch) MeshInstance::new();
+        let mesh = MeshInstance::new();
         let surface_tool = SurfaceTool::new();
         surface_tool.begin(Mesh::PRIMITIVE_TRIANGLES);
+
+        // check if the node/mesh already exists, if so use that instead
+        let chunkNode = generator.chunk_node(self.origin);
+        if let Some(chunkNode) = chunkNode {
+            let thing = chunkNode.get_node("PATH");
+            //mesh =
+        }
+        else
+        {
+            mesh = MeshInstance::new();
+        }
+
         for x in 0..CHUNK_SIZE_X {
             for y in 0..CHUNK_SIZE_Y {
                 for z in 0..CHUNK_SIZE_Z {
