@@ -149,15 +149,18 @@ impl std::fmt::Debug for Chunk {
 pub struct ChunkGenerator {
     chunks: BTreeMap<[isize; 2], Chunk>,
 }
+ 
 
 #[methods]
 impl ChunkGenerator {
+    // constructor
     fn new(_owner: &Node) -> Self {
         ChunkGenerator {
             chunks: BTreeMap::new(),
         }
     }
 
+    // get the block id
     fn world_block(&self, block_position: BlockPosition) -> u16 {
         let chunk_origin = block_position.chunk;
         let chunk = self.chunks.get(&chunk_origin);
@@ -170,10 +173,38 @@ impl ChunkGenerator {
     }
 
     #[export]
+    fn generate_chunk_mesh(&mut self, _owner: &Node, _origin: Vector2) {
+    //fn generate_chunk_mesh(&mut self, _owner: &Node, _origin: Vec<isize>) {
+        let origin: [isize; 2] = [
+            _origin.x as isize,
+            _origin.y as isize,
+        ];
+        //let origin = _origin.as_slice();
+        let _chunk = self.chunks.get(&origin);
+        if let Some(_chunk) = _chunk {
+            _chunk.construct_mesh(self);
+        } else {
+            godot_print!("chunkgeneration: attempted to generate unloaded chunk!");
+        }
+    }
+
+    fn chunk_node(&mut self, _owner: &Node, _origin: [isize; 2]) -> Option<Ref<Spatial, Unique>> {
+        let _chunk = self.chunks.get(&_origin);
+        if let Some(_chunk) = _chunk {
+            Some(_chunk.spatial)
+        }
+        else
+        {
+            None
+        }
+    }
+
+    #[export]
     fn _ready(&mut self, _owner: &Node) {
+        // generate chunks
         let simplex_noise = OpenSimplexNoise::new();
-        for x in -4..5isize {
-            for z in -4..5isize {
+        for x in -0..1isize {
+            for z in -0..1isize {
                 let origin = [x, z];
                 let mut new_chunk = Chunk::new(origin);
                 godot_print!("Generating new chunk {:?}", new_chunk);
@@ -181,7 +212,8 @@ impl ChunkGenerator {
                 self.chunks.insert(origin, new_chunk);
             }
         }
-
+        // generate mesh (to be removed! - cherry)
+        
         for chunk in self.chunks.values() {
             godot_print!("Constructing mesh for {:?}", chunk);
             chunk.construct_mesh(self);
@@ -189,6 +221,7 @@ impl ChunkGenerator {
                 _owner.add_child(chunk.spatial.assume_shared(), true);
             }
         }
+        
     }
 }
 
@@ -260,7 +293,8 @@ impl Chunk {
     }
 
     fn construct_mesh(&self, generator: &ChunkGenerator) {
-        let mesh = MeshInstance::new();
+        let chunkNode: &Node = generator.chunk_node;
+        if (ch) MeshInstance::new();
         let surface_tool = SurfaceTool::new();
         surface_tool.begin(Mesh::PRIMITIVE_TRIANGLES);
         for x in 0..CHUNK_SIZE_X {

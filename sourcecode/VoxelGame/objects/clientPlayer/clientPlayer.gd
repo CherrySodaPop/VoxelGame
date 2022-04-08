@@ -7,8 +7,13 @@ var acceleration:float = 16.0
 var walkSpeed:float = 4.317
 var runSpeed:float = 5.612
 
+var prevChunk:Vector2 = Vector2.ZERO;
+var currentChunk:Vector2 = Vector2.ZERO;
+
 var mouseSensitivity:float = 0.2;
 var lockMouse:bool = false;
+
+signal enteredNewChunk;
 
 func _ready():
 	$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_SHADOWS_ONLY;
@@ -20,28 +25,28 @@ func _process(delta):
 		else:
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE);
 	
+	UpdateMiscInfo(delta);
 	HandleMovement(delta);
-	$Label.text = str(global_transform.origin);
-	$model.rotation.y = $camera.rotation.y + deg2rad(180);
+	HandleAnimation(delta);
 
 func _input(event:InputEvent):
 	if (event is InputEventMouseMotion):
 		HandleCamera(event.relative);
 
-func HandleCamera(mouseMotion:Vector2):
-	if (Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED):
-		mouseMotion = -mouseMotion * mouseSensitivity;
-		$camera.rotate_y(deg2rad(mouseMotion.x));
-		
-		var allowRotation:bool = true;
-		if (($camera.rotation.x + deg2rad(mouseMotion.y)) >= PI/2):
-			$camera.rotation.x = PI/2;
-			allowRotation = false;
-		if (($camera.rotation.x + deg2rad(mouseMotion.y)) <= -PI/2):
-			$camera.rotation.x = -PI/2;
-			allowRotation = false;
-		if (allowRotation):
-			$camera.rotate_object_local(Vector3.RIGHT, deg2rad(mouseMotion.y));
+func UpdateMiscInfo(delta):
+	# chunk pos update
+	var xn:int = 0;
+	if (global_transform.origin.x < 0): xn = 1;
+	var zn:int = 0;
+	if (global_transform.origin.z < 0): zn = 1;
+	
+	var q = global_transform.origin.x;
+	currentChunk.x = floor((global_transform.origin.x) / Persistant.chunkSize.x);
+	currentChunk.y = floor((global_transform.origin.z) / Persistant.chunkSize.x);
+	
+	if (currentChunk != prevChunk):
+		emit_signal("enteredNewChunk");
+		prevChunk = currentChunk;
 
 func HandleMovement(delta):
 	var desiredVec2Dir:Vector2 = Vector2.ZERO;
@@ -67,6 +72,24 @@ func HandleMovement(delta):
 	velocity.y += ((desiredUpDownDir * walkSpeed) - velocity.y) * acceleration * delta;
 	
 	move_and_slide(velocity);
+
+func HandleAnimation(delta):
+	$model.rotation.y = $camera.rotation.y + deg2rad(180);
+
+func HandleCamera(mouseMotion:Vector2):
+	if (Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED):
+		mouseMotion = -mouseMotion * mouseSensitivity;
+		$camera.rotate_y(deg2rad(mouseMotion.x));
+		
+		var allowRotation:bool = true;
+		if (($camera.rotation.x + deg2rad(mouseMotion.y)) >= PI/2):
+			$camera.rotation.x = PI/2;
+			allowRotation = false;
+		if (($camera.rotation.x + deg2rad(mouseMotion.y)) <= -PI/2):
+			$camera.rotation.x = -PI/2;
+			allowRotation = false;
+		if (allowRotation):
+			$camera.rotate_object_local(Vector3.RIGHT, deg2rad(mouseMotion.y));
 
 func CorrectRotation(direction:Vector2):
 	var OffsetCalc1:Vector2 = Vector2(cos(-$camera.rotation.y), sin(-$camera.rotation.y)) * -direction.x;
