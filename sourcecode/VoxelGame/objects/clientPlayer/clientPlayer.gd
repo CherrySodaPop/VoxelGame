@@ -11,7 +11,7 @@ var mouseSensitivity:float = 0.2;
 var lockMouse:bool = false;
 
 func _ready():
-	pass
+	$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_SHADOWS_ONLY;
 
 func _process(delta):
 	if (Input.is_action_just_pressed("gamePause")):
@@ -22,6 +22,7 @@ func _process(delta):
 	
 	HandleMovement(delta);
 	$Label.text = str(global_transform.origin);
+	$model.rotation.y = $camera.rotation.y + deg2rad(180);
 
 func _input(event:InputEvent):
 	if (event is InputEventMouseMotion):
