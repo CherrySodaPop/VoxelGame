@@ -246,7 +246,7 @@ impl Chunk {
                 vertex.y + local_position[1] as f32,
                 vertex.z + local_position[2] as f32,
             );
-            surface_tool.add_vertex(vertex + position);
+            surface_tool.add_vertex(position);
         }
     }
 
