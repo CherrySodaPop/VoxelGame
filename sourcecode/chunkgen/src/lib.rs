@@ -133,6 +133,7 @@ struct Chunk {
     terrain: [[[u16; CHUNK_SIZE_Z as usize]; CHUNK_SIZE_Y as usize]; CHUNK_SIZE_X as usize],
     origin: [isize; 2],
     spatial: Ref<Spatial, Unique>,
+    mesh: Ref<MeshInstance, Unique>,
 }
 
 impl std::fmt::Debug for Chunk {
@@ -184,37 +185,49 @@ impl ChunkGenerator {
         if let Some(_chunk) = _chunk {
             _chunk.construct_mesh(self);
         } else {
-            godot_print!("chunkgeneration: attempted to generate unloaded chunk!");
+            godot_print!("chunkgeneration: attempted to generate unloaded chunk mesh!");
         }
     }
 
     #[export]
+    // check if the chunk is loaded or not - godot specific
+    fn chunk_loaded_godot(&self, _owner: &Node, _origin: Vector2) -> bool {
+        let origin: [isize; 2] = [
+            _origin.x as isize,
+            _origin.y as isize,
+        ];
+        self.chunk_loaded(origin)
+    }
+
+    // check if the chunk is loaded or not - internal
+    fn chunk_loaded(&self, _origin: [isize; 2]) -> bool {
+        let _chunk = self.chunks.get(&_origin);
+        if let Some(_chunk) = _chunk {
+            true
+        } else {
+            false
+        }
+    }
+
+    // TODO: this doesnt compile, im mad
+    /*
+    #[export]
     // returns chunk node - godot specific 
-    fn chunk_node_gd(&mut self, _owner: &Node, _origin: Vector2) -> Option<Ref<Spatial, Unique>> {
+    fn chunk_node_gd(&self, _owner: &Node, _origin: Vector2) -> Ref<Spatial, Unique> {
         let origin: [isize; 2] = [
             _origin.x as isize,
             _origin.y as isize,
         ];
         self.chunk_node(origin)
-        /*
-        let _chunk = self.chunks.get(&origin);
-        if let Some(_chunk) = _chunk {
-            _chunk
-        } else {
-            self
-        }
-        */
     }
 
-    // return chunk node
-    fn chunk_node(&mut self, _origin: [isize; 2]) -> Option<Ref<Spatial, Unique>> {
+    // return chunk node - internal
+    fn chunk_node(&self, _origin: [isize; 2]) -> Ref<Spatial, Unique> {
         let _chunk = self.chunks.get(&_origin);
-        if let Some(_chunk) = _chunk {
-            Some(_chunk.spatial)
-        } else {
-            None
-        }
+        let _chunk = _chunk.unwrap();
+        _chunk.spatial
     }
+    */
 
     #[export]
     fn _ready(&mut self, _owner: &Node) {
@@ -235,6 +248,7 @@ impl ChunkGenerator {
             godot_print!("Constructing mesh for {:?}", chunk);
             chunk.construct_mesh(self);
             unsafe {
+                chunk.spatial.add_child(chunk.mesh.assume_shared(), true);
                 _owner.add_child(chunk.spatial.assume_shared(), true);
             }
         }
@@ -246,6 +260,7 @@ impl ChunkGenerator {
 impl Chunk {
     fn new(origin: [isize; 2]) -> Self {
         let spatial = Spatial::new();
+        let mesh = MeshInstance::new();
         let spatial_transform = Self::spatial_transform(origin);
         spatial.set_transform(spatial.transform().translated(Vector3::new(
             spatial_transform[0] as f32,
@@ -256,6 +271,7 @@ impl Chunk {
             terrain: [[[0; CHUNK_SIZE_Z as usize]; CHUNK_SIZE_Y as usize]; CHUNK_SIZE_X as usize],
             origin,
             spatial,
+            mesh,
         }
     }
 
@@ -309,21 +325,27 @@ impl Chunk {
         }
     }
 
+    // once we add the server and client
+    // this should only be called when you receieve all the packets 
     fn construct_mesh(&self, generator: &ChunkGenerator) {
-        let mesh = MeshInstance::new();
+        //let mesh = MeshInstance::new();
         let surface_tool = SurfaceTool::new();
         surface_tool.begin(Mesh::PRIMITIVE_TRIANGLES);
 
         // check if the node/mesh already exists, if so use that instead
-        let chunkNode = generator.chunk_node(self.origin);
-        if let Some(chunkNode) = chunkNode {
-            let thing = chunkNode.get_node("PATH");
-            //mesh =
-        }
-        else
-        {
-            mesh = MeshInstance::new();
-        }
+        /*
+        let mesh = {
+            //let chunkNode = generator.chunks.get(&self.origin);
+            //let mesh = generator.chunk_node([0,2]);
+            if generator.chunk_loaded(self.origin) {
+                let chunkNode = generator.chunk_node(self.origin);
+                chunkNode.get_node("MeshInstance").unwrap()
+            } else {
+                MeshInstance::new()
+                self.get_node("")
+            }
+        };
+        */
 
         for x in 0..CHUNK_SIZE_X {
             for y in 0..CHUNK_SIZE_Y {
@@ -361,12 +383,12 @@ impl Chunk {
                 }
             }
         }
-        mesh.set_mesh(
+        self.mesh.set_mesh(
             surface_tool
                 .commit(Null::null(), Mesh::ARRAY_COMPRESS_DEFAULT)
                 .unwrap(),
         );
-        self.spatial.add_child(mesh, true);
+        //self.spatial.add_child(mesh, true);
     }
 }
 
