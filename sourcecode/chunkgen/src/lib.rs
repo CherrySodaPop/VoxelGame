@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, isize};
 
 use gdnative::{
     api::{Mesh, MeshInstance, OpenSimplexNoise, SurfaceTool},
@@ -174,8 +174,8 @@ impl ChunkGenerator {
     }
 
     #[export]
+    // constructs the specified chunk mesh - godot specific
     fn generate_chunk_mesh(&mut self, _owner: &Node, _origin: Vector2) {
-    //fn generate_chunk_mesh(&mut self, _owner: &Node, _origin: Vec<isize>) {
         let origin: [isize; 2] = [
             _origin.x as isize,
             _origin.y as isize,
@@ -201,33 +201,45 @@ impl ChunkGenerator {
 
     // check if the chunk is loaded or not - internal
     fn chunk_loaded(&self, _origin: [isize; 2]) -> bool {
-        let _chunk = self.chunks.get(&_origin);
-        if let Some(_chunk) = _chunk {
-            true
-        } else {
-            false
-        }
+        self.chunks.contains_key(&_origin)
     }
 
-    // TODO: this doesnt compile, im mad
-    /*
+    // set block - godot
+    #[export]
+    fn set_block_godot(&mut self, _owner: &Node, _origin: Vector3, block_id: u16) {
+        let origin: [isize; 3] = [
+            _origin.x as isize,
+            _origin.y as isize,
+            _origin.z as isize,
+        ];
+        self.set_block(origin, block_id);
+    }
+
+    // set block - internal
+    fn set_block(&mut self, _origin: [isize; 3], block_id: u16) {
+        let block_data = BlockPosition::new(_origin[0],_origin[1],_origin[2]);
+        let block_chunk_pos = block_data.chunk;
+
+        if self.chunk_loaded(block_chunk_pos) {
+            let chunk = self.chunks.get_mut(&block_chunk_pos).unwrap();
+            let block_local_pos = block_data.local_position();
+            chunk.set_block(block_local_pos, block_id);
+            return;
+        }
+        godot_print!("chunkgeneration: attempting to set block on unloaded chunk")
+    }
+
     #[export]
     // returns chunk node - godot specific 
-    fn chunk_node_gd(&self, _owner: &Node, _origin: Vector2) -> Ref<Spatial, Unique> {
+    fn chunk_node_id_gd(&self, _owner: &Node, _origin: Vector2) -> i64 {
         let origin: [isize; 2] = [
             _origin.x as isize,
             _origin.y as isize,
         ];
-        self.chunk_node(origin)
-    }
-
-    // return chunk node - internal
-    fn chunk_node(&self, _origin: [isize; 2]) -> Ref<Spatial, Unique> {
-        let _chunk = self.chunks.get(&_origin);
+        let _chunk = self.chunks.get(&origin);
         let _chunk = _chunk.unwrap();
-        _chunk.spatial
+        _chunk.spatial.get_instance_id()
     }
-    */
 
     #[export]
     fn _ready(&mut self, _owner: &Node) {
@@ -279,6 +291,10 @@ impl Chunk {
         [(origin[0] * CHUNK_SIZE_X), 0, (origin[1] * CHUNK_SIZE_Z)]
     }
 
+    fn set_block(&mut self, pos: [usize; 3], block_id: u16) {
+        self.terrain[pos[0]][pos[1]][pos[2]] = block_id;
+    }
+
     fn generate(&mut self, simplex_noise: &OpenSimplexNoise) {
         for x in 0..CHUNK_SIZE_X {
             for z in 0..CHUNK_SIZE_Z {
@@ -292,7 +308,7 @@ impl Chunk {
                     if y > terrain_peak {
                         continue;
                     }
-                    self.terrain[x as usize][y as usize][z as usize] = 3;
+                    self.terrain[x as usize][y as usize][z as usize] = 3; // TODO: replace with proper block id
                 }
             }
         }
