@@ -86,22 +86,31 @@ enum BlockFace {
 }
 
 impl BlockFace {
+    /// Whether or not this block face is on the X or Z axes.
     fn is_side(&self) -> bool {
+        // This enum stuff is making me *miss* C++, somehow.
         let i = *self as u8;
         i != 0 && i != 1
     }
+    /// Whether or not this block face is on the X axis (+ or -).
     fn is_x_axis(&self) -> bool {
         let i = *self as u8;
         i == 2 || i == 3
     }
+    /// Whether or not this block face is on the Z axis (+ or -).
     fn is_z_axis(&self) -> bool {
         let i = *self as u8;
         i == 4 || i == 5
     }
+    /// Whether or not this block face is on the Y axis (+ or -).
     fn is_y_axis(&self) -> bool {
         let i = *self as u8;
         i == 0 || i == 1
     }
+    /// Returns the offset of a block that would be resting on this face.
+    ///
+    /// e.g., the block resting on `BlockFace::Top` would be 1 above the
+    /// block this face represents, so `[0, 1, 0]`.
     fn block_offset(&self) -> [isize; 3] {
         match self {
             BlockFace::Top => [0, 1, 0],
@@ -112,7 +121,11 @@ impl BlockFace {
             BlockFace::Back => [0, 0, -1],
         }
     }
-    fn uv_offset(&self) -> isize {
+    /// The texture atlas holds textures in the order top, sides, bottom.
+    ///
+    /// As such, this will return 0 for top faces, 1 for left, right, front,
+    /// or back faces, and 2 for bottom faces.
+    fn atlas_offset(&self) -> isize {
         if self.is_side() {
             1
         } else {
@@ -279,6 +292,7 @@ impl ChunkGenerator {
     }
 }
 
+/// Returns the UV coordinates for this vertex, accounting for what face it's on.
 fn vertex_uv(vertex: Vector3, face: BlockFace) -> [f32; 2] {
     [
         if face.is_x_axis() { vertex.z } else { vertex.x },
@@ -311,6 +325,7 @@ impl Chunk {
         [(origin[0] * CHUNK_SIZE_X), 0, (origin[1] * CHUNK_SIZE_Z)]
     }
 
+    /// Generates the chunk's terrain data, storing it in `Chunk.terrain`.
     fn generate(&mut self, simplex_noise: &OpenSimplexNoise) {
         for x in 0..CHUNK_SIZE_X {
             for z in 0..CHUNK_SIZE_Z {
@@ -331,6 +346,7 @@ impl Chunk {
         }
     }
 
+    /// Builds a block face in the mesh, and handles its texture/UV mapping.
     fn construct_face(
         &self,
         face: BlockFace,
@@ -346,7 +362,7 @@ impl Chunk {
             let mut uv = vertex_uv(vertex, face);
             // Align the UV to its position within the texture atlas
             let texture_x =
-                ((3.0 * block_id as f32) + face.uv_offset() as f32 + uv[0]) * TEXTURE_WIDTH;
+                ((3.0 * block_id as f32) + face.atlas_offset() as f32 + uv[0]) * TEXTURE_WIDTH;
             uv = [texture_x / UV_TEXTURE_WIDTH, uv[1]];
             surface_tool.add_uv(Vector2::new(uv[0], uv[1]));
             let position = Vector3::new(
@@ -358,6 +374,11 @@ impl Chunk {
         }
     }
 
+    /// Gets the block ID of a "nearby" block.
+    ///
+    /// This is more optimized than using just `ChunkGenerator.world_block`,
+    /// as most "nearby" blocks are within the current chunk and thus do not
+    /// require a dictionary lookup.
     fn check_nearby(&self, block_position: BlockPosition, generator: &ChunkGenerator) -> u16 {
         if block_position.chunk == self.origin {
             let local_position = block_position.local_position();
@@ -367,6 +388,7 @@ impl Chunk {
         }
     }
 
+    /// Builds the chunk mesh using the current `Chunk.terrain` data.
     fn construct_mesh(&self, generator: &ChunkGenerator) {
         let mesh = MeshInstance::new();
         let surface_tool = SurfaceTool::new();
@@ -376,12 +398,14 @@ impl Chunk {
                 for z in 0..CHUNK_SIZE_Z {
                     let block_id = self.terrain[x as usize][y as usize][z as usize];
                     if block_id == 0 {
+                        // This is an air block, it has no faces.
                         continue;
                     }
                     let local_position = [x, y, z];
                     let block_position =
                         BlockPosition::from_local_position(self.origin, local_position);
 
+                    // Check each face to see if it's visible, and if so, add it to the mesh.
                     for face_type in FACES {
                         let block_offset = block_position.offset(face_type.block_offset());
                         if self.check_nearby(block_offset, generator) == 0 {
