@@ -1,7 +1,8 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=5 format=2]
 
 [ext_resource path="res://objects/clientPlayer/clientPlayer.gd" type="Script" id=1]
 [ext_resource path="res://assets/models/pm/pm.tscn" type="PackedScene" id=2]
+[ext_resource path="res://objects/clientPlayer/crosshair.png" type="Texture" id=3]
 
 [sub_resource type="BoxShape" id=1]
 extents = Vector3( 0.3, 0.9, 0.3 )
@@ -29,3 +30,19 @@ margin_top = 264.0
 margin_right = 120.0
 margin_bottom = 278.0
 text = "OOGA BOOGA!!!!"
+
+[node name="OmniLight" type="OmniLight" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.34962, 0 )
+light_color = Color( 1, 0.72549, 0.592157, 1 )
+omni_range = 4.0
+
+[node name="Control" type="CenterContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="TextureRect" type="TextureRect" parent="Control"]
+margin_left = 511.0
+margin_top = 299.0
+margin_right = 513.0
+margin_bottom = 301.0
+texture = ExtResource( 3 )

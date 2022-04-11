@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=5 format=2]
 
 [ext_resource path="res://objects/chunkGenerator/chunkGeneration.tscn" type="PackedScene" id=1]
 [ext_resource path="res://assets/environment/sunset.tres" type="Environment" id=2]
 [ext_resource path="res://assets/models/pm/pm.tscn" type="PackedScene" id=3]
+[ext_resource path="res://world/test_beta_material.tres" type="Material" id=4]
 
 [node name="world" type="Spatial"]
 
@@ -15,6 +16,7 @@ shadow_enabled = true
 environment = ExtResource( 2 )
 
 [node name="worldGeneration" parent="." instance=ExtResource( 1 )]
+material = ExtResource( 4 )
 
 [node name="pm" parent="." instance=ExtResource( 3 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 14.2327, 0 )

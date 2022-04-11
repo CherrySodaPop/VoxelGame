@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use gdnative::{
-    api::{Mesh, MeshInstance, OpenSimplexNoise, SurfaceTool},
+    api::{Material, Mesh, MeshInstance, OpenSimplexNoise, SpatialMaterial, SurfaceTool},
     prelude::*,
 };
 
@@ -144,10 +144,13 @@ impl std::fmt::Debug for Chunk {
 }
 
 // Chunk generator implementation
-#[derive(NativeClass)]
+#[derive(NativeClass, Default)]
+#[export]
 #[inherit(Node)]
 pub struct ChunkGenerator {
     chunks: BTreeMap<[isize; 2], Chunk>,
+    #[property]
+    material: Option<Ref<Material, Shared>>,
 }
 
 #[methods]
@@ -155,6 +158,7 @@ impl ChunkGenerator {
     fn new(_owner: &Node) -> Self {
         ChunkGenerator {
             chunks: BTreeMap::new(),
+            ..Default::default()
         }
     }
 
@@ -224,9 +228,10 @@ impl Chunk {
                     ((CHUNK_SIZE_Y as f64) * ((noise_height / 2.0) + 0.5) * 0.1) as isize;
                 for y in 0..CHUNK_SIZE_Y {
                     if y > terrain_peak {
-                        continue;
+                        break;
                     }
-                    self.terrain[x as usize][y as usize][z as usize] = 3;
+                    let block_id = if y > 6 { 1 } else { 2 };
+                    self.terrain[x as usize][y as usize][z as usize] = block_id;
                 }
             }
         }
@@ -237,10 +242,32 @@ impl Chunk {
         face_type: usize,
         surface_tool: &Ref<SurfaceTool, Unique>,
         local_position: [isize; 3],
+        block_id: u16,
     ) {
         surface_tool.add_uv(Vector2::new(0.0, 0.0));
         surface_tool.add_normal(MESH_FACE_NORMALS[face_type]);
         for vertex in MESH_FACE_POSITIONS[face_type] {
+            // base UV
+            let uv: [f32; 2] = match face_type {
+                0 => [vertex.x, vertex.z],
+                2..=3 => [vertex.z, vertex.y.abs()],
+                4..=5 => [vertex.x, vertex.y.abs()],
+                1 => [vertex.x, vertex.z],
+                _ => panic!("invalid face_type >:("),
+            };
+            // pixel-adjusted
+            let uv = [uv[0] * 16.0, uv[1] * 16.0];
+            // aligned to face type
+            let mut uv = match face_type {
+                0 => uv,
+                2..=5 => [uv[0] + 16.0, uv[1]],
+                1 => [uv[0] + 32.0, uv[1] + 32.0],
+                _ => panic!("get rocked"),
+            };
+            // aligned to block texture location
+            uv[0] += 48.0 * (block_id as f32);
+            let uv_coords = Vector2::new(uv[0] / 256.0, uv[1] / 16.0);
+            surface_tool.add_uv(uv_coords);
             let position = Vector3::new(
                 vertex.x + local_position[0] as f32,
                 vertex.y + local_position[1] as f32,
@@ -279,22 +306,22 @@ impl Chunk {
                     //       section easily replacable with a for-loop
 
                     if self.check_nearby(block_position.offset(0, 1, 0), generator) == 0 {
-                        self.construct_face(0, &surface_tool, local_position);
+                        self.construct_face(0, &surface_tool, local_position, block_id);
                     }
                     if self.check_nearby(block_position.offset(0, -1, 0), generator) == 0 {
-                        self.construct_face(1, &surface_tool, local_position);
+                        self.construct_face(1, &surface_tool, local_position, block_id);
                     }
                     if self.check_nearby(block_position.offset(-1, 0, 0), generator) == 0 {
-                        self.construct_face(2, &surface_tool, local_position);
+                        self.construct_face(2, &surface_tool, local_position, block_id);
                     }
                     if self.check_nearby(block_position.offset(1, 0, 0), generator) == 0 {
-                        self.construct_face(3, &surface_tool, local_position);
+                        self.construct_face(3, &surface_tool, local_position, block_id);
                     }
                     if self.check_nearby(block_position.offset(0, 0, 1), generator) == 0 {
-                        self.construct_face(4, &surface_tool, local_position);
+                        self.construct_face(4, &surface_tool, local_position, block_id);
                     }
                     if self.check_nearby(block_position.offset(0, 0, -1), generator) == 0 {
-                        self.construct_face(5, &surface_tool, local_position);
+                        self.construct_face(5, &surface_tool, local_position, block_id);
                     }
                 }
             }
@@ -304,6 +331,9 @@ impl Chunk {
                 .commit(Null::null(), Mesh::ARRAY_COMPRESS_DEFAULT)
                 .unwrap(),
         );
+        if let Some(material) = &generator.material {
+            mesh.set_surface_material(0, material);
+        }
         self.spatial.add_child(mesh, true);
     }
 }
