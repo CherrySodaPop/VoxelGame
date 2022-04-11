@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, isize};
 
 use gdnative::{
-    api::{Mesh, MeshInstance, OpenSimplexNoise, SurfaceTool, StaticBody, CollisionShape},
+    api::{Mesh, MeshInstance, OpenSimplexNoise, SurfaceTool, StaticBody, CollisionShape, ConcavePolygonShape},
     prelude::*,
 };
 
@@ -323,6 +323,7 @@ impl Chunk {
         face_type: usize,
         surface_tool: &Ref<SurfaceTool, Unique>,
         local_position: [isize; 3],
+        vertex_pool: &mut Vector3Array,
     ) {
         surface_tool.add_uv(Vector2::new(0.0, 0.0));
         surface_tool.add_normal(MESH_FACE_NORMALS[face_type]);
@@ -333,6 +334,7 @@ impl Chunk {
                 vertex.z + local_position[2] as f32,
             );
             surface_tool.add_vertex(position);
+            vertex_pool.push(position);
         }
     }
 
@@ -348,7 +350,8 @@ impl Chunk {
     // once we add the server and client
     // this should only be called when you receieve all the packets 
     fn construct_mesh(&self, generator: &ChunkGenerator) {
-        //let mesh = MeshInstance::new();
+        let mut vertex_pool = Vector3Array::new();
+        let collision_shape = ConcavePolygonShape::new();
         let surface_tool = SurfaceTool::new();
         surface_tool.begin(Mesh::PRIMITIVE_TRIANGLES);
 
@@ -368,28 +371,31 @@ impl Chunk {
                     //       section easily replacable with a for-loop
 
                     if self.check_nearby(block_position.offset(0, 1, 0), generator) == 0 {
-                        self.construct_face(0, &surface_tool, local_position);
+                        self.construct_face(0, &surface_tool, local_position, &mut vertex_pool);
                     }
                     if self.check_nearby(block_position.offset(0, -1, 0), generator) == 0 {
-                        self.construct_face(1, &surface_tool, local_position);
+                        self.construct_face(1, &surface_tool, local_position, &mut vertex_pool);
                     }
                     if self.check_nearby(block_position.offset(-1, 0, 0), generator) == 0 {
-                        self.construct_face(2, &surface_tool, local_position);
+                        self.construct_face(2, &surface_tool, local_position, &mut vertex_pool);
                     }
                     if self.check_nearby(block_position.offset(1, 0, 0), generator) == 0 {
-                        self.construct_face(3, &surface_tool, local_position);
+                        self.construct_face(3, &surface_tool, local_position, &mut vertex_pool);
                     }
                     if self.check_nearby(block_position.offset(0, 0, 1), generator) == 0 {
-                        self.construct_face(4, &surface_tool, local_position);
+                        self.construct_face(4, &surface_tool, local_position, &mut vertex_pool);
                     }
                     if self.check_nearby(block_position.offset(0, 0, -1), generator) == 0 {
-                        self.construct_face(5, &surface_tool, local_position);
+                        self.construct_face(5, &surface_tool, local_position, &mut vertex_pool);
                     }
                 }
             }
         }
         let chunk_mesh = surface_tool.commit(Null::null(), Mesh::ARRAY_COMPRESS_DEFAULT).unwrap();
         self.mesh.set_mesh(chunk_mesh);
+        
+        collision_shape.set_faces(vertex_pool);
+        self.collision.set_shape(collision_shape);
     }
 }
 
