@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, isize};
 
 use gdnative::{
-    api::{Mesh, MeshInstance, OpenSimplexNoise, SurfaceTool},
+    api::{Mesh, MeshInstance, OpenSimplexNoise, SurfaceTool, StaticBody, CollisionShape},
     prelude::*,
 };
 
@@ -132,7 +132,8 @@ impl BlockPosition {
 struct Chunk {
     terrain: [[[u16; CHUNK_SIZE_Z as usize]; CHUNK_SIZE_Y as usize]; CHUNK_SIZE_X as usize],
     origin: [isize; 2],
-    spatial: Ref<Spatial, Unique>,
+    spatial: Ref<StaticBody, Unique>,
+    collision: Ref<CollisionShape, Unique>,
     mesh: Ref<MeshInstance, Unique>,
 }
 
@@ -260,6 +261,7 @@ impl ChunkGenerator {
             godot_print!("Constructing mesh for {:?}", chunk);
             chunk.construct_mesh(self);
             unsafe {
+                chunk.spatial.add_child(chunk.collision.assume_shared(), true);
                 chunk.spatial.add_child(chunk.mesh.assume_shared(), true);
                 _owner.add_child(chunk.spatial.assume_shared(), true);
             }
@@ -271,7 +273,8 @@ impl ChunkGenerator {
 // Chunk implementation
 impl Chunk {
     fn new(origin: [isize; 2]) -> Self {
-        let spatial = Spatial::new();
+        let spatial = StaticBody::new();
+        let collision = CollisionShape::new();
         let mesh = MeshInstance::new();
         let spatial_transform = Self::spatial_transform(origin);
         spatial.set_transform(spatial.transform().translated(Vector3::new(
@@ -283,6 +286,7 @@ impl Chunk {
             terrain: [[[0; CHUNK_SIZE_Z as usize]; CHUNK_SIZE_Y as usize]; CHUNK_SIZE_X as usize],
             origin,
             spatial,
+            collision,
             mesh,
         }
     }
@@ -348,21 +352,6 @@ impl Chunk {
         let surface_tool = SurfaceTool::new();
         surface_tool.begin(Mesh::PRIMITIVE_TRIANGLES);
 
-        // check if the node/mesh already exists, if so use that instead
-        /*
-        let mesh = {
-            //let chunkNode = generator.chunks.get(&self.origin);
-            //let mesh = generator.chunk_node([0,2]);
-            if generator.chunk_loaded(self.origin) {
-                let chunkNode = generator.chunk_node(self.origin);
-                chunkNode.get_node("MeshInstance").unwrap()
-            } else {
-                MeshInstance::new()
-                self.get_node("")
-            }
-        };
-        */
-
         for x in 0..CHUNK_SIZE_X {
             for y in 0..CHUNK_SIZE_Y {
                 for z in 0..CHUNK_SIZE_Z {
@@ -399,12 +388,8 @@ impl Chunk {
                 }
             }
         }
-        self.mesh.set_mesh(
-            surface_tool
-                .commit(Null::null(), Mesh::ARRAY_COMPRESS_DEFAULT)
-                .unwrap(),
-        );
-        //self.spatial.add_child(mesh, true);
+        let chunk_mesh = surface_tool.commit(Null::null(), Mesh::ARRAY_COMPRESS_DEFAULT).unwrap();
+        self.mesh.set_mesh(chunk_mesh);
     }
 }
 
