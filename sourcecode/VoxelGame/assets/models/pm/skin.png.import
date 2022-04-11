@@ -2,15 +2,15 @@
 
 importer="texture"
 type="StreamTexture"
-path="res://.import/pm_texture.png-0913e498e3c48181f6447f474c794372.stex"
+path="res://.import/skin.png-da351d88f6433e00da234274cf10aeb1.stex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/models/pm/pm_texture.png"
-dest_files=[ "res://.import/pm_texture.png-0913e498e3c48181f6447f474c794372.stex" ]
+source_file="res://assets/models/pm/skin.png"
+dest_files=[ "res://.import/skin.png-da351d88f6433e00da234274cf10aeb1.stex" ]
 
 [params]
 
@@ -19,9 +19,9 @@ compress/lossy_quality=0.7
 compress/hdr_mode=0
 compress/bptc_ldr=0
 compress/normal_map=0
-flags/repeat=true
+flags/repeat=0
 flags/filter=false
-flags/mipmaps=true
+flags/mipmaps=false
 flags/anisotropic=false
 flags/srgb=1
 process/fix_alpha_border=true
