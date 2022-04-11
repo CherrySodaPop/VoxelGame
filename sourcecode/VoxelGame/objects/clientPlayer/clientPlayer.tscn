@@ -31,11 +31,6 @@ margin_right = 120.0
 margin_bottom = 278.0
 text = "OOGA BOOGA!!!!"
 
-[node name="OmniLight" type="OmniLight" parent="."]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.34962, 0 )
-light_color = Color( 1, 0.72549, 0.592157, 1 )
-omni_range = 4.0
-
 [node name="Control" type="CenterContainer" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
