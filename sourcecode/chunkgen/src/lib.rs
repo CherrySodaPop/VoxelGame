@@ -23,20 +23,20 @@ const MESH_FACE_POSITIONS: [[Vector3; 6]; 6] = [
         Vector3::new(0.0, -1.0, 0.0),
     ],
     [
-        Vector3::new(0.0, 0.0, 0.0),
-        Vector3::new(0.0, 0.0, 1.0),
-        Vector3::new(0.0, -1.0, 0.0),
-        Vector3::new(0.0, 0.0, 1.0),
-        Vector3::new(0.0, -1.0, 1.0),
-        Vector3::new(0.0, -1.0, 0.0),
-    ],
-    [
         Vector3::new(1.0, 0.0, 1.0),
         Vector3::new(1.0, 0.0, 0.0),
         Vector3::new(1.0, -1.0, 1.0),
         Vector3::new(1.0, -1.0, 0.0),
         Vector3::new(1.0, -1.0, 1.0),
         Vector3::new(1.0, 0.0, 0.0),
+    ],
+    [
+        Vector3::new(0.0, 0.0, 0.0),
+        Vector3::new(0.0, 0.0, 1.0),
+        Vector3::new(0.0, -1.0, 0.0),
+        Vector3::new(0.0, 0.0, 1.0),
+        Vector3::new(0.0, -1.0, 1.0),
+        Vector3::new(0.0, -1.0, 0.0),
     ],
     [
         Vector3::new(0.0, -1.0, 1.0),
@@ -59,8 +59,8 @@ const MESH_FACE_POSITIONS: [[Vector3; 6]; 6] = [
 const MESH_FACE_NORMALS: [Vector3; 6] = [
     Vector3::new(0.0, 1.0, 0.0),
     Vector3::new(0.0, -1.0, 0.0),
-    Vector3::new(-1.0, 0.0, 0.0),
     Vector3::new(1.0, 0.0, 0.0),
+    Vector3::new(-1.0, 0.0, 0.0),
     Vector3::new(0.0, 0.0, 1.0),
     Vector3::new(0.0, 0.0, -1.0),
 ];
@@ -70,6 +70,69 @@ const MESH_FACE_NORMALS: [Vector3; 6] = [
 const CHUNK_SIZE_X: isize = 32;
 const CHUNK_SIZE_Y: isize = 256;
 const CHUNK_SIZE_Z: isize = 32;
+
+// For UV calculations, hence f32.
+const UV_TEXTURE_WIDTH: f32 = 256.0;
+const TEXTURE_WIDTH: f32 = 16.0;
+
+#[derive(PartialEq, Eq, Clone, Copy)]
+enum BlockFace {
+    Top,    // Y+
+    Bottom, // Y-
+    Right,  // X+
+    Left,   // X-
+    Front,  // Z+
+    Back,   // Z-
+}
+
+impl BlockFace {
+    fn is_side(&self) -> bool {
+        let i = *self as u8;
+        i != 0 && i != 1
+    }
+    fn is_x_axis(&self) -> bool {
+        let i = *self as u8;
+        i == 2 || i == 3
+    }
+    fn is_z_axis(&self) -> bool {
+        let i = *self as u8;
+        i == 4 || i == 5
+    }
+    fn is_y_axis(&self) -> bool {
+        let i = *self as u8;
+        i == 0 || i == 1
+    }
+    fn block_offset(&self) -> [isize; 3] {
+        match self {
+            BlockFace::Top => [0, 1, 0],
+            BlockFace::Bottom => [0, -1, 0],
+            BlockFace::Right => [1, 0, 0],
+            BlockFace::Left => [-1, 0, 0],
+            BlockFace::Front => [0, 0, 1],
+            BlockFace::Back => [0, 0, -1],
+        }
+    }
+    fn uv_offset(&self) -> isize {
+        if self.is_side() {
+            1
+        } else {
+            match *self {
+                Self::Top => 0,
+                Self::Bottom => 2,
+                _ => unreachable!(),
+            }
+        }
+    }
+}
+
+const FACES: [BlockFace; 6] = [
+    BlockFace::Top,
+    BlockFace::Bottom,
+    BlockFace::Right,
+    BlockFace::Left,
+    BlockFace::Front,
+    BlockFace::Back,
+];
 
 #[derive(Debug)]
 /// Represents a block's position in *world* space.
@@ -120,14 +183,34 @@ impl BlockPosition {
         )
     }
 
-    fn as_vector3(&self) -> Vector3 {
-        Vector3::new(self.x as f32, self.y as f32, self.z as f32)
-    }
-
-    fn offset(&self, x: isize, y: isize, z: isize) -> BlockPosition {
-        BlockPosition::new(self.x + x, self.y + y, self.z + z)
+    fn offset(&self, by: [isize; 3]) -> BlockPosition {
+        BlockPosition::new(self.x + by[0], self.y + by[1], self.z + by[2])
     }
 }
+
+impl From<[isize; 3]> for BlockPosition {
+    fn from(position: [isize; 3]) -> Self {
+        Self::new(position[0], position[1], position[2])
+    }
+}
+
+impl From<BlockPosition> for Vector3 {
+    fn from(block_position: BlockPosition) -> Self {
+        Self::new(
+            block_position.x as f32,
+            block_position.y as f32,
+            block_position.z as f32,
+        )
+    }
+}
+
+// impl std::ops::Add for BlockPosition {
+//     type Output = Self;
+
+//     fn add(self, rhs: Self) -> Self::Output {
+//         BlockPosition::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
+//     }
+// }
 
 struct Chunk {
     terrain: [[[u16; CHUNK_SIZE_Z as usize]; CHUNK_SIZE_Y as usize]; CHUNK_SIZE_X as usize],
@@ -196,6 +279,17 @@ impl ChunkGenerator {
     }
 }
 
+fn vertex_uv(vertex: Vector3, face: BlockFace) -> [f32; 2] {
+    [
+        if face.is_x_axis() { vertex.z } else { vertex.x },
+        if face.is_side() {
+            vertex.y.abs()
+        } else {
+            vertex.z
+        },
+    ]
+}
+
 // Chunk implementation
 impl Chunk {
     fn new(origin: [isize; 2]) -> Self {
@@ -239,35 +333,22 @@ impl Chunk {
 
     fn construct_face(
         &self,
-        face_type: usize,
+        face: BlockFace,
         surface_tool: &Ref<SurfaceTool, Unique>,
         local_position: [isize; 3],
         block_id: u16,
     ) {
         surface_tool.add_uv(Vector2::new(0.0, 0.0));
-        surface_tool.add_normal(MESH_FACE_NORMALS[face_type]);
-        for vertex in MESH_FACE_POSITIONS[face_type] {
-            // base UV
-            let uv: [f32; 2] = match face_type {
-                0 => [vertex.x, vertex.z],
-                2..=3 => [vertex.z, vertex.y.abs()],
-                4..=5 => [vertex.x, vertex.y.abs()],
-                1 => [vertex.x, vertex.z],
-                _ => panic!("invalid face_type >:("),
-            };
-            // pixel-adjusted
-            let uv = [uv[0] * 16.0, uv[1] * 16.0];
-            // aligned to face type
-            let mut uv = match face_type {
-                0 => uv,
-                2..=5 => [uv[0] + 16.0, uv[1]],
-                1 => [uv[0] + 32.0, uv[1] + 32.0],
-                _ => panic!("get rocked"),
-            };
-            // aligned to block texture location
-            uv[0] += 48.0 * (block_id as f32);
-            let uv_coords = Vector2::new(uv[0] / 256.0, uv[1] / 16.0);
-            surface_tool.add_uv(uv_coords);
+        let face_type_index = face as usize;
+        surface_tool.add_normal(MESH_FACE_NORMALS[face_type_index]);
+        for vertex in MESH_FACE_POSITIONS[face_type_index] {
+            // "Normalized" UV (only 0 or 1)
+            let mut uv = vertex_uv(vertex, face);
+            // Align the UV to its position within the texture atlas
+            let texture_x =
+                ((3.0 * block_id as f32) + face.uv_offset() as f32 + uv[0]) * TEXTURE_WIDTH;
+            uv = [texture_x / UV_TEXTURE_WIDTH, uv[1]];
+            surface_tool.add_uv(Vector2::new(uv[0], uv[1]));
             let position = Vector3::new(
                 vertex.x + local_position[0] as f32,
                 vertex.y + local_position[1] as f32,
@@ -301,27 +382,11 @@ impl Chunk {
                     let block_position =
                         BlockPosition::from_local_position(self.origin, local_position);
 
-                    // Top, bottom, left, right, front, back
-                    // TODO: Maybe switch left and right enum values to make this
-                    //       section easily replacable with a for-loop
-
-                    if self.check_nearby(block_position.offset(0, 1, 0), generator) == 0 {
-                        self.construct_face(0, &surface_tool, local_position, block_id);
-                    }
-                    if self.check_nearby(block_position.offset(0, -1, 0), generator) == 0 {
-                        self.construct_face(1, &surface_tool, local_position, block_id);
-                    }
-                    if self.check_nearby(block_position.offset(-1, 0, 0), generator) == 0 {
-                        self.construct_face(2, &surface_tool, local_position, block_id);
-                    }
-                    if self.check_nearby(block_position.offset(1, 0, 0), generator) == 0 {
-                        self.construct_face(3, &surface_tool, local_position, block_id);
-                    }
-                    if self.check_nearby(block_position.offset(0, 0, 1), generator) == 0 {
-                        self.construct_face(4, &surface_tool, local_position, block_id);
-                    }
-                    if self.check_nearby(block_position.offset(0, 0, -1), generator) == 0 {
-                        self.construct_face(5, &surface_tool, local_position, block_id);
+                    for face_type in FACES {
+                        let block_offset = block_position.offset(face_type.block_offset());
+                        if self.check_nearby(block_offset, generator) == 0 {
+                            self.construct_face(face_type, &surface_tool, local_position, block_id);
+                        }
                     }
                 }
             }
