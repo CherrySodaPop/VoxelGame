@@ -1,9 +1,8 @@
-[gd_scene load_steps=5 format=2]
+[gd_scene load_steps=4 format=2]
 
 [ext_resource path="res://world/world.gd" type="Script" id=1]
 [ext_resource path="res://assets/environment/sunset.tres" type="Environment" id=2]
 [ext_resource path="res://assets/models/pm/pm.tscn" type="PackedScene" id=3]
-[ext_resource path="res://world/test_beta_material.tres" type="Material" id=4]
 
 [node name="world" type="Spatial"]
 script = ExtResource( 1 )

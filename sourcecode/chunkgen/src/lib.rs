@@ -346,8 +346,8 @@ impl ChunkGenerator {
     fn _ready(&mut self, _owner: &Node) {
         // generate chunks
         let simplex_noise = OpenSimplexNoise::new();
-        for x in -0..1isize {
-            for z in -0..1isize {
+        for x in -4..5isize {
+            for z in -4..5isize {
                 let origin = [x, z];
                 let mut new_chunk = Chunk::new(origin);
                 godot_print!("Generating new chunk {:?}", new_chunk);
