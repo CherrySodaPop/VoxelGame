@@ -30,8 +30,8 @@ struct ChunkNode {
 
 impl std::fmt::Debug for ChunkNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Chunk")
-            .field("origin", &self.chunk)
+        f.debug_struct("ChunkNode")
+            .field("position", &self.chunk.position)
             .finish()
     }
 }
@@ -139,10 +139,9 @@ impl ChunkGenerator {
                 self.chunks.insert(origin, new_chunk);
             }
         }
-        // generate mesh (to be removed! - cherry)
 
+        // generate mesh (to be removed! - cherry)
         for chunk in self.chunks.values_mut() {
-            godot_print!("Constructing mesh for {:?}", chunk);
             chunk.construct_mesh();
             unsafe {
                 chunk
@@ -177,14 +176,15 @@ impl ChunkNode {
     }
 
     fn spatial_transform(x: isize, z: isize) -> [isize; 3] {
-        [(x * CHUNK_SIZE_X as isize), 0, (z * CHUNK_SIZE_Z as isize)]
+        [x * CHUNK_SIZE_X as isize, 0, z * CHUNK_SIZE_Z as isize]
     }
 
     fn set_block(&mut self, pos: [usize; 3], block_id: u16) {
         // self.terrain[pos[0]][pos[1]][pos[2]] = block_id;
     }
 
-    /// Generates the chunk's terrain data, storing it in `Chunk.terrain`.
+    // TODO: Maybe move this into Chunk? Or somewhere else, we'll see.
+    /// Tells the chunk to generate its terrain data.
     fn generate(&mut self, simplex_noise: &OpenSimplexNoise) {
         let chunk_origin = self.chunk.position.origin();
         for x in 0..CHUNK_SIZE_X {
@@ -210,6 +210,7 @@ impl ChunkNode {
     fn construct_mesh(&mut self) {
         let mesh_data = build_mesh_data(&self.chunk);
         let mesh = create_mesh(mesh_data);
+        // TODO: Reimplement collision
         self.mesh.set_mesh(mesh);
     }
 }

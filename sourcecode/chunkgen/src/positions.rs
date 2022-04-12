@@ -130,3 +130,5 @@ impl GlobalBlockPos {
         }
     }
 }
+
+// TODO: tests

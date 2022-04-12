@@ -1,8 +1,5 @@
 use gdnative::api::ArrayMesh;
-use gdnative::core_types::Variant;
-use gdnative::core_types::VariantArray;
-use gdnative::core_types::Vector3;
-use gdnative::core_types::Vector3Array;
+use gdnative::core_types::{VariantArray, Vector3, Vector3Array};
 use gdnative::prelude::Unique;
 
 use crate::constants::*;
@@ -87,37 +84,6 @@ const FACES: [Face; 6] = [
         normal: [0, 0, -1],
     },
 ];
-
-/*
-fn construct_face(
-    &self,
-    face: BlockFace,
-    surface_tool: &Ref<SurfaceTool, Unique>,
-    local_position: [isize; 3],
-    block_id: u16,
-    vertex_pool: &mut Vector3Array,
-) {
-    surface_tool.add_uv(Vector2::new(0.0, 0.0));
-    let face_type_index = face as usize;
-    surface_tool.add_normal(MESH_FACE_NORMALS[face_type_index]);
-    for vertex in MESH_FACE_POSITIONS[face_type_index] {
-        // "Normalized" UV (only 0 or 1)
-        let mut uv = vertex_uv(vertex, face);
-        // Align the UV to its position within the texture atlas
-        let texture_x =
-            ((3.0 * block_id as f32) + face.atlas_offset() as f32 + uv[0]) * TEXTURE_WIDTH;
-        uv = [texture_x / UV_TEXTURE_WIDTH, uv[1]];
-        surface_tool.add_uv(Vector2::new(uv[0], uv[1]));
-        let position = Vector3::new(
-            vertex.x + local_position[0] as f32,
-            vertex.y + local_position[1] as f32,
-            vertex.z + local_position[2] as f32,
-        );
-        surface_tool.add_vertex(position);
-        vertex_pool.push(position);
-    }
-}
-*/
 
 pub struct MeshData {
     vertices: Vec<[isize; 3]>,
@@ -242,14 +208,4 @@ pub fn create_mesh(mesh_data: MeshData) -> gdnative::object::Ref<ArrayMesh, Uniq
     mesh
 }
 
-/*
-let chunk_mesh = surface_tool
-    .commit(Null::null(), Mesh::ARRAY_COMPRESS_DEFAULT)
-    .unwrap();
-self.mesh.set_mesh(chunk_mesh);
-if let Some(material) = &generator.material {
-    self.mesh.set_surface_material(0, material);
-}
-collision_shape.set_faces(vertex_pool);
-self.collision.set_shape(collision_shape);
- */
+// TODO: tests
