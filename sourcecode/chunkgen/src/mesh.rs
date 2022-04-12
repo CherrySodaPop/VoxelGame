@@ -1,4 +1,4 @@
-use gdnative::api::ArrayMesh;
+use gdnative::api::{ArrayMesh, ConcavePolygonShape};
 use gdnative::core_types::{VariantArray, Vector3, Vector3Array};
 use gdnative::prelude::Unique;
 
@@ -174,31 +174,41 @@ pub fn build_mesh_data(chunk: &Chunk) -> MeshData {
     mesh_data
 }
 
-pub fn create_mesh(mesh_data: MeshData) -> gdnative::object::Ref<ArrayMesh, Unique> {
+pub struct GDMeshData {
+    vertices: Vector3Array,
+    normals: Vector3Array,
+    uvs: Vector3Array,
+}
+
+impl GDMeshData {
+    fn convert_vec(vec: &Vec<[isize; 3]>) -> Vector3Array {
+        let mut gdarray = Vector3Array::new();
+        // Hopefully this doesn't affect performance too much.
+        vec.iter()
+            .map(|val| Vector3::new(val[0] as f32, val[1] as f32, val[2] as f32))
+            .collect()
+    }
+}
+
+impl From<MeshData> for GDMeshData {
+    fn from(mesh_data: MeshData) -> Self {
+        GDMeshData {
+            vertices: Self::convert_vec(&mesh_data.vertices),
+            normals: Self::convert_vec(&mesh_data.normals),
+            uvs: Self::convert_vec(&mesh_data.uvs),
+        }
+    }
+}
+
+// This function could accept Into<GDMeshData> to allow passing in MeshData structs
+pub fn create_mesh(gd_mesh_data: &GDMeshData) -> gdnative::object::Ref<ArrayMesh, Unique> {
     println!("Creating mesh...");
     let mesh = ArrayMesh::new();
     let mut gdarray = VariantArray::new();
     gdarray.resize(ArrayMesh::ARRAY_MAX as i32);
-    // How bad is all this garbage on performance?
-    let vertices_vec: Vector3Array = mesh_data
-        .vertices
-        .into_iter()
-        .map(|vert| Vector3::new(vert[0] as f32, vert[1] as f32, vert[2] as f32))
-        .collect();
-    let normals_vec: Vector3Array = mesh_data
-        .normals
-        .into_iter()
-        .map(|normal| Vector3::new(normal[0] as f32, normal[1] as f32, normal[2] as f32))
-        .collect();
-    let uvs_vec: Vector3Array = mesh_data
-        .uvs
-        .into_iter()
-        .map(|uv| Vector3::new(uv[0] as f32, uv[1] as f32, uv[2] as f32))
-        .collect();
-    gdarray.set(ArrayMesh::ARRAY_VERTEX as i32, vertices_vec);
-    gdarray.set(ArrayMesh::ARRAY_NORMAL as i32, normals_vec);
+    gdarray.set(ArrayMesh::ARRAY_VERTEX as i32, &gd_mesh_data.vertices);
+    gdarray.set(ArrayMesh::ARRAY_NORMAL as i32, &gd_mesh_data.normals);
     // gdarray.set(ArrayMesh::ARRAY_TEX_UV as i32, uvs_vec);
-    println!("gdarray len: {}", gdarray.len());
     mesh.add_surface_from_arrays(
         gdnative::api::Mesh::PRIMITIVE_TRIANGLES,
         gdarray.into_shared(),
@@ -206,6 +216,17 @@ pub fn create_mesh(mesh_data: MeshData) -> gdnative::object::Ref<ArrayMesh, Uniq
         2194432,
     );
     mesh
+}
+
+// This function taking ownership of the GDMeshData is stupid.
+// Unfortunately, for reasons beyond me, ConcavePolygonShape.set_faces
+// does not accept references to Vector3Arrays, it takes ownership of them.
+// For optimization reasons, this function also just takes ownership of the
+// GDMeshData to avoid having to clone.
+pub fn create_collision_shape(gd_mesh_data: GDMeshData) -> gdnative::object::Ref<ConcavePolygonShape, Unique> {
+    let collision_shape = ConcavePolygonShape::new();
+    collision_shape.set_faces(gd_mesh_data.vertices);
+    collision_shape
 }
 
 // TODO: tests

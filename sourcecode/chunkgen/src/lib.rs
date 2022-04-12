@@ -143,11 +143,9 @@ impl ChunkGenerator {
         // generate mesh (to be removed! - cherry)
         for chunk in self.chunks.values_mut() {
             chunk.construct_mesh();
+            chunk.apply_mesh();
+            // TODO: Move this to the ChunkNode.apply_mesh method
             unsafe {
-                chunk
-                    .spatial
-                    .add_child(chunk.collision.assume_shared(), true);
-                chunk.spatial.add_child(chunk.mesh.assume_shared(), true);
                 _owner.add_child(chunk.spatial.assume_shared(), true);
             }
         }
@@ -208,10 +206,20 @@ impl ChunkNode {
     }
 
     fn construct_mesh(&mut self) {
-        let mesh_data = build_mesh_data(&self.chunk);
-        let mesh = create_mesh(mesh_data);
-        // TODO: Reimplement collision
+        let gd_mesh_data: GDMeshData = build_mesh_data(&self.chunk).into();
+        let mesh = create_mesh(&gd_mesh_data);
+        let collision_shape = create_collision_shape(gd_mesh_data);
         self.mesh.set_mesh(mesh);
+        self.collision.set_shape(collision_shape);
+    }
+
+    fn apply_mesh(&mut self) {
+        unsafe {
+            self
+                .spatial
+                .add_child(self.collision.assume_shared(), true);
+            self.spatial.add_child(self.mesh.assume_shared(), true);
+        }
     }
 }
 
