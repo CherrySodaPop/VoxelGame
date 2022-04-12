@@ -1,7 +1,7 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, isize};
 
 use gdnative::{
-    api::{Material, Mesh, MeshInstance, OpenSimplexNoise, SpatialMaterial, SurfaceTool},
+    api::{Mesh, MeshInstance, OpenSimplexNoise, Material, SurfaceTool, StaticBody, CollisionShape, ConcavePolygonShape},
     prelude::*,
 };
 
@@ -228,7 +228,9 @@ impl From<BlockPosition> for Vector3 {
 struct Chunk {
     terrain: [[[u16; CHUNK_SIZE_Z as usize]; CHUNK_SIZE_Y as usize]; CHUNK_SIZE_X as usize],
     origin: [isize; 2],
-    spatial: Ref<Spatial, Unique>,
+    spatial: Ref<StaticBody, Unique>,
+    collision: Ref<CollisionShape, Unique>,
+    mesh: Ref<MeshInstance, Unique>,
 }
 
 impl std::fmt::Debug for Chunk {
@@ -249,8 +251,10 @@ pub struct ChunkGenerator {
     material: Option<Ref<Material, Shared>>,
 }
 
+
 #[methods]
 impl ChunkGenerator {
+    // constructor
     fn new(_owner: &Node) -> Self {
         ChunkGenerator {
             chunks: BTreeMap::new(),
@@ -258,6 +262,7 @@ impl ChunkGenerator {
         }
     }
 
+    // get the block id
     fn world_block(&self, block_position: BlockPosition) -> u16 {
         let chunk_origin = block_position.chunk;
         let chunk = self.chunks.get(&chunk_origin);
@@ -270,10 +275,79 @@ impl ChunkGenerator {
     }
 
     #[export]
+    // constructs the specified chunk mesh - godot specific
+    fn generate_chunk_mesh(&mut self, _owner: &Node, _origin: Vector2) {
+        let origin: [isize; 2] = [
+            _origin.x as isize,
+            _origin.y as isize,
+        ];
+        //let origin = _origin.as_slice();
+        let _chunk = self.chunks.get(&origin);
+        if let Some(_chunk) = _chunk {
+            _chunk.construct_mesh(self);
+        } else {
+            godot_print!("chunkgeneration: attempted to generate unloaded chunk mesh!");
+        }
+    }
+
+    #[export]
+    // check if the chunk is loaded or not - godot specific
+    fn chunk_loaded_godot(&self, _owner: &Node, _origin: Vector2) -> bool {
+        let origin: [isize; 2] = [
+            _origin.x as isize,
+            _origin.y as isize,
+        ];
+        self.chunk_loaded(origin)
+    }
+
+    // check if the chunk is loaded or not - internal
+    fn chunk_loaded(&self, _origin: [isize; 2]) -> bool {
+        self.chunks.contains_key(&_origin)
+    }
+
+    // set block - godot
+    #[export]
+    fn set_block_godot(&mut self, _owner: &Node, _origin: Vector3, block_id: u16) {
+        let origin: [isize; 3] = [
+            _origin.x as isize,
+            _origin.y as isize,
+            _origin.z as isize,
+        ];
+        self.set_block(origin, block_id);
+    }
+
+    // set block - internal
+    fn set_block(&mut self, _origin: [isize; 3], block_id: u16) {
+        let block_data = BlockPosition::new(_origin[0],_origin[1],_origin[2]);
+        let block_chunk_pos = block_data.chunk;
+
+        if self.chunk_loaded(block_chunk_pos) {
+            let chunk = self.chunks.get_mut(&block_chunk_pos).unwrap();
+            let block_local_pos = block_data.local_position();
+            chunk.set_block(block_local_pos, block_id);
+            return;
+        }
+        godot_print!("chunkgeneration: attempting to set block on unloaded chunk")
+    }
+
+    #[export]
+    // returns chunk node - godot specific
+    fn chunk_node_id_gd(&self, _owner: &Node, _origin: Vector2) -> i64 {
+        let origin: [isize; 2] = [
+            _origin.x as isize,
+            _origin.y as isize,
+        ];
+        let _chunk = self.chunks.get(&origin);
+        let _chunk = _chunk.unwrap();
+        _chunk.spatial.get_instance_id()
+    }
+
+    #[export]
     fn _ready(&mut self, _owner: &Node) {
+        // generate chunks
         let simplex_noise = OpenSimplexNoise::new();
-        for x in -4..5isize {
-            for z in -4..5isize {
+        for x in -0..1isize {
+            for z in -0..1isize {
                 let origin = [x, z];
                 let mut new_chunk = Chunk::new(origin);
                 godot_print!("Generating new chunk {:?}", new_chunk);
@@ -281,14 +355,18 @@ impl ChunkGenerator {
                 self.chunks.insert(origin, new_chunk);
             }
         }
+        // generate mesh (to be removed! - cherry)
 
         for chunk in self.chunks.values() {
             godot_print!("Constructing mesh for {:?}", chunk);
             chunk.construct_mesh(self);
             unsafe {
+                chunk.spatial.add_child(chunk.collision.assume_shared(), true);
+                chunk.spatial.add_child(chunk.mesh.assume_shared(), true);
                 _owner.add_child(chunk.spatial.assume_shared(), true);
             }
         }
+
     }
 }
 
@@ -307,7 +385,9 @@ fn vertex_uv(vertex: Vector3, face: BlockFace) -> [f32; 2] {
 // Chunk implementation
 impl Chunk {
     fn new(origin: [isize; 2]) -> Self {
-        let spatial = Spatial::new();
+        let spatial = StaticBody::new();
+        let collision = CollisionShape::new();
+        let mesh = MeshInstance::new();
         let spatial_transform = Self::spatial_transform(origin);
         spatial.set_transform(spatial.transform().translated(Vector3::new(
             spatial_transform[0] as f32,
@@ -318,11 +398,17 @@ impl Chunk {
             terrain: [[[0; CHUNK_SIZE_Z as usize]; CHUNK_SIZE_Y as usize]; CHUNK_SIZE_X as usize],
             origin,
             spatial,
+            collision,
+            mesh,
         }
     }
 
     fn spatial_transform(origin: [isize; 2]) -> [isize; 3] {
         [(origin[0] * CHUNK_SIZE_X), 0, (origin[1] * CHUNK_SIZE_Z)]
+    }
+
+    fn set_block(&mut self, pos: [usize; 3], block_id: u16) {
+        self.terrain[pos[0]][pos[1]][pos[2]] = block_id;
     }
 
     /// Generates the chunk's terrain data, storing it in `Chunk.terrain`.
@@ -339,7 +425,7 @@ impl Chunk {
                     if y > terrain_peak {
                         break;
                     }
-                    let block_id = if y > 6 { 1 } else { 2 };
+                    let block_id = if y > 6 { 1 } else { 2 }; // TODO: implement actual block ID system
                     self.terrain[x as usize][y as usize][z as usize] = block_id;
                 }
             }
@@ -353,6 +439,7 @@ impl Chunk {
         surface_tool: &Ref<SurfaceTool, Unique>,
         local_position: [isize; 3],
         block_id: u16,
+        vertex_pool: &mut Vector3Array,
     ) {
         surface_tool.add_uv(Vector2::new(0.0, 0.0));
         let face_type_index = face as usize;
@@ -371,6 +458,7 @@ impl Chunk {
                 vertex.z + local_position[2] as f32,
             );
             surface_tool.add_vertex(position);
+            vertex_pool.push(position);
         }
     }
 
@@ -388,11 +476,15 @@ impl Chunk {
         }
     }
 
+    // once we add the server and client
+    // this should only be called when you receieve all the packets
     /// Builds the chunk mesh using the current `Chunk.terrain` data.
     fn construct_mesh(&self, generator: &ChunkGenerator) {
-        let mesh = MeshInstance::new();
+        let mut vertex_pool = Vector3Array::new();
+        let collision_shape = ConcavePolygonShape::new();
         let surface_tool = SurfaceTool::new();
         surface_tool.begin(Mesh::PRIMITIVE_TRIANGLES);
+
         for x in 0..CHUNK_SIZE_X {
             for y in 0..CHUNK_SIZE_Y {
                 for z in 0..CHUNK_SIZE_Z {
@@ -409,21 +501,19 @@ impl Chunk {
                     for face_type in FACES {
                         let block_offset = block_position.offset(face_type.block_offset());
                         if self.check_nearby(block_offset, generator) == 0 {
-                            self.construct_face(face_type, &surface_tool, local_position, block_id);
+                            self.construct_face(face_type, &surface_tool, local_position, block_id, &mut vertex_pool);
                         }
                     }
                 }
             }
         }
-        mesh.set_mesh(
-            surface_tool
-                .commit(Null::null(), Mesh::ARRAY_COMPRESS_DEFAULT)
-                .unwrap(),
-        );
+        let chunk_mesh = surface_tool.commit(Null::null(), Mesh::ARRAY_COMPRESS_DEFAULT).unwrap();
+        self.mesh.set_mesh(chunk_mesh);
         if let Some(material) = &generator.material {
-            mesh.set_surface_material(0, material);
+            self.mesh.set_surface_material(0, material);
         }
-        self.spatial.add_child(mesh, true);
+        collision_shape.set_faces(vertex_pool);
+        self.collision.set_shape(collision_shape);
     }
 }
 
