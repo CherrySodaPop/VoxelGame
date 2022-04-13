@@ -97,6 +97,7 @@ impl From<GlobalBlockPos> for LocalBlockPos {
 }
 
 /// A global block position, i.e. one that is anywhere in the world.
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct GlobalBlockPos {
     pub x: isize,
     pub y: isize,
@@ -131,4 +132,72 @@ impl GlobalBlockPos {
     }
 }
 
-// TODO: tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    macro_rules! gbp_test {
+        (
+            $base_global_position:expr, $chunk_position:expr, $local_position:expr
+        ) => {
+            let gbp = GlobalBlockPos::new(
+                $base_global_position[0],
+                $base_global_position[1],
+                $base_global_position[2],
+            );
+            let expected_chunk_pos = ChunkPos::new($chunk_position[0], $chunk_position[1]);
+            assert_eq!(gbp.chunk(), expected_chunk_pos);
+            let expected_local_pos = LocalBlockPos::new(
+                $local_position[0],
+                $local_position[1],
+                $local_position[2],
+                expected_chunk_pos,
+            );
+            assert_eq!(LocalBlockPos::from(gbp), expected_local_pos);
+        };
+    }
+
+    macro_rules! origin_test {
+        ($base_chunk_position:expr, $global_position:expr) => {
+            let chunk = ChunkPos::new($base_chunk_position[0], $base_chunk_position[1]);
+            assert_eq!(
+                chunk.origin(),
+                GlobalBlockPos::new($global_position[0], $global_position[1], $global_position[2])
+            );
+        };
+    }
+
+    #[test]
+    fn test_global_block_pos() {
+        // Global position (base), chunk position (expected), local position (expected)
+        gbp_test!([0, 0, 0], [0, 0], [0, 0, 0]);
+        gbp_test!([0, 0, 0], [0, 0], [0, 0, 0]);
+        gbp_test!([31, 0, 31], [0, 0], [31, 0, 31]);
+        gbp_test!([32, 0, 32], [1, 1], [0, 0, 0]);
+        gbp_test!([63, 0, 63], [1, 1], [31, 0, 31]);
+        gbp_test!([64, 0, 64], [2, 2], [0, 0, 0]);
+        gbp_test!([-1, 0, -1], [-1, -1], [31, 0, 31]);
+        gbp_test!([-32, 0, -32], [-1, -1], [0, 0, 0]);
+        gbp_test!([-33, 0, -33], [-2, -2], [31, 0, 31]);
+        gbp_test!([-64, 0, -100], [-2, -4], [0, 0, 28]);
+        gbp_test!([-64, 0, -97], [-2, -4], [0, 0, 31]);
+        gbp_test!([-64, 0, -96], [-2, -3], [0, 0, 0]);
+        gbp_test!([32, 0, -64], [1, -2], [0, 0, 0]);
+        gbp_test!([36, 0, -60], [1, -2], [4, 0, 4]);
+        gbp_test!([36, 0, -68], [1, -3], [4, 0, 28]);
+    }
+
+    #[test]
+    fn test_chunk_origin() {
+        // Chunk position (base), origin block position (expected)
+        origin_test!([-1, -1], [-32, 0, -32]);
+        origin_test!([0, 0], [0, 0, 0]);
+        origin_test!([1, 1], [32, 0, 32]);
+        origin_test!([2, 2], [64, 0, 64]);
+        origin_test!([-2, -2], [-64, 0, -64]);
+        origin_test!([-2, -1], [-64, 0, -32]);
+        origin_test!([-4, 3], [-128, 0, 96]);
+    }
+
+    // TODO: More tests
+}
