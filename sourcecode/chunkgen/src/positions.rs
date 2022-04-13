@@ -15,7 +15,7 @@ impl std::fmt::Display for TooLargeError {
 /// A chunk in the world.
 ///
 /// Keep in mind that the x and z values here do not represent *block* positions.
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug, Hash)]
 pub struct ChunkPos {
     pub x: isize,
     pub z: isize,
@@ -82,6 +82,13 @@ impl LocalBlockPos {
         } else {
             Ok(Self::new(x as usize, y as usize, z as usize, self.chunk))
         }
+    }
+    pub fn offset_global(&self, offset: BlockOffset) -> GlobalBlockPos {
+        let origin = self.chunk.origin();
+        let x = origin.x + self.x as isize + offset.x;
+        let y = self.y as isize + offset.y;
+        let z = origin.z + self.z as isize + offset.z;
+        GlobalBlockPos::new(x, y, z)
     }
 }
 
@@ -162,7 +169,11 @@ mod tests {
             let chunk = ChunkPos::new($base_chunk_position[0], $base_chunk_position[1]);
             assert_eq!(
                 chunk.origin(),
-                GlobalBlockPos::new($global_position[0], $global_position[1], $global_position[2])
+                GlobalBlockPos::new(
+                    $global_position[0],
+                    $global_position[1],
+                    $global_position[2]
+                )
             );
         };
     }

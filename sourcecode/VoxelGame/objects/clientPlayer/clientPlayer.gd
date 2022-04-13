@@ -16,6 +16,7 @@ var lockMouse:bool = false;
 signal enteredNewChunk;
 
 func _ready():
+	global_transform.origin.y = 20; # TEMP: Prevent spawning underneath terrain
 	$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_SHADOWS_ONLY;
 
 func _process(delta):
@@ -24,7 +25,7 @@ func _process(delta):
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED);
 		else:
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE);
-	
+
 	UpdateMiscInfo(delta);
 	HandleMovement(delta);
 	HandleAnimation(delta);
@@ -39,11 +40,11 @@ func UpdateMiscInfo(delta):
 	if (global_transform.origin.x < 0): xn = 1;
 	var zn:int = 0;
 	if (global_transform.origin.z < 0): zn = 1;
-	
+
 	var q = global_transform.origin.x;
 	currentChunk.x = floor((global_transform.origin.x) / Persistant.chunkSize.x);
 	currentChunk.y = floor((global_transform.origin.z) / Persistant.chunkSize.x);
-	
+
 	if (currentChunk != prevChunk):
 		emit_signal("enteredNewChunk");
 		prevChunk = currentChunk;
@@ -62,15 +63,15 @@ func HandleMovement(delta):
 	var velocityVec2 = Vector2(velocity.x, velocity.z);
 	var storedInterpolateVelocityVec2 = velocityVec2.linear_interpolate(desiredVec2Dir * walkSpeed, acceleration * delta)
 	velocity = Vector3(storedInterpolateVelocityVec2.x, velocity.y, storedInterpolateVelocityVec2.y);
-	
+
 	var desiredUpDownDir:float = 0.0;
 	if (Input.is_action_pressed("playerJump")):
 		desiredUpDownDir += 10;
 	if (Input.is_action_pressed("playerCrouch")):
 		desiredUpDownDir -= 10;
-	
+
 	velocity.y += ((desiredUpDownDir * walkSpeed) - velocity.y) * acceleration * delta;
-	
+
 	move_and_slide(velocity);
 
 func HandleAnimation(delta):
@@ -80,7 +81,7 @@ func HandleCamera(mouseMotion:Vector2):
 	if (Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED):
 		mouseMotion = -mouseMotion * mouseSensitivity;
 		$camera.rotate_y(deg2rad(mouseMotion.x));
-		
+
 		var allowRotation:bool = true;
 		if (($camera.rotation.x + deg2rad(mouseMotion.y)) >= PI/2):
 			$camera.rotation.x = PI/2;

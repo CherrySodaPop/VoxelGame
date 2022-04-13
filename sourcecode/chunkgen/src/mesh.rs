@@ -2,8 +2,10 @@ use gdnative::api::{ArrayMesh, ConcavePolygonShape};
 use gdnative::core_types::{VariantArray, Vector3, Vector3Array};
 use gdnative::prelude::Unique;
 
+use crate::chunk::Chunk;
 use crate::constants::*;
 use crate::positions::*;
+use crate::world::World;
 
 struct Face {
     vertices: [[isize; 3]; 6],
@@ -102,37 +104,6 @@ impl MeshData {
     }
 }
 
-type BlockID = u16;
-// type TerrainArray = [[[BlockID; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z];
-
-pub struct Chunk {
-    pub position: ChunkPos,
-    pub terrain: [[[BlockID; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z],
-}
-
-impl Chunk {
-    pub fn new(position: ChunkPos) -> Self {
-        Self {
-            position,
-            terrain: [[[0; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z],
-        }
-    }
-    pub fn get(&self, position: LocalBlockPos) -> BlockID {
-        self.terrain[position.x][position.y][position.z]
-    }
-    pub fn set(&mut self, position: LocalBlockPos, to: BlockID) {
-        self.terrain[position.x][position.y][position.z] = to;
-    }
-}
-
-impl std::fmt::Debug for Chunk {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Chunk")
-            .field("position", &self.position)
-            .finish()
-    }
-}
-
 fn add_face(face: Face, position: LocalBlockPos, mesh_data: &mut MeshData) {
     for vertex in face.vertices {
         mesh_data.normals.push(face.normal); // hm?
@@ -144,7 +115,7 @@ fn add_face(face: Face, position: LocalBlockPos, mesh_data: &mut MeshData) {
     }
 }
 
-pub fn build_mesh_data(chunk: &Chunk) -> MeshData {
+pub fn build_mesh_data(chunk: &Chunk, world: &World) -> MeshData {
     println!("Building mesh data for {:?}", chunk);
     let mut mesh_data = MeshData::new();
     for x in 0..CHUNK_SIZE_X {
@@ -161,7 +132,13 @@ pub fn build_mesh_data(chunk: &Chunk) -> MeshData {
                     let face_visible = if let Ok(on_face_position) = on_face_position {
                         chunk.get(on_face_position) == 0
                     } else {
-                        false
+                        let global_on_face_position =
+                            local_position.offset_global(face.normal.into());
+                        if let Some(block_id) = world.get_block(global_on_face_position) {
+                            block_id == 0
+                        } else {
+                            false
+                        }
                     };
                     if !face_visible {
                         continue;
@@ -223,7 +200,9 @@ pub fn create_mesh(gd_mesh_data: &GDMeshData) -> gdnative::object::Ref<ArrayMesh
 // does not accept references to Vector3Arrays, it takes ownership of them.
 // For optimization reasons, this function also just takes ownership of the
 // GDMeshData to avoid having to clone.
-pub fn create_collision_shape(gd_mesh_data: GDMeshData) -> gdnative::object::Ref<ConcavePolygonShape, Unique> {
+pub fn create_collision_shape(
+    gd_mesh_data: GDMeshData,
+) -> gdnative::object::Ref<ConcavePolygonShape, Unique> {
     let collision_shape = ConcavePolygonShape::new();
     collision_shape.set_faces(gd_mesh_data.vertices);
     collision_shape
