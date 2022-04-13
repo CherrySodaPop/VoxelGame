@@ -8,6 +8,10 @@ use crate::{
     positions::{ChunkPos, GlobalBlockPos},
 };
 
+/// The "World". This holds every chunk, handling things like creating them and
+/// telling them to generate terrain/meshes/etc.
+///
+/// Because it holds all chunks, it can provide convenient methods like a _global_ `get_block`.
 pub struct World {
     chunks: HashMap<ChunkPos, Chunk>,
 }

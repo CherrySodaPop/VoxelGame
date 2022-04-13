@@ -159,7 +159,6 @@ pub struct GDMeshData {
 
 impl GDMeshData {
     fn convert_vec(vec: &Vec<[isize; 3]>) -> Vector3Array {
-        let mut gdarray = Vector3Array::new();
         // Hopefully this doesn't affect performance too much.
         vec.iter()
             .map(|val| Vector3::new(val[0] as f32, val[1] as f32, val[2] as f32))
@@ -179,7 +178,6 @@ impl From<MeshData> for GDMeshData {
 
 // This function could accept Into<GDMeshData> to allow passing in MeshData structs
 pub fn create_mesh(gd_mesh_data: &GDMeshData) -> gdnative::object::Ref<ArrayMesh, Unique> {
-    println!("Creating mesh...");
     let mesh = ArrayMesh::new();
     let mut gdarray = VariantArray::new();
     gdarray.resize(ArrayMesh::ARRAY_MAX as i32);

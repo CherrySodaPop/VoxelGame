@@ -20,16 +20,51 @@ mod world;
 use crate::constants::*;
 use crate::mesh::*;
 
-// For UV calculations, hence f32.
-const UV_TEXTURE_WIDTH: f32 = 256.0;
-const TEXTURE_WIDTH: f32 = 16.0;
-
-// TODO: Make it an actual node
+// TODO: Make it an actual node (e.g. derive NativeClass)
 struct ChunkNode<'a> {
     chunk: &'a Chunk,
     spatial: Ref<StaticBody, Unique>,
     collision: Ref<CollisionShape, Unique>,
     mesh: Ref<MeshInstance, Unique>,
+}
+
+impl<'a> ChunkNode<'a> {
+    fn new(chunk: &'a Chunk) -> Self {
+        let spatial = StaticBody::new();
+        let collision = CollisionShape::new();
+        let mesh = MeshInstance::new();
+        let spatial_transform = Self::spatial_transform(chunk.position.x, chunk.position.z);
+        spatial.set_transform(spatial.transform().translated(Vector3::new(
+            spatial_transform[0] as f32,
+            spatial_transform[1] as f32,
+            spatial_transform[2] as f32,
+        )));
+        ChunkNode {
+            chunk,
+            spatial,
+            collision,
+            mesh,
+        }
+    }
+
+    fn spatial_transform(x: isize, z: isize) -> [isize; 3] {
+        [x * CHUNK_SIZE_X as isize, 0, z * CHUNK_SIZE_Z as isize]
+    }
+
+    fn construct_mesh(&mut self, world: &World) {
+        let gd_mesh_data: GDMeshData = build_mesh_data(&self.chunk, world).into();
+        let mesh = create_mesh(&gd_mesh_data);
+        let collision_shape = create_collision_shape(gd_mesh_data);
+        self.mesh.set_mesh(mesh);
+        self.collision.set_shape(collision_shape);
+    }
+
+    fn apply_mesh(&mut self) {
+        unsafe {
+            self.spatial.add_child(self.collision.assume_shared(), true);
+            self.spatial.add_child(self.mesh.assume_shared(), true);
+        }
+    }
 }
 
 impl<'a> std::fmt::Debug for ChunkNode<'a> {
@@ -40,7 +75,6 @@ impl<'a> std::fmt::Debug for ChunkNode<'a> {
     }
 }
 
-// Chunk generator implementation
 #[derive(NativeClass, Default)]
 #[export]
 #[inherit(Node)]
@@ -62,6 +96,7 @@ impl ChunkGenerator {
         }
     }
 
+    // TODO: Reimplement all the exported methods
     /*
     // get the block id
     fn world_block(&self, block_position: BlockPosition) -> u16 {
@@ -157,47 +192,6 @@ impl ChunkGenerator {
             unsafe {
                 _owner.add_child(chunk_node.spatial.assume_shared(), true);
             }
-        }
-    }
-}
-
-// Chunk implementation
-impl<'a> ChunkNode<'a> {
-    fn new(chunk: &'a Chunk) -> Self {
-        let spatial = StaticBody::new();
-        let collision = CollisionShape::new();
-        let mesh = MeshInstance::new();
-        let spatial_transform = Self::spatial_transform(chunk.position.x, chunk.position.z);
-        spatial.set_transform(spatial.transform().translated(Vector3::new(
-            spatial_transform[0] as f32,
-            spatial_transform[1] as f32,
-            spatial_transform[2] as f32,
-        )));
-        ChunkNode {
-            chunk,
-            spatial,
-            collision,
-            mesh,
-        }
-    }
-
-    fn spatial_transform(x: isize, z: isize) -> [isize; 3] {
-        [x * CHUNK_SIZE_X as isize, 0, z * CHUNK_SIZE_Z as isize]
-    }
-
-    // fn construct_mesh(&mut self, world: &World) {
-    fn construct_mesh(&mut self, world: &World) {
-        let gd_mesh_data: GDMeshData = build_mesh_data(&self.chunk, world).into();
-        let mesh = create_mesh(&gd_mesh_data);
-        let collision_shape = create_collision_shape(gd_mesh_data);
-        self.mesh.set_mesh(mesh);
-        self.collision.set_shape(collision_shape);
-    }
-
-    fn apply_mesh(&mut self) {
-        unsafe {
-            self.spatial.add_child(self.collision.assume_shared(), true);
-            self.spatial.add_child(self.mesh.assume_shared(), true);
         }
     }
 }

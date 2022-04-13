@@ -129,7 +129,6 @@ impl GlobalBlockPos {
         let chunk_z: isize = ((zn + self.z) / CHUNK_SIZE_Z as isize) - zn;
         ChunkPos::new(chunk_x, chunk_z)
     }
-    /// Offset this chunk by `offset`, and return the new GlobalBlockPosition.
     pub fn offset(&self, offset: BlockOffset) -> Self {
         Self {
             x: self.x + offset.x,
