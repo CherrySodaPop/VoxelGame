@@ -48,6 +48,8 @@ pub struct ChunkGenerator {
     world: World,
     #[property]
     material: Option<Ref<Material, Shared>>,
+    #[property]
+    initial_generation_area: Option<Rect2>,
 }
 
 #[methods]
@@ -134,7 +136,17 @@ impl ChunkGenerator {
     fn _ready(&mut self, _owner: &Node) {
         // generate chunks
         let simplex_noise = OpenSimplexNoise::new();
-        self.world.generate_rect([-4, -4], [4, 4], &*simplex_noise);
+        let [start, end] = if let Some(initial_generation_area) = self.initial_generation_area {
+            let x = initial_generation_area.position.x as isize;
+            let y = initial_generation_area.position.y as isize;
+            let w = initial_generation_area.size.x as isize;
+            let h = initial_generation_area.size.y as isize;
+            [[x, y], [x + w, y + h]]
+        } else {
+            godot_warn!("Missing default chunk generation rect, using (-2, -2) w=4 h=4");
+            [[-2, -2], [2, 2]]
+        };
+        self.world.generate_rect(start, end, &*simplex_noise);
 
         // generate mesh (to be removed! - cherry)
         for chunk in self.world.chunks() {
