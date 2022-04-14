@@ -1,5 +1,6 @@
-/// Chunk generation. Seperate from the `chunk` module as world generation will
-/// likely be expanded a lot more (e.g. biomes).
+//! Chunk generation. Seperate from the `chunk` module as world generation will
+//! likely be expanded a lot more (e.g. biomes).
+
 use gdnative::{api::OpenSimplexNoise, core_types::Vector2, object::Ref, prelude::Unique};
 
 use crate::chunk::ChunkData;

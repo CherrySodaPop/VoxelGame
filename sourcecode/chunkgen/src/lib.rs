@@ -192,13 +192,16 @@ impl World {
                         if !face_visible {
                             continue;
                         }
-                        mesh_data.add_face(
+                        mesh_data.add_face_with_uv(
                             face,
                             [
                                 local_position.x as isize,
                                 local_position.y as isize,
                                 local_position.z as isize,
                             ],
+                            [16.0, 16.0],
+                            [256.0, 16.0],
+                            [block_id as f32 * 3.0, 0.0],
                         );
                     }
                 }
@@ -214,6 +217,11 @@ impl World {
         unsafe { chunk.node.assume_safe() }
             .map_mut(|cn: &mut ChunkNode, _base| {
                 cn.update_mesh_data(&mesh_data.into());
+                // TODO: Setting the material does not need to happen
+                //       every time a chunk mesh is regenerated.
+                if let Some(material) = &self.material {
+                    unsafe { cn.mesh.assume_safe().set_surface_material(0, material) }
+                }
             })
             .unwrap();
     }
