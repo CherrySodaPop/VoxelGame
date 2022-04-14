@@ -1,18 +1,16 @@
 use gdnative::api::{ArrayMesh, ConcavePolygonShape};
 use gdnative::core_types::{VariantArray, Vector3, Vector3Array};
+use gdnative::object::Ref;
 use gdnative::prelude::Unique;
 
-use crate::chunk::Chunk;
-use crate::constants::*;
-use crate::positions::*;
-use crate::world::World;
+use crate::macros::vec3;
 
-struct Face {
-    vertices: [[isize; 3]; 6],
-    normal: [isize; 3],
+pub struct Face {
+    pub vertices: [[isize; 3]; 6],
+    pub normal: [isize; 3],
 }
 
-const FACES: [Face; 6] = [
+pub const FACES: [Face; 6] = [
     // Top, Y+
     Face {
         vertices: [
@@ -94,7 +92,7 @@ pub struct MeshData {
 }
 
 impl MeshData {
-    fn new() -> Self {
+    pub fn new() -> Self {
         // This could be replaced with deriving Default
         Self {
             vertices: Vec::new(),
@@ -102,53 +100,17 @@ impl MeshData {
             uvs: Vec::new(),
         }
     }
-}
-
-fn add_face(face: Face, position: LocalBlockPos, mesh_data: &mut MeshData) {
-    for vertex in face.vertices {
-        mesh_data.normals.push(face.normal); // hm?
-        mesh_data.vertices.push([
-            position.x as isize + vertex[0],
-            position.y as isize + vertex[1],
-            position.z as isize + vertex[2],
-        ]);
-    }
-}
-
-pub fn build_mesh_data(chunk: &Chunk, world: &World) -> MeshData {
-    println!("Building mesh data for {:?}", chunk);
-    let mut mesh_data = MeshData::new();
-    for x in 0..CHUNK_SIZE_X {
-        for y in 0..CHUNK_SIZE_Y {
-            for z in 0..CHUNK_SIZE_Z {
-                let block_id = chunk.terrain[x as usize][y as usize][z as usize];
-                if block_id == 0 {
-                    // This is an air block, it has no faces.
-                    continue;
-                }
-                let local_position = LocalBlockPos::new(x, y, z, chunk.position);
-                for face in FACES {
-                    let on_face_position = local_position.offset(face.normal.into());
-                    let face_visible = if let Ok(on_face_position) = on_face_position {
-                        chunk.get(on_face_position) == 0
-                    } else {
-                        let global_on_face_position =
-                            local_position.offset_global(face.normal.into());
-                        if let Some(block_id) = world.get_block(global_on_face_position) {
-                            block_id == 0
-                        } else {
-                            false
-                        }
-                    };
-                    if !face_visible {
-                        continue;
-                    }
-                    add_face(face, local_position, &mut mesh_data);
-                }
-            }
+    pub fn add_face(&mut self, face: &Face, position: [isize; 3]) {
+        // TODO: UV coordinates
+        for vertex in face.vertices {
+            self.normals.push(face.normal);
+            self.vertices.push([
+                position[0] + vertex[0],
+                position[1] + vertex[1],
+                position[2] + vertex[2],
+            ]);
         }
     }
-    mesh_data
 }
 
 pub struct GDMeshData {
@@ -161,8 +123,37 @@ impl GDMeshData {
     fn convert_vec(vec: &Vec<[isize; 3]>) -> Vector3Array {
         // Hopefully this doesn't affect performance too much.
         vec.iter()
-            .map(|val| Vector3::new(val[0] as f32, val[1] as f32, val[2] as f32))
+            .map(|val| vec3!(val[0], val[1], val[2]))
             .collect()
+    }
+
+    pub fn create_mesh(&self) -> Ref<ArrayMesh, Unique> {
+        let mesh = ArrayMesh::new();
+        // let gdarray = VariantArray::new();
+        let gdarray = VariantArray::new();
+        gdarray.resize(ArrayMesh::ARRAY_MAX as i32);
+        /*
+            NOTE: Vector3Array.clone() does NOT actually clone the data.
+            Vector3Array is a reference-counted type, it just clones the
+            object itself.
+            See the godot-rust PoolArray documentation.
+        */
+        gdarray.set(ArrayMesh::ARRAY_VERTEX as i32, self.vertices.clone());
+        gdarray.set(ArrayMesh::ARRAY_NORMAL as i32, self.normals.clone());
+        // gdarray.set(ArrayMesh::ARRAY_TEX_UV as i32, uvs_vec);
+        mesh.add_surface_from_arrays(
+            gdnative::api::Mesh::PRIMITIVE_TRIANGLES,
+            gdarray.into_shared(),
+            VariantArray::new().into_shared(),
+            2194432,
+        );
+        mesh
+    }
+
+    pub fn create_collision_shape(&self) -> Ref<ConcavePolygonShape, Unique> {
+        let collision_shape = ConcavePolygonShape::new();
+        collision_shape.set_faces(self.vertices.clone());
+        collision_shape
     }
 }
 
@@ -174,36 +165,6 @@ impl From<MeshData> for GDMeshData {
             uvs: Self::convert_vec(&mesh_data.uvs),
         }
     }
-}
-
-// This function could accept Into<GDMeshData> to allow passing in MeshData structs
-pub fn create_mesh(gd_mesh_data: &GDMeshData) -> gdnative::object::Ref<ArrayMesh, Unique> {
-    let mesh = ArrayMesh::new();
-    let mut gdarray = VariantArray::new();
-    gdarray.resize(ArrayMesh::ARRAY_MAX as i32);
-    gdarray.set(ArrayMesh::ARRAY_VERTEX as i32, &gd_mesh_data.vertices);
-    gdarray.set(ArrayMesh::ARRAY_NORMAL as i32, &gd_mesh_data.normals);
-    // gdarray.set(ArrayMesh::ARRAY_TEX_UV as i32, uvs_vec);
-    mesh.add_surface_from_arrays(
-        gdnative::api::Mesh::PRIMITIVE_TRIANGLES,
-        gdarray.into_shared(),
-        VariantArray::new().into_shared(),
-        2194432,
-    );
-    mesh
-}
-
-// This function taking ownership of the GDMeshData is stupid.
-// Unfortunately, for reasons beyond me, ConcavePolygonShape.set_faces
-// does not accept references to Vector3Arrays, it takes ownership of them.
-// For optimization reasons, this function also just takes ownership of the
-// GDMeshData to avoid having to clone.
-pub fn create_collision_shape(
-    gd_mesh_data: GDMeshData,
-) -> gdnative::object::Ref<ConcavePolygonShape, Unique> {
-    let collision_shape = ConcavePolygonShape::new();
-    collision_shape.set_faces(gd_mesh_data.vertices);
-    collision_shape
 }
 
 // TODO: tests

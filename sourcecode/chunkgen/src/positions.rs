@@ -10,7 +10,7 @@ impl std::fmt::Display for TooLargeError {
         write!(f, "LocalBlockPosition was offset beyond its boundaries")
     }
 }
-// impl std::error::Error for TooLargeError {}
+impl std::error::Error for TooLargeError {}
 
 /// A chunk in the world.
 ///
@@ -34,6 +34,14 @@ impl ChunkPos {
         let x = self.x * CHUNK_SIZE_X as isize;
         let z = self.z * CHUNK_SIZE_Z as isize;
         GlobalBlockPos::new(x, 0, z)
+    }
+    pub fn adjacent(&self) -> [ChunkPos; 4] {
+        [
+            ChunkPos::new(self.x + 1, self.z),
+            ChunkPos::new(self.x - 1, self.z),
+            ChunkPos::new(self.x, self.z + 1),
+            ChunkPos::new(self.x, self.z - 1),
+        ]
     }
 }
 
@@ -90,6 +98,20 @@ impl LocalBlockPos {
         let z = origin.z + self.z as isize + offset.z;
         GlobalBlockPos::new(x, y, z)
     }
+    pub fn borders(&self) -> Vec<ChunkPos> {
+        let mut borders = Vec::new();
+        if self.x == 0 {
+            borders.push(ChunkPos::new(self.chunk.x - 1, self.chunk.z));
+        } else if self.x == CHUNK_SIZE_X - 1 {
+            borders.push(ChunkPos::new(self.chunk.x + 1, self.chunk.z));
+        }
+        if self.z == 0 {
+            borders.push(ChunkPos::new(self.chunk.x, self.chunk.z - 1));
+        } else if self.z == CHUNK_SIZE_Z - 1 {
+            borders.push(ChunkPos::new(self.chunk.x, self.chunk.z + 1));
+        }
+        borders
+    }
 }
 
 impl From<GlobalBlockPos> for LocalBlockPos {
@@ -138,6 +160,16 @@ impl GlobalBlockPos {
     }
 }
 
+impl From<LocalBlockPos> for GlobalBlockPos {
+    fn from(local_position: LocalBlockPos) -> Self {
+        let chunk_origin = local_position.chunk.origin();
+        let x = chunk_origin.x + local_position.x as isize;
+        let y = chunk_origin.y + local_position.y as isize;
+        let z = chunk_origin.z + local_position.z as isize;
+        Self::new(x, y, z)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -177,6 +209,28 @@ mod tests {
         };
     }
 
+    macro_rules! lbp_to_gbp_test {
+        ($local_position_base:expr, $chunk_position_base:expr, $global_position:expr) => {
+            let chunk_pos = ChunkPos::new($chunk_position_base[0], $chunk_position_base[1]);
+            let lbp = LocalBlockPos::new(
+                $local_position_base[0],
+                $local_position_base[1],
+                $local_position_base[2],
+                chunk_pos,
+            );
+            let converted = GlobalBlockPos::from(lbp);
+            assert_eq!(
+                converted,
+                GlobalBlockPos::new(
+                    $global_position[0],
+                    $global_position[1],
+                    $global_position[2]
+                )
+            );
+            assert_eq!(chunk_pos, converted.chunk());
+        };
+    }
+
     #[test]
     fn test_global_block_pos() {
         // Global position (base), chunk position (expected), local position (expected)
@@ -207,6 +261,14 @@ mod tests {
         origin_test!([-2, -2], [-64, 0, -64]);
         origin_test!([-2, -1], [-64, 0, -32]);
         origin_test!([-4, 3], [-128, 0, 96]);
+    }
+
+    #[test]
+    fn test_conversions() {
+        lbp_to_gbp_test!([0, 0, 0], [0, 0], [0, 0, 0]);
+        lbp_to_gbp_test!([1, 0, 1], [0, 0], [1, 0, 1]);
+        lbp_to_gbp_test!([31, 0, 31], [0, 0], [31, 0, 31]);
+        lbp_to_gbp_test!([0, 0, 0], [1, 1], [32, 0, 32]);
     }
 
     // TODO: More tests

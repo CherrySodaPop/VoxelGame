@@ -1,17 +1,11 @@
-use gdnative::api::OpenSimplexNoise;
+use crate::{constants::*, mesh::Face, positions::*};
 
-use crate::{constants::*, positions::*};
-
-pub trait TerrainGenerator {
-    fn generate(&mut self, noise: &OpenSimplexNoise);
-}
-
-pub struct Chunk {
+pub struct ChunkData {
     pub position: ChunkPos,
     pub terrain: [[[BlockID; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z],
 }
 
-impl Chunk {
+impl ChunkData {
     pub fn new(position: ChunkPos) -> Self {
         Self {
             position,
@@ -24,37 +18,24 @@ impl Chunk {
     pub fn set(&mut self, position: LocalBlockPos, to: BlockID) {
         self.terrain[position.x][position.y][position.z] = to;
     }
-}
 
-impl TerrainGenerator for Chunk {
-    fn generate(&mut self, noise: &OpenSimplexNoise) {
-        println!("Generating terrain data for chunk {:?}", self);
-        let chunk_origin = self.position.origin();
-        for x in 0..CHUNK_SIZE_X {
-            for z in 0..CHUNK_SIZE_Z {
-                // TODO: Use a trait method for per-block noise sampling?
-                let world_block_x = x as isize + chunk_origin.x;
-                let world_block_z = z as isize + chunk_origin.z;
-                let noise_height: f64 = noise.get_noise_2dv(gdnative::core_types::Vector2::new(
-                    world_block_x as f32,
-                    world_block_z as f32,
-                ));
-                let terrain_peak =
-                    ((CHUNK_SIZE_Y as f64) * ((noise_height / 2.0) + 0.5) * 0.1) as isize;
-                for y in 0..CHUNK_SIZE_Y {
-                    let y = y as isize;
-                    if y > terrain_peak {
-                        break;
-                    }
-                    let block_id = if y > 6 { 1 } else { 2 }; // TODO: implement actual block ID system
-                    self.terrain[x as usize][y as usize][z as usize] = block_id;
-                }
-            }
-        }
+    /// Returns `Ok(true)` if `face` is visible (e.g. is not blocked by a
+    /// solid block) at `position`.
+    ///
+    /// This checks in **local space**, and will return `TooLargeError` if
+    /// the block to check for transparency is outside the range of this chunk.
+    pub fn is_face_visible(
+        &self,
+        position: LocalBlockPos,
+        face: &Face,
+    ) -> Result<bool, TooLargeError> {
+        position
+            .offset(face.normal.into())
+            .and_then(|check_position| Ok(self.get(check_position) == 0))
     }
 }
 
-impl std::fmt::Debug for Chunk {
+impl std::fmt::Debug for ChunkData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Chunk")
             .field("position", &self.position)
