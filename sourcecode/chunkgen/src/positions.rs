@@ -15,6 +15,7 @@ impl std::error::Error for TooLargeError {}
 /// A chunk in the world.
 ///
 /// Keep in mind that the x and z values here do not represent *block* positions.
+/// Use `ChunkPos.origin` if you want the position of the chunk's origin block.
 #[derive(Clone, Copy, Eq, PartialEq, Debug, Hash)]
 pub struct ChunkPos {
     pub x: isize,
@@ -22,10 +23,6 @@ pub struct ChunkPos {
 }
 
 impl ChunkPos {
-    // pub const SIZE_X: isize = 32;
-    // pub const SIZE_Y: isize = 256;
-    // pub const SIZE_Z: isize = 32;
-
     pub fn new(x: isize, z: isize) -> Self {
         ChunkPos { x, z }
     }
@@ -35,6 +32,9 @@ impl ChunkPos {
         let z = self.z * CHUNK_SIZE_Z as isize;
         GlobalBlockPos::new(x, 0, z)
     }
+    /// Returns `ChunkPos` that are adjacent to this one.
+    ///
+    /// This does not include diagonals.
     pub fn adjacent(&self) -> [ChunkPos; 4] {
         [
             ChunkPos::new(self.x + 1, self.z),
@@ -81,6 +81,10 @@ impl LocalBlockPos {
     pub fn new(x: usize, y: usize, z: usize, chunk: ChunkPos) -> Self {
         Self { x, y, z, chunk }
     }
+    /// Offsets this block position by `offset`.
+    ///
+    /// Returns `TooLargeError` if the resulting block position would
+    /// end up in another chunk. (See `LocalBlockPos.offset_global`)
     pub fn offset(&self, offset: BlockOffset) -> Result<Self, TooLargeError> {
         let x = self.x as isize + offset.x;
         let y = self.y as isize + offset.y;
@@ -91,6 +95,9 @@ impl LocalBlockPos {
             Ok(Self::new(x as usize, y as usize, z as usize, self.chunk))
         }
     }
+    /// Offsets this block position by `offset`, returning a `GlobalBlockPos`.
+    ///
+    /// To offset in local space, see `LocalBlockPos.offset`.
     pub fn offset_global(&self, offset: BlockOffset) -> GlobalBlockPos {
         let origin = self.chunk.origin();
         let x = origin.x + self.x as isize + offset.x;
@@ -98,6 +105,10 @@ impl LocalBlockPos {
         let z = origin.z + self.z as isize + offset.z;
         GlobalBlockPos::new(x, y, z)
     }
+    /// Returns `ChunkPos` that this block position borders.
+    ///
+    /// For example: x=0 borders the chunk to the left (X-), z=31 borders
+    /// the chunk below (Z+), etc.
     pub fn borders(&self) -> Vec<ChunkPos> {
         let mut borders = Vec::new();
         if self.x == 0 {
@@ -137,6 +148,7 @@ impl GlobalBlockPos {
     pub fn new(x: isize, y: isize, z: isize) -> Self {
         Self { x, y, z }
     }
+    /// Returns the `ChunkPos` that this block resides in.
     pub fn chunk(&self) -> ChunkPos {
         let xn = if self.x < 0 { 1 } else { 0 };
         let zn = if self.z < 0 { 1 } else { 0 };
@@ -151,6 +163,7 @@ impl GlobalBlockPos {
         let chunk_z: isize = ((zn + self.z) / CHUNK_SIZE_Z as isize) - zn;
         ChunkPos::new(chunk_x, chunk_z)
     }
+    /// Offsets this block position by `offset`.
     pub fn offset(&self, offset: BlockOffset) -> Self {
         Self {
             x: self.x + offset.x,
@@ -265,10 +278,12 @@ mod tests {
 
     #[test]
     fn test_conversions() {
+        // Local block position (base), chunk position (base), global block position (expected)
         lbp_to_gbp_test!([0, 0, 0], [0, 0], [0, 0, 0]);
         lbp_to_gbp_test!([1, 0, 1], [0, 0], [1, 0, 1]);
         lbp_to_gbp_test!([31, 0, 31], [0, 0], [31, 0, 31]);
         lbp_to_gbp_test!([0, 0, 0], [1, 1], [32, 0, 32]);
+        lbp_to_gbp_test!([0, 0, 0], [-1, -1], [-32, 0, -32]);
     }
 
     // TODO: More tests

@@ -1,30 +1,42 @@
-use std::{
-    collections::{BTreeMap, HashMap},
-    isize,
-    sync::{Mutex, Arc},
-};
+#![allow(dead_code)]
+// ^ Prevents "unused function" warnings, those functions will
+// likely either be used in the future or by GDScript.
+
+use std::{collections::HashMap, isize};
 
 use chunk::ChunkData;
 use gdnative::{
-    api::{
-        CollisionShape, ConcavePolygonShape, Material, Mesh, MeshInstance, OpenSimplexNoise,
-        StaticBody, SurfaceTool,
-    },
+    api::{CollisionShape, Material, MeshInstance, StaticBody},
     prelude::*,
 };
+use generate::ChunkGenerator;
 use positions::{ChunkPos, GlobalBlockPos};
-// use world::World;
 
 mod chunk;
 mod constants;
+mod generate;
 mod macros;
 mod mesh;
 mod positions;
-mod world;
 
 use crate::macros::*;
 use crate::mesh::*;
 use crate::{constants::*, positions::LocalBlockPos};
+
+#[derive(Debug, Clone)]
+pub struct NotLoadedError;
+
+impl std::fmt::Display for NotLoadedError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "The chunk being modified has not been loaded")
+    }
+}
+impl std::error::Error for NotLoadedError {}
+
+struct Chunk {
+    data: ChunkData,
+    node: Instance<ChunkNode, Shared>,
+}
 
 #[derive(NativeClass)]
 #[export]
@@ -55,51 +67,7 @@ impl ChunkNode {
     }
 }
 
-struct Chunk {
-    data: ChunkData,
-    node: Instance<ChunkNode, Shared>,
-}
-
-struct ChunkGenerator {
-    noise: Ref<OpenSimplexNoise, Unique>,
-}
-
-impl ChunkGenerator {
-    fn new() -> Self {
-        Self {
-            noise: OpenSimplexNoise::new(),
-        }
-    }
-    fn generate_block(&self, y: isize, terrain_peak: isize) -> BlockID {
-        if y > terrain_peak {
-            return 0;
-        }
-        let block_id = if y > 6 { 1 } else { 2 }; // TODO: implement actual block ID system
-        block_id
-    }
-    fn get_terrain_peak(&self, x: isize, z: isize) -> isize {
-        let noise_height: f64 = self.noise.get_noise_2dv(vec2!(x, z));
-        let terrain_peak = ((CHUNK_SIZE_Y as f64) * ((noise_height / 2.0) + 0.5) * 0.1) as isize;
-        terrain_peak
-    }
-    pub fn generate_chunk(&self, position: ChunkPos) -> ChunkData {
-        println!("Generating terrain data for chunk {:?}", position);
-        let mut terrain = [[[0u16; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X];
-        let chunk_origin = position.origin();
-        for x in 0..CHUNK_SIZE_X {
-            for z in 0..CHUNK_SIZE_Z {
-                let global_x = x as isize + chunk_origin.x;
-                let global_z = z as isize + chunk_origin.z;
-                let terrain_peak = self.get_terrain_peak(global_x, global_z);
-                for y in 0..CHUNK_SIZE_Y {
-                    terrain[x][y][z] = self.generate_block(y as isize, terrain_peak);
-                }
-            }
-        }
-        ChunkData { position, terrain }
-    }
-}
-
+/// Helper struct for `Rect2` -> `(x1, y1, x2, y2)` conversion
 struct PositionRange {
     x1: isize,
     y1: isize,
@@ -136,26 +104,12 @@ pub struct World {
     initial_generation_area: Option<Rect2>,
 }
 
-#[derive(Debug, Clone)]
-pub struct NotLoadedError;
-
-impl std::fmt::Display for NotLoadedError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "The chunk attempting to be modified has not been loaded")
-    }
-}
-impl std::error::Error for NotLoadedError {}
-
 #[methods]
 impl World {
     // constructor
     fn new(_owner: &Node) -> Self {
         World {
-            // chunks: HashMap::new(),
-            // generator: ChunkGenerator::new(),
             ..Default::default()
-            // material: None,
-            // initial_generation_area: None,
         }
     }
 
@@ -166,7 +120,7 @@ impl World {
         let chunk_position = position.chunk();
         self.chunks
             .get(&chunk_position)
-            .and_then(|chunk| Some(chunk.data.get(position.into())))
+            .map(|chunk| chunk.data.get(position.into()))
     }
 
     /// Sets a block in _global_ space. This will update the
@@ -187,19 +141,17 @@ impl World {
             .chunks
             .get(&local_position.chunk)
             .ok_or(NotLoadedError)?;
-        self.update_mesh(&chunk);
+        self.update_mesh(chunk);
         for chunk_position in local_position.borders() {
-            match self.chunks.get(&chunk_position) {
-                Some(chunk) => {
-                    self.update_mesh(&chunk);
-                }
-                None => {}
-            };
+            if let Some(chunk) = self.chunks.get(&chunk_position) {
+                self.update_mesh(chunk)
+            }
         }
         Ok(())
     }
 
     #[export]
+    // TODO: Accept a Vector3 instead of x, y, and z
     fn set_block_gd(&mut self, _owner: &Node, x: isize, y: isize, z: isize, to: BlockID) {
         self.set_block(GlobalBlockPos::new(x, y, z), to);
     }
@@ -207,8 +159,8 @@ impl World {
     /// Returns `true` if `face` is visible (e.g. is not blocked by a
     /// solid block) at `position`.
     ///
-    /// This checks in world space, meaning block faces on chunk borders
-    /// won't always be marked as visible.
+    /// This checks in world space, meaning block faces checked on chunk borders
+    /// will be accurate.
     fn is_face_visible(&self, position: GlobalBlockPos, face: &Face) -> bool {
         let check = position.offset(face.normal.into());
         match self.get_block(check) {
@@ -255,9 +207,10 @@ impl World {
         mesh_data
     }
 
+    /// Updates the mesh for a specific `Chunk`.
     fn update_mesh(&self, chunk: &Chunk) {
         let mesh_data = self.create_mesh_data(&chunk.data);
-        // HERE!
+        // TODO: This function seems to cause issues when using multithreading.
         unsafe { chunk.node.assume_safe() }
             .map_mut(|cn: &mut ChunkNode, _base| {
                 cn.update_mesh_data(&mesh_data.into());
@@ -265,18 +218,19 @@ impl World {
             .unwrap();
     }
 
+    /// Updates the meshes of chunks adjacent to `position`.
     fn update_nearby(&self, position: ChunkPos) {
         let adjacent = position.adjacent();
         for adj_position in adjacent {
-            match self.chunks.get(&adj_position) {
-                Some(chunk) => {
-                    self.update_mesh(chunk);
-                }
-                None => {}
+            if let Some(chunk) = self.chunks.get(&adj_position) {
+                self.update_mesh(chunk);
             }
         }
     }
 
+    /// Loads a chunk from disk, or generates a new one.
+    ///
+    /// This does not create the mesh, see `World.update_mesh`.
     fn load_chunk(&self, position: ChunkPos) -> Chunk {
         let chunk_data = if false {
             todo!("Implement loading chunks from disk");
@@ -293,13 +247,16 @@ impl World {
             })
             .unwrap();
         let chunk_node = chunk_node.into_shared();
-        let chunk = Chunk {
+        Chunk {
             data: chunk_data,
             node: chunk_node,
-        };
-        chunk
+        }
     }
 
+    /// Takes ownership of `chunk` and adds it to the `World.chunks` HashMap.
+    ///
+    /// This allows other chunks to see it when making face calculations,
+    /// and for functions such as `World.set_block` to be able to modify it.
     fn add_chunk(&mut self, chunk: Chunk) {
         self.chunks.insert(chunk.data.position, chunk);
     }
@@ -308,16 +265,14 @@ impl World {
     fn load_chunk_gd(&mut self, _owner: &Node, chunk_position: Vector2) {
         let chunk_position = ChunkPos::new(chunk_position.x as isize, chunk_position.y as isize);
         if self.chunks.contains_key(&chunk_position) {
+            // The chunk is already loaded.
             return;
         }
         let chunk = self.load_chunk(chunk_position);
         self.update_mesh(&chunk);
-        // _owner.add_child(&chunk.node, true);
-        unsafe {
-            _owner.call_deferred("add_child", &[chunk.node.to_variant()]);
-        }
-
+        _owner.add_child(&chunk.node, true);
         self.add_chunk(chunk);
+        // Update the meshes of nearby chunks to remove now-hidden faces
         self.update_nearby(chunk_position);
     }
 
@@ -348,6 +303,7 @@ impl World {
                 y2: 2,
             }
         };
+        // Generate some initial "spawn area" chunks.
         for x in generate_range.x1..=generate_range.x2 {
             for z in generate_range.y1..=generate_range.y2 {
                 self.add_chunk(self.load_chunk(ChunkPos::new(x, z)));

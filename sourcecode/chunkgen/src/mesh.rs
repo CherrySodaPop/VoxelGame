@@ -1,3 +1,5 @@
+/// Mesh data structs and Godot `ArrayMesh` generation.
+
 use gdnative::api::{ArrayMesh, ConcavePolygonShape};
 use gdnative::core_types::{VariantArray, Vector3, Vector3Array};
 use gdnative::object::Ref;
@@ -85,6 +87,7 @@ pub const FACES: [Face; 6] = [
     },
 ];
 
+/// Mesh data, like vertices, normals, and UVs.
 pub struct MeshData {
     vertices: Vec<[isize; 3]>,
     normals: Vec<[isize; 3]>,
@@ -100,6 +103,7 @@ impl MeshData {
             uvs: Vec::new(),
         }
     }
+    /// Adds a `Face` at `position`.
     pub fn add_face(&mut self, face: &Face, position: [isize; 3]) {
         // TODO: UV coordinates
         for vertex in face.vertices {
@@ -113,6 +117,14 @@ impl MeshData {
     }
 }
 
+/// Like `MeshData`, but using Godot types.
+///
+/// This allows abstraction over mesh data, while still permitting
+/// things like passing `self.vertices.clone()` to Godot.
+///
+/// Keep in mind that `Vector3Array`s are reference-counted, meaning
+/// that `Vector3Array.clone()` does not actually clone the *data*.
+/// See godot-rust's documentation on `PoolArray` for more info.
 pub struct GDMeshData {
     vertices: Vector3Array,
     normals: Vector3Array,
@@ -127,19 +139,14 @@ impl GDMeshData {
             .collect()
     }
 
+    /// Creates an `ArrayMesh` from this `GDMeshData`.
     pub fn create_mesh(&self) -> Ref<ArrayMesh, Unique> {
         let mesh = ArrayMesh::new();
-        // let gdarray = VariantArray::new();
         let gdarray = VariantArray::new();
         gdarray.resize(ArrayMesh::ARRAY_MAX as i32);
-        /*
-            NOTE: Vector3Array.clone() does NOT actually clone the data.
-            Vector3Array is a reference-counted type, it just clones the
-            object itself.
-            See the godot-rust PoolArray documentation.
-        */
         gdarray.set(ArrayMesh::ARRAY_VERTEX as i32, self.vertices.clone());
         gdarray.set(ArrayMesh::ARRAY_NORMAL as i32, self.normals.clone());
+        // TODO: UV coordinates
         // gdarray.set(ArrayMesh::ARRAY_TEX_UV as i32, uvs_vec);
         mesh.add_surface_from_arrays(
             gdnative::api::Mesh::PRIMITIVE_TRIANGLES,
@@ -150,6 +157,7 @@ impl GDMeshData {
         mesh
     }
 
+    /// Creates a `ConcavePolygonShape` from this `GDMeshData`.
     pub fn create_collision_shape(&self) -> Ref<ConcavePolygonShape, Unique> {
         let collision_shape = ConcavePolygonShape::new();
         collision_shape.set_faces(self.vertices.clone());

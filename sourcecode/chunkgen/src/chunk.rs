@@ -31,7 +31,7 @@ impl ChunkData {
     ) -> Result<bool, TooLargeError> {
         position
             .offset(face.normal.into())
-            .and_then(|check_position| Ok(self.get(check_position) == 0))
+            .map(|check_position| self.get(check_position) == 0)
     }
 }
 
