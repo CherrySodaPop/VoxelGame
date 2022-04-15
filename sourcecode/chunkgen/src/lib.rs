@@ -17,11 +17,12 @@ mod constants;
 mod generate;
 mod macros;
 mod mesh;
+mod performance;
 mod positions;
 
-use crate::macros::*;
 use crate::mesh::*;
 use crate::{constants::*, positions::LocalBlockPos};
+use crate::{macros::*, performance::Timings};
 
 #[derive(Debug, Clone)]
 pub struct NotLoadedError;
@@ -300,6 +301,7 @@ impl World {
 
     #[export]
     fn _ready(&mut self, _owner: &Node) {
+        let mut timings = Timings::new();
         let generate_range = if let Some(initial_generation_area) = self.initial_generation_area {
             initial_generation_area.into()
         } else {
@@ -314,13 +316,19 @@ impl World {
         // Generate some initial "spawn area" chunks.
         for x in generate_range.x1..=generate_range.x2 {
             for z in generate_range.y1..=generate_range.y2 {
-                self.add_chunk(self.load_chunk(ChunkPos::new(x, z)));
+                let start_time = std::time::Instant::now();
+                let loaded_chunk = self.load_chunk(ChunkPos::new(x, z));
+                timings.generate_chunk.push(start_time.elapsed());
+                self.add_chunk(loaded_chunk);
             }
         }
         for chunk in self.chunks.values() {
+            let start_time = std::time::Instant::now();
             self.update_mesh(chunk);
+            timings.build_mesh.push(start_time.elapsed());
             _owner.add_child(&chunk.node, true);
         }
+        println!("{}", timings);
     }
 }
 
