@@ -12,6 +12,7 @@ use gdnative::{
 use generate::ChunkGenerator;
 use positions::{ChunkPos, GlobalBlockPos};
 
+mod block;
 mod chunk;
 mod constants;
 mod generate;
@@ -20,6 +21,7 @@ mod mesh;
 mod performance;
 mod positions;
 
+use crate::block::BlockID;
 use crate::mesh::*;
 use crate::{constants::*, positions::LocalBlockPos};
 use crate::{macros::*, performance::Timings};
@@ -201,8 +203,9 @@ impl World {
                                 local_position.z as isize,
                             ],
                             [16.0, 16.0],
-                            [256.0, 16.0],
-                            [block_id as f32 * 3.0, 0.0],
+                            // TODO: Load actual atlas texture size from Godot
+                            [240.0, 16.0],
+                            [(block_id - 20) as f32 * 3.0, 0.0],
                         );
                     }
                 }

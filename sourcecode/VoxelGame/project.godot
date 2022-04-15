@@ -8,6 +8,16 @@
 
 config_version=4
 
+_global_script_classes=[ {
+"base": "Resource",
+"class": "AtlasConfig",
+"language": "GDScript",
+"path": "res://objects/atlasManager/AtlasConfig.gd"
+} ]
+_global_script_class_icons={
+"AtlasConfig": ""
+}
+
 [application]
 
 config/name="VoxelGame"

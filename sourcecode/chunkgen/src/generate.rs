@@ -3,26 +3,44 @@
 
 use gdnative::{api::OpenSimplexNoise, core_types::Vector2, object::Ref, prelude::Unique};
 
+use crate::block::BlockID;
+use crate::block::BLOCK_MANAGER;
 use crate::chunk::ChunkData;
 use crate::constants::*;
 use crate::macros::*;
 use crate::positions::ChunkPos;
 
+struct GenerationConfig {
+    top_layer: BlockID,
+    bottom_layer: BlockID,
+}
+
 pub struct ChunkGenerator {
     noise: Ref<OpenSimplexNoise, Unique>,
+    config: GenerationConfig,
 }
 
 impl ChunkGenerator {
     pub fn new() -> Self {
+        let top_layer = BLOCK_MANAGER.block("grass").unwrap().id;
+        let bottom_layer = BLOCK_MANAGER.block("dirt").unwrap().id;
         Self {
             noise: OpenSimplexNoise::new(),
+            config: GenerationConfig {
+                top_layer,
+                bottom_layer,
+            },
         }
     }
     pub fn generate_block(&self, y: isize, terrain_peak: isize) -> BlockID {
         if y > terrain_peak {
             return 0;
         }
-        let block_id = if y > 6 { 1 } else { 2 }; // TODO: implement actual block ID system
+        let block_id = if y > 6 {
+            self.config.top_layer
+        } else {
+            self.config.bottom_layer
+        };
         block_id
     }
     fn get_terrain_peak(&self, x: isize, z: isize) -> isize {
