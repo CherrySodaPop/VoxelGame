@@ -4,16 +4,14 @@
 
 use std::{collections::HashMap, isize};
 
-use chunk::ChunkData;
 use gdnative::{
     api::{CollisionShape, Material, MeshInstance, StaticBody},
     prelude::*,
 };
-use generate::ChunkGenerator;
-use positions::{ChunkPos, GlobalBlockPos};
 
 mod block;
 mod chunk;
+mod chunk_mesh;
 mod constants;
 mod generate;
 mod macros;
@@ -21,10 +19,16 @@ mod mesh;
 mod performance;
 mod positions;
 
-use crate::block::BlockID;
-use crate::mesh::*;
-use crate::{constants::*, positions::LocalBlockPos};
-use crate::{macros::*, performance::Timings};
+use crate::{
+    block::BlockID,
+    chunk::ChunkData,
+    chunk_mesh::{ChunkMeshData, ChunkMeshDataGenerator},
+    generate::ChunkGenerator,
+    macros::*,
+    mesh::*,
+    performance::Timings,
+    positions::*,
+};
 
 #[derive(Debug, Clone)]
 pub struct NotLoadedError;
@@ -60,12 +64,12 @@ impl ChunkNode {
         ChunkNode { collision, mesh }
     }
 
-    fn update_mesh_data(&mut self, mesh_data: &GDMeshData) {
+    fn update_mesh_data(&mut self, mesh_data: ChunkMeshData) {
         unsafe {
             self.collision
                 .assume_safe()
-                .set_shape(mesh_data.create_collision_shape());
-            self.mesh.assume_safe().set_mesh(mesh_data.create_mesh());
+                .set_shape(mesh_data.build_collision_shape());
+            self.mesh.assume_safe().set_mesh(mesh_data.build_mesh());
         }
     }
 }
@@ -100,7 +104,7 @@ impl From<Rect2> for PositionRange {
 #[user_data(gdnative::export::user_data::MutexData<World>)]
 pub struct World {
     chunks: HashMap<ChunkPos, Chunk>,
-    generator: ChunkGenerator,
+    chunk_generator: ChunkGenerator,
     #[property]
     material: Option<Ref<Material, Shared>>,
     #[property]
@@ -172,55 +176,14 @@ impl World {
         }
     }
 
-    /// Creates `MeshData` for a given `ChunkData`.
-    ///
-    /// Handles things like chunk border face checking.
-    fn create_mesh_data(&self, chunk_data: &ChunkData) -> MeshData {
-        println!("Building mesh data for {:?}", chunk_data);
-        let mut mesh_data = MeshData::new();
-        for x in 0..CHUNK_SIZE_X {
-            for y in 0..CHUNK_SIZE_Y {
-                for z in 0..CHUNK_SIZE_Z {
-                    let block_id = chunk_data.terrain[x as usize][y as usize][z as usize];
-                    if block_id == 0 {
-                        // This is an air block, it has no faces.
-                        continue;
-                    }
-                    let local_position = LocalBlockPos::new(x, y, z, chunk_data.position);
-                    for face in &FACES {
-                        let face_visible = match chunk_data.is_face_visible(local_position, face) {
-                            Ok(face_visible) => face_visible,
-                            Err(_) => self.is_face_visible(local_position.into(), face),
-                        };
-                        if !face_visible {
-                            continue;
-                        }
-                        mesh_data.add_face_with_uv(
-                            face,
-                            [
-                                local_position.x as isize,
-                                local_position.y as isize,
-                                local_position.z as isize,
-                            ],
-                            [16.0, 16.0],
-                            // TODO: Load actual atlas texture size from Godot
-                            [240.0, 16.0],
-                            [(block_id - 20) as f32 * 3.0, 0.0],
-                        );
-                    }
-                }
-            }
-        }
-        mesh_data
-    }
-
     /// Updates the mesh for a specific `Chunk`.
     fn update_mesh(&self, chunk: &Chunk) {
-        let mesh_data = self.create_mesh_data(&chunk.data);
+        let mesh_generator = ChunkMeshDataGenerator::new(self, &chunk.data);
+        let mesh_data = mesh_generator.generate();
         // TODO: This function seems to cause issues when using multithreading.
         unsafe { chunk.node.assume_safe() }
             .map_mut(|cn: &mut ChunkNode, _base| {
-                cn.update_mesh_data(&mesh_data.into());
+                cn.update_mesh_data(mesh_data);
                 // TODO: Setting the material does not need to happen
                 //       every time a chunk mesh is regenerated.
                 if let Some(material) = &self.material {
@@ -248,7 +211,7 @@ impl World {
             todo!("Implement loading chunks from disk");
         } else {
             // The chunk is new.
-            self.generator.generate_chunk(position)
+            self.chunk_generator.generate_chunk(position)
         };
         let chunk_node = ChunkNode::new_instance();
         // Ugly godot-rust stuff, moves the chunk node into place.
@@ -339,7 +302,7 @@ impl Default for World {
     fn default() -> Self {
         Self {
             chunks: Default::default(),
-            generator: ChunkGenerator::new(),
+            chunk_generator: ChunkGenerator::new(),
             material: Default::default(),
             initial_generation_area: Default::default(),
         }

@@ -1,5 +1,7 @@
 //! Mesh data structs and Godot `ArrayMesh` generation.
 
+use std::borrow::Borrow;
+
 use gdnative::api::{ArrayMesh, ConcavePolygonShape};
 use gdnative::core_types::{VariantArray, Vector2, Vector2Array, Vector3, Vector3Array};
 use gdnative::object::Ref;
@@ -112,9 +114,9 @@ pub const FACES: [Face; 6] = [
 
 /// Mesh data, like vertices, normals, and UVs.
 pub struct MeshData {
-    vertices: Vec<[isize; 3]>,
-    normals: Vec<[isize; 3]>,
-    uvs: Vec<[f32; 2]>,
+    pub vertices: Vec<[isize; 3]>,
+    pub normals: Vec<[isize; 3]>,
+    pub uvs: Vec<[f32; 2]>,
 }
 
 impl MeshData {
@@ -138,26 +140,12 @@ impl MeshData {
             // self.uvs.push(Axis::uv(face.uv_use, vertex));
         }
     }
-    /// Adds a `Face` at `position`, with specific UV modifications.
-    ///
-    /// # Arguments
-    ///
-    /// * `tex_size` - The size of the textures in the atlas (e.g. 16x16)
-    /// * `atlas_size` - The size of the atlas image itself (e.g. 256x16)
-    /// * `tex_position` - The texture's position within the atlas as an *index*,
-    /// not pixel coordinates (e.g. the texture starting at `48.0` would be idx `3`).
-    pub fn add_face_with_uv(
-        &mut self,
-        face: &Face,
-        position: [isize; 3],
-        tex_size: [f32; 2],
-        atlas_size: [f32; 2],
-        tex_position: [f32; 2],
-    ) {
+    /// Adds a `Face` at `position`, with UV coordinates.
+    pub fn add_face_with_uv(&mut self, face: &Face, position: [isize; 3]) {
         self.add_face(face, position);
         for vertex in face.vertices {
             let uv = Axis::uv(face.uv_use, vertex);
-            // TODO: This is tied to our specific texture atlas system,
+            // TODO: This is tied to our specific texture system,
             //       making it more general may be a good idea.
             let face_offset = match face.normal[1] {
                 1 => 0.0,
@@ -165,11 +153,8 @@ impl MeshData {
                 -1 => 2.0,
                 _ => unreachable!(),
             };
-            let uv = [
-                (tex_position[0] + face_offset + uv[0]) * tex_size[0],
-                (tex_position[1] + uv[1]) * tex_size[1],
-            ];
-            let uv = [uv[0] / atlas_size[0], uv[1] / atlas_size[1]];
+            let uv = [(face_offset + uv[0]) * 16.0, uv[1] * 16.0];
+            let uv = [uv[0] / 48.0, uv[1] / 16.0];
             self.uvs.push(uv);
         }
     }
@@ -190,20 +175,26 @@ pub struct GDMeshData {
 }
 
 impl GDMeshData {
-    fn convert_vec3(vec: &Vec<[isize; 3]>) -> Vector3Array {
+    pub fn convert_vec3(vec: &Vec<[isize; 3]>) -> Vector3Array {
         // Hopefully this doesn't affect performance too much.
         vec.iter()
             .map(|val| vec3!(val[0], val[1], val[2]))
             .collect()
     }
 
-    fn convert_vec2(vec: &Vec<[f32; 2]>) -> Vector2Array {
+    pub fn convert_vec2(vec: &Vec<[f32; 2]>) -> Vector2Array {
         vec.iter().map(|val| vec2!(val[0], val[1])).collect()
     }
 
     /// Creates an `ArrayMesh` from this `GDMeshData`.
     pub fn create_mesh(&self) -> Ref<ArrayMesh, Unique> {
-        let mesh = ArrayMesh::new();
+        let mut mesh = ArrayMesh::new();
+        self.add_to(&mut mesh);
+        mesh
+    }
+
+    /// Adds this `GDMeshData` to `mesh` as a new surface.
+    pub fn add_to(&self, mesh: &mut Ref<ArrayMesh, Unique>) {
         let gdarray = VariantArray::new();
         gdarray.resize(ArrayMesh::ARRAY_MAX as i32);
         gdarray.set(ArrayMesh::ARRAY_VERTEX as i32, self.vertices.clone());
@@ -215,7 +206,6 @@ impl GDMeshData {
             VariantArray::new().into_shared(),
             2194432,
         );
-        mesh
     }
 
     /// Creates a `ConcavePolygonShape` from this `GDMeshData`.
@@ -226,8 +216,9 @@ impl GDMeshData {
     }
 }
 
-impl From<MeshData> for GDMeshData {
-    fn from(mesh_data: MeshData) -> Self {
+impl<T: Borrow<MeshData>> From<T> for GDMeshData {
+    fn from(mesh_data_ref: T) -> Self {
+        let mesh_data: &MeshData = mesh_data_ref.borrow();
         GDMeshData {
             vertices: Self::convert_vec3(&mesh_data.vertices),
             normals: Self::convert_vec3(&mesh_data.normals),
