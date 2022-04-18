@@ -5,7 +5,7 @@
 use std::{collections::HashMap, isize};
 
 use gdnative::{
-    api::{CollisionShape, Material, MeshInstance, StaticBody},
+    api::{CollisionShape, MeshInstance, StaticBody},
     prelude::*,
 };
 
@@ -106,8 +106,6 @@ pub struct World {
     chunks: HashMap<ChunkPos, Chunk>,
     chunk_generator: ChunkGenerator,
     #[property]
-    material: Option<Ref<Material, Shared>>,
-    #[property]
     initial_generation_area: Option<Rect2>,
 }
 
@@ -198,11 +196,6 @@ impl World {
         unsafe { chunk.node.assume_safe() }
             .map_mut(|cn: &mut ChunkNode, _base| {
                 cn.update_mesh_data(mesh_data);
-                // TODO: Setting the material does not need to happen
-                //       every time a chunk mesh is regenerated.
-                if let Some(material) = &self.material {
-                    unsafe { cn.mesh.assume_safe().set_surface_material(0, material) }
-                }
             })
             .unwrap();
     }
@@ -317,7 +310,6 @@ impl Default for World {
         Self {
             chunks: Default::default(),
             chunk_generator: ChunkGenerator::new(),
-            material: Default::default(),
             initial_generation_area: Default::default(),
         }
     }
