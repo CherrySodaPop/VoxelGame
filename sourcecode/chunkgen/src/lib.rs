@@ -1,605 +1,323 @@
-use std::{collections::BTreeMap, isize};
+#![allow(dead_code)]
+// ^ Prevents "unused function" warnings, those functions will
+// likely either be used in the future or by GDScript.
+
+use std::{collections::HashMap, isize};
 
 use gdnative::{
-    api::{Mesh, MeshInstance, OpenSimplexNoise, Material, SurfaceTool, StaticBody, CollisionShape, ConcavePolygonShape},
+    api::{CollisionShape, MeshInstance, StaticBody},
     prelude::*,
 };
 
-const MESH_FACE_POSITIONS: [[Vector3; 6]; 6] = [
-    [
-        Vector3::new(0.0, 0.0, 0.0),
-        Vector3::new(1.0, 0.0, 0.0),
-        Vector3::new(0.0, 0.0, 1.0),
-        Vector3::new(1.0, 0.0, 0.0),
-        Vector3::new(1.0, 0.0, 1.0),
-        Vector3::new(0.0, 0.0, 1.0),
-    ],
-    [
-        Vector3::new(0.0, -1.0, 1.0),
-        Vector3::new(1.0, -1.0, 1.0),
-        Vector3::new(0.0, -1.0, 0.0),
-        Vector3::new(1.0, -1.0, 1.0),
-        Vector3::new(1.0, -1.0, 0.0),
-        Vector3::new(0.0, -1.0, 0.0),
-    ],
-    [
-        Vector3::new(1.0, 0.0, 1.0),
-        Vector3::new(1.0, 0.0, 0.0),
-        Vector3::new(1.0, -1.0, 1.0),
-        Vector3::new(1.0, -1.0, 0.0),
-        Vector3::new(1.0, -1.0, 1.0),
-        Vector3::new(1.0, 0.0, 0.0),
-    ],
-    [
-        Vector3::new(0.0, 0.0, 0.0),
-        Vector3::new(0.0, 0.0, 1.0),
-        Vector3::new(0.0, -1.0, 0.0),
-        Vector3::new(0.0, 0.0, 1.0),
-        Vector3::new(0.0, -1.0, 1.0),
-        Vector3::new(0.0, -1.0, 0.0),
-    ],
-    [
-        Vector3::new(0.0, -1.0, 1.0),
-        Vector3::new(0.0, 0.0, 1.0),
-        Vector3::new(1.0, 0.0, 1.0),
-        Vector3::new(1.0, 0.0, 1.0),
-        Vector3::new(1.0, -1.0, 1.0),
-        Vector3::new(0.0, -1.0, 1.0),
-    ],
-    [
-        Vector3::new(1.0, -1.0, 0.0),
-        Vector3::new(1.0, 0.0, 0.0),
-        Vector3::new(0.0, 0.0, 0.0),
-        Vector3::new(0.0, 0.0, 0.0),
-        Vector3::new(0.0, -1.0, 0.0),
-        Vector3::new(1.0, -1.0, 0.0),
-    ],
-];
+mod block;
+mod chunk;
+mod chunk_mesh;
+mod constants;
+mod generate;
+mod macros;
+mod mesh;
+mod performance;
+mod positions;
 
-const MESH_FACE_NORMALS: [Vector3; 6] = [
-    Vector3::new(0.0, 1.0, 0.0),
-    Vector3::new(0.0, -1.0, 0.0),
-    Vector3::new(1.0, 0.0, 0.0),
-    Vector3::new(-1.0, 0.0, 0.0),
-    Vector3::new(0.0, 0.0, 1.0),
-    Vector3::new(0.0, 0.0, -1.0),
-];
+use crate::{
+    block::BlockID,
+    chunk::ChunkData,
+    chunk_mesh::{ChunkMeshData, ChunkMeshDataGenerator},
+    generate::ChunkGenerator,
+    macros::*,
+    mesh::*,
+    performance::Timings,
+    positions::*,
+};
 
-// These don't need to be isizes, but it reduces the amount
-// of "as isize" that would be present otherwise.
-const CHUNK_SIZE_X: isize = 32;
-const CHUNK_SIZE_Y: isize = 256;
-const CHUNK_SIZE_Z: isize = 32;
+#[derive(Debug, Clone)]
+pub struct NotLoadedError;
 
-// For UV calculations, hence f32.
-const UV_TEXTURE_WIDTH: f32 = 256.0;
-const TEXTURE_WIDTH: f32 = 16.0;
-
-#[derive(PartialEq, Eq, Clone, Copy)]
-enum BlockFace {
-    Top,    // Y+
-    Bottom, // Y-
-    Right,  // X+
-    Left,   // X-
-    Front,  // Z+
-    Back,   // Z-
-}
-
-impl BlockFace {
-    /// Whether or not this block face is on the X or Z axes.
-    fn is_side(&self) -> bool {
-        // This enum stuff is making me *miss* C++, somehow.
-        let i = *self as u8;
-        i != 0 && i != 1
-    }
-    /// Whether or not this block face is on the X axis (+ or -).
-    fn is_x_axis(&self) -> bool {
-        let i = *self as u8;
-        i == 2 || i == 3
-    }
-    /// Whether or not this block face is on the Z axis (+ or -).
-    fn is_z_axis(&self) -> bool {
-        let i = *self as u8;
-        i == 4 || i == 5
-    }
-    /// Whether or not this block face is on the Y axis (+ or -).
-    fn is_y_axis(&self) -> bool {
-        let i = *self as u8;
-        i == 0 || i == 1
-    }
-    /// Returns the offset of a block that would be resting on this face.
-    ///
-    /// e.g., the block resting on `BlockFace::Top` would be 1 above the
-    /// block this face represents, so `[0, 1, 0]`.
-    fn block_offset(&self) -> [isize; 3] {
-        match self {
-            BlockFace::Top => [0, 1, 0],
-            BlockFace::Bottom => [0, -1, 0],
-            BlockFace::Right => [1, 0, 0],
-            BlockFace::Left => [-1, 0, 0],
-            BlockFace::Front => [0, 0, 1],
-            BlockFace::Back => [0, 0, -1],
-        }
-    }
-    /// The texture atlas holds textures in the order top, sides, bottom.
-    ///
-    /// As such, this will return 0 for top faces, 1 for left, right, front,
-    /// or back faces, and 2 for bottom faces.
-    fn atlas_offset(&self) -> isize {
-        if self.is_side() {
-            1
-        } else {
-            match *self {
-                Self::Top => 0,
-                Self::Bottom => 2,
-                _ => unreachable!(),
-            }
-        }
+impl std::fmt::Display for NotLoadedError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "The chunk being modified has not been loaded")
     }
 }
-
-const FACES: [BlockFace; 6] = [
-    BlockFace::Top,
-    BlockFace::Bottom,
-    BlockFace::Right,
-    BlockFace::Left,
-    BlockFace::Front,
-    BlockFace::Back,
-];
-
-#[derive(Debug)]
-/// Represents a block's position in *world* space.
-struct BlockPosition {
-    x: isize,
-    y: isize,
-    z: isize,
-    chunk: [isize; 2],
-}
-
-impl BlockPosition {
-    fn new(x: isize, y: isize, z: isize) -> Self {
-        let xn = if x < 0 { 1 } else { 0 };
-        let zn = if z < 0 { 1 } else { 0 };
-        //                                             -------------- Round *downwards* in the negatives, instead of
-        //                                             |              towards zero.
-        //                                             |
-        //                        ----------------------------------- Avoid "flicking" to the next chunk at -32, -64, etc.,
-        //                        |                    |              do it at -33, -65, and so on instead.
-        //                        |                    |
-        //                        |                    |
-        let chunk_x: isize = ((xn + x) / CHUNK_SIZE_X) - xn;
-        let chunk_z: isize = ((zn + z) / CHUNK_SIZE_Z) - zn;
-        BlockPosition {
-            x,
-            y,
-            z,
-            chunk: [chunk_x, chunk_z],
-        }
-    }
-
-    fn local_position(&self) -> [usize; 3] {
-        [
-            (self.x - (self.chunk[0] * CHUNK_SIZE_X)).abs() as usize,
-            self.y.abs() as usize,
-            (self.z - (self.chunk[1] * CHUNK_SIZE_Z)).abs() as usize,
-        ]
-    }
-
-    fn from_local_position(chunk: [isize; 2], local_position: [isize; 3]) -> Self {
-        if local_position[0] > CHUNK_SIZE_X - 1 || local_position[2] > CHUNK_SIZE_Z - 1 {
-            panic!("invalid local_position: {:?}", local_position);
-        }
-        Self::new(
-            local_position[0] as isize + (chunk[0] * CHUNK_SIZE_X),
-            local_position[1] as isize,
-            local_position[2] as isize + (chunk[1] * CHUNK_SIZE_Z),
-        )
-    }
-
-    fn offset(&self, by: [isize; 3]) -> BlockPosition {
-        BlockPosition::new(self.x + by[0], self.y + by[1], self.z + by[2])
-    }
-}
-
-impl From<[isize; 3]> for BlockPosition {
-    fn from(position: [isize; 3]) -> Self {
-        Self::new(position[0], position[1], position[2])
-    }
-}
-
-impl From<BlockPosition> for Vector3 {
-    fn from(block_position: BlockPosition) -> Self {
-        Self::new(
-            block_position.x as f32,
-            block_position.y as f32,
-            block_position.z as f32,
-        )
-    }
-}
-
-// impl std::ops::Add for BlockPosition {
-//     type Output = Self;
-
-//     fn add(self, rhs: Self) -> Self::Output {
-//         BlockPosition::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
-//     }
-// }
+impl std::error::Error for NotLoadedError {}
 
 struct Chunk {
-    terrain: [[[u16; CHUNK_SIZE_Z as usize]; CHUNK_SIZE_Y as usize]; CHUNK_SIZE_X as usize],
-    origin: [isize; 2],
-    spatial: Ref<StaticBody, Unique>,
-    collision: Ref<CollisionShape, Unique>,
-    mesh: Ref<MeshInstance, Unique>,
+    data: ChunkData,
+    node: Instance<ChunkNode, Shared>,
 }
 
-impl std::fmt::Debug for Chunk {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Chunk")
-            .field("origin", &self.origin)
-            .finish()
+#[derive(NativeClass)]
+#[export]
+#[inherit(StaticBody)]
+#[user_data(gdnative::export::user_data::MutexData<ChunkNode>)]
+struct ChunkNode {
+    collision: Ref<CollisionShape, Shared>,
+    mesh: Ref<MeshInstance, Shared>,
+}
+
+#[methods]
+impl ChunkNode {
+    fn new(owner: &StaticBody) -> Self {
+        let collision = CollisionShape::new().into_shared();
+        let mesh = MeshInstance::new().into_shared();
+        owner.add_child(collision, true);
+        owner.add_child(mesh, true);
+        ChunkNode { collision, mesh }
+    }
+
+    fn update_mesh_data(&mut self, mesh_data: ChunkMeshData) {
+        unsafe {
+            self.collision
+                .assume_safe()
+                .set_shape(mesh_data.build_collision_shape());
+            self.mesh.assume_safe().set_mesh(mesh_data.build_mesh());
+        }
     }
 }
 
-// Chunk generator implementation
-#[derive(NativeClass, Default)]
-#[export]
-#[inherit(Node)]
-pub struct ChunkGenerator {
-    chunks: BTreeMap<[isize; 2], Chunk>,
-    #[property]
-    material: Option<Ref<Material, Shared>>,
+/// Helper struct for `Rect2` -> `(x1, y1, x2, y2)` conversion
+struct PositionRange {
+    x1: isize,
+    y1: isize,
+    x2: isize,
+    y2: isize,
 }
 
+impl From<Rect2> for PositionRange {
+    fn from(rect2: Rect2) -> Self {
+        println!("{:?}", rect2);
+        let x = rect2.position.x as isize;
+        let y = rect2.position.y as isize;
+        let w = rect2.size.x as isize;
+        let h = rect2.size.y as isize;
+        Self {
+            x1: x,
+            y1: y,
+            x2: x + w,
+            y2: y + h,
+        }
+    }
+}
+
+#[derive(NativeClass)]
+#[export]
+#[inherit(Node)]
+#[user_data(gdnative::export::user_data::MutexData<World>)]
+pub struct World {
+    chunks: HashMap<ChunkPos, Chunk>,
+    chunk_generator: ChunkGenerator,
+    #[property]
+    initial_generation_area: Option<Rect2>,
+}
 
 #[methods]
-impl ChunkGenerator {
+impl World {
     // constructor
     fn new(_owner: &Node) -> Self {
-        ChunkGenerator {
-            chunks: BTreeMap::new(),
+        World {
             ..Default::default()
         }
     }
 
-    // get the block id
-    fn world_block(&self, block_position: BlockPosition) -> u16 {
-        let chunk_origin = block_position.chunk;
-        let chunk = self.chunks.get(&chunk_origin);
-        if let Some(chunk) = chunk {
-            let chunk_coords = block_position.local_position();
-            chunk.terrain[chunk_coords[0]][chunk_coords[1]][chunk_coords[2]]
-        } else {
-            0
+    /// Gets a block in _global_ space.
+    ///
+    /// Returns `None` if the block isn't loaded.
+    fn get_block(&self, position: GlobalBlockPos) -> Option<BlockID> {
+        let chunk_position = position.chunk();
+        self.chunks
+            .get(&chunk_position)
+            .map(|chunk| chunk.data.get(position.into()))
+    }
+
+    /// Sets a block in _global_ space. This will update the
+    /// chunk the block is in, as well as its neighbors if necessary.
+    ///
+    /// Returns `NotLoadedError` if the block isn't loaded.
+    fn set_block(&mut self, position: GlobalBlockPos, to: BlockID) -> Result<(), NotLoadedError> {
+        let local_position: LocalBlockPos = position.into();
+        // Rust foolishness to prevent mutability mishaps
+        {
+            let chunk = self
+                .chunks
+                .get_mut(&local_position.chunk)
+                .ok_or(NotLoadedError)?;
+            chunk.data.set(local_position, to);
+        };
+        let chunk = self
+            .chunks
+            .get(&local_position.chunk)
+            .ok_or(NotLoadedError)?;
+        self.update_mesh(chunk);
+        for chunk_position in local_position.borders() {
+            if let Some(chunk) = self.chunks.get(&chunk_position) {
+                self.update_mesh(chunk)
+            }
+        }
+        Ok(())
+    }
+
+    #[export]
+    fn set_block_gd(&mut self, _owner: &Node, position: Vector3, to: BlockID) {
+        let position = GlobalBlockPos::new(
+            position.x as isize,
+            position.y as isize,
+            position.z as isize,
+        );
+        self.set_block(position, to);
+    }
+
+    #[export]
+    fn get_block_gd(&mut self, _owner: &Node, position: Vector3) -> Option<BlockID> {
+        let position = GlobalBlockPos::new(
+            position.x as isize,
+            position.y as isize,
+            position.z as isize,
+        );
+        self.get_block(position)
+    }
+
+    /// Returns `true` if `face` is visible (e.g. is not blocked by a
+    /// solid block) at `position`.
+    ///
+    /// This checks in world space, meaning block faces checked on chunk borders
+    /// will be accurate.
+    fn is_face_visible(&self, position: GlobalBlockPos, face: &Face) -> bool {
+        let check = position.offset(face.normal.into());
+        match self.get_block(check) {
+            Some(block_id) => block_id == 0,
+            None => true,
         }
     }
 
-    #[export]
-    // constructs the specified chunk mesh - godot specific
-    fn generate_chunk_mesh(&mut self, _owner: &Node, _origin: Vector2) {
-        let origin: [isize; 2] = [
-            _origin.x as isize,
-            _origin.y as isize,
-        ];
-        //let origin = _origin.as_slice();
-        let _chunk = self.chunks.get(&origin);
-        if let Some(_chunk) = _chunk {
-            _chunk.construct_mesh(self);
-        } else {
-            godot_print!("chunkgeneration: attempted to generate unloaded chunk mesh!");
+    /// Updates the mesh for a specific `Chunk`.
+    fn update_mesh(&self, chunk: &Chunk) {
+        let mesh_generator = ChunkMeshDataGenerator::new(self, &chunk.data);
+        let mesh_data = mesh_generator.generate();
+        // TODO: This function seems to cause issues when using multithreading.
+        unsafe { chunk.node.assume_safe() }
+            .map_mut(|cn: &mut ChunkNode, _base| {
+                cn.update_mesh_data(mesh_data);
+            })
+            .unwrap();
+    }
+
+    /// Updates the meshes of chunks adjacent to `position`.
+    fn update_nearby(&self, position: ChunkPos) {
+        let adjacent = position.adjacent();
+        for adj_position in adjacent {
+            if let Some(chunk) = self.chunks.get(&adj_position) {
+                self.update_mesh(chunk);
+            }
         }
     }
 
+    /// Loads a chunk from disk, or generates a new one.
+    ///
+    /// This does not create the mesh, see `World.update_mesh`.
+    fn load_chunk(&self, position: ChunkPos) -> Chunk {
+        let chunk_data = if false {
+            todo!("Implement loading chunks from disk");
+        } else {
+            // The chunk is new.
+            self.chunk_generator.generate_chunk(position)
+        };
+        let chunk_node = ChunkNode::new_instance();
+        // Ugly godot-rust stuff, moves the chunk node into place.
+        chunk_node
+            .map_mut(|_cn: &mut ChunkNode, base| {
+                let chunk_origin = position.origin();
+                base.translate(vec3!(chunk_origin.x, chunk_origin.y, chunk_origin.z));
+            })
+            .unwrap();
+        let chunk_node = chunk_node.into_shared();
+        Chunk {
+            data: chunk_data,
+            node: chunk_node,
+        }
+    }
+
+    /// Takes ownership of `chunk` and adds it to the `World.chunks` HashMap.
+    ///
+    /// This allows other chunks to see it when making face calculations,
+    /// and for functions such as `World.set_block` to be able to modify it.
+    fn add_chunk(&mut self, chunk: Chunk) {
+        self.chunks.insert(chunk.data.position, chunk);
+    }
+
     #[export]
-    // check if the chunk is loaded or not - godot specific
-    fn chunk_loaded_godot(&self, _owner: &Node, _origin: Vector2) -> bool {
-        let origin: [isize; 2] = [
-            _origin.x as isize,
-            _origin.y as isize,
-        ];
-        self.chunk_loaded(origin)
-    }
-
-    // check if the chunk is loaded or not - internal
-    fn chunk_loaded(&self, _origin: [isize; 2]) -> bool {
-        self.chunks.contains_key(&_origin)
-    }
-
-    // set block - godot
-    #[export]
-    fn set_block_godot(&mut self, _owner: &Node, _origin: Vector3, block_id: u16) {
-        let origin: [isize; 3] = [
-            _origin.x as isize,
-            _origin.y as isize,
-            _origin.z as isize,
-        ];
-        self.set_block(origin, block_id);
-    }
-
-    // set block - internal
-    fn set_block(&mut self, _origin: [isize; 3], block_id: u16) {
-        let block_data = BlockPosition::new(_origin[0],_origin[1],_origin[2]);
-        let block_chunk_pos = block_data.chunk;
-
-        if self.chunk_loaded(block_chunk_pos) {
-            let chunk = self.chunks.get_mut(&block_chunk_pos).unwrap();
-            let block_local_pos = block_data.local_position();
-            chunk.set_block(block_local_pos, block_id);
+    fn load_chunk_gd(&mut self, _owner: &Node, chunk_position: Vector2) {
+        let chunk_position = ChunkPos::new(chunk_position.x as isize, chunk_position.y as isize);
+        if self.chunks.contains_key(&chunk_position) {
+            // The chunk is already loaded.
             return;
         }
-        godot_print!("chunkgeneration: attempting to set block on unloaded chunk")
+        let chunk = self.load_chunk(chunk_position);
+        self.update_mesh(&chunk);
+        _owner.add_child(&chunk.node, true);
+        self.add_chunk(chunk);
+        // Update the meshes of nearby chunks to remove now-hidden faces
+        self.update_nearby(chunk_position);
     }
 
     #[export]
-    // returns chunk node - godot specific
-    fn chunk_node_id_gd(&self, _owner: &Node, _origin: Vector2) -> i64 {
-        let origin: [isize; 2] = [
-            _origin.x as isize,
-            _origin.y as isize,
-        ];
-        let _chunk = self.chunks.get(&origin);
-        let _chunk = _chunk.unwrap();
-        _chunk.spatial.get_instance_id()
+    fn load_around_chunk_gd(&mut self, _owner: &Node, chunk_position: Vector2) {
+        let chunk_position = ChunkPos::new(chunk_position.x as isize, chunk_position.y as isize);
+        let mut around = Vec::new();
+        for x in -2..=2 {
+            for z in -2..=2 {
+                around.push(ChunkPos::new(chunk_position.x + x, chunk_position.z + z));
+            }
+        }
+        for chunk_pos in around {
+            self.load_chunk_gd(_owner, vec2!(chunk_pos.x, chunk_pos.z));
+        }
     }
 
     #[export]
     fn _ready(&mut self, _owner: &Node) {
-        // generate chunks
-        let simplex_noise = OpenSimplexNoise::new();
-        for x in -4..5isize {
-            for z in -4..5isize {
-                let origin = [x, z];
-                let mut new_chunk = Chunk::new(origin);
-                godot_print!("Generating new chunk {:?}", new_chunk);
-                new_chunk.generate(&*simplex_noise);
-                self.chunks.insert(origin, new_chunk);
+        let mut timings = Timings::new();
+        let generate_range = if let Some(initial_generation_area) = self.initial_generation_area {
+            initial_generation_area.into()
+        } else {
+            godot_warn!("Missing default chunk generation rect, using (-2, -2) w=4 h=4");
+            PositionRange {
+                x1: -2,
+                y1: -2,
+                x2: 2,
+                y2: 2,
+            }
+        };
+        // Generate some initial "spawn area" chunks.
+        for x in generate_range.x1..=generate_range.x2 {
+            for z in generate_range.y1..=generate_range.y2 {
+                let start_time = std::time::Instant::now();
+                let loaded_chunk = self.load_chunk(ChunkPos::new(x, z));
+                timings.generate_chunk.push(start_time.elapsed());
+                self.add_chunk(loaded_chunk);
             }
         }
-        // generate mesh (to be removed! - cherry)
-
         for chunk in self.chunks.values() {
-            godot_print!("Constructing mesh for {:?}", chunk);
-            chunk.construct_mesh(self);
-            unsafe {
-                chunk.spatial.add_child(chunk.collision.assume_shared(), true);
-                chunk.spatial.add_child(chunk.mesh.assume_shared(), true);
-                _owner.add_child(chunk.spatial.assume_shared(), true);
-            }
+            let start_time = std::time::Instant::now();
+            self.update_mesh(chunk);
+            timings.build_mesh.push(start_time.elapsed());
+            _owner.add_child(&chunk.node, true);
         }
-
+        println!("{}", timings);
     }
 }
 
-/// Returns the UV coordinates for this vertex, accounting for what face it's on.
-fn vertex_uv(vertex: Vector3, face: BlockFace) -> [f32; 2] {
-    [
-        if face.is_x_axis() { vertex.z } else { vertex.x },
-        if face.is_side() {
-            vertex.y.abs()
-        } else {
-            vertex.z
-        },
-    ]
-}
-
-// Chunk implementation
-impl Chunk {
-    fn new(origin: [isize; 2]) -> Self {
-        let spatial = StaticBody::new();
-        let collision = CollisionShape::new();
-        let mesh = MeshInstance::new();
-        let spatial_transform = Self::spatial_transform(origin);
-        spatial.set_transform(spatial.transform().translated(Vector3::new(
-            spatial_transform[0] as f32,
-            spatial_transform[1] as f32,
-            spatial_transform[2] as f32,
-        )));
-        Chunk {
-            terrain: [[[0; CHUNK_SIZE_Z as usize]; CHUNK_SIZE_Y as usize]; CHUNK_SIZE_X as usize],
-            origin,
-            spatial,
-            collision,
-            mesh,
+impl Default for World {
+    fn default() -> Self {
+        Self {
+            chunks: Default::default(),
+            chunk_generator: ChunkGenerator::new(),
+            initial_generation_area: Default::default(),
         }
-    }
-
-    fn spatial_transform(origin: [isize; 2]) -> [isize; 3] {
-        [(origin[0] * CHUNK_SIZE_X), 0, (origin[1] * CHUNK_SIZE_Z)]
-    }
-
-    fn set_block(&mut self, pos: [usize; 3], block_id: u16) {
-        self.terrain[pos[0]][pos[1]][pos[2]] = block_id;
-    }
-
-    /// Generates the chunk's terrain data, storing it in `Chunk.terrain`.
-    fn generate(&mut self, simplex_noise: &OpenSimplexNoise) {
-        for x in 0..CHUNK_SIZE_X {
-            for z in 0..CHUNK_SIZE_Z {
-                let world_block_x = x + (self.origin[0] * CHUNK_SIZE_X);
-                let world_block_z = z + (self.origin[1] * CHUNK_SIZE_Z);
-                let noise_height: f64 = simplex_noise
-                    .get_noise_2dv(Vector2::new(world_block_x as f32, world_block_z as f32));
-                let terrain_peak =
-                    ((CHUNK_SIZE_Y as f64) * ((noise_height / 2.0) + 0.5) * 0.1) as isize;
-                for y in 0..CHUNK_SIZE_Y {
-                    if y > terrain_peak {
-                        break;
-                    }
-                    let block_id = if y > 6 { 1 } else { 2 }; // TODO: implement actual block ID system
-                    self.terrain[x as usize][y as usize][z as usize] = block_id;
-                }
-            }
-        }
-    }
-
-    /// Builds a block face in the mesh, and handles its texture/UV mapping.
-    fn construct_face(
-        &self,
-        face: BlockFace,
-        surface_tool: &Ref<SurfaceTool, Unique>,
-        local_position: [isize; 3],
-        block_id: u16,
-        vertex_pool: &mut Vector3Array,
-    ) {
-        surface_tool.add_uv(Vector2::new(0.0, 0.0));
-        let face_type_index = face as usize;
-        surface_tool.add_normal(MESH_FACE_NORMALS[face_type_index]);
-        for vertex in MESH_FACE_POSITIONS[face_type_index] {
-            // "Normalized" UV (only 0 or 1)
-            let mut uv = vertex_uv(vertex, face);
-            // Align the UV to its position within the texture atlas
-            let texture_x =
-                ((3.0 * block_id as f32) + face.atlas_offset() as f32 + uv[0]) * TEXTURE_WIDTH;
-            uv = [texture_x / UV_TEXTURE_WIDTH, uv[1]];
-            surface_tool.add_uv(Vector2::new(uv[0], uv[1]));
-            let position = Vector3::new(
-                vertex.x + local_position[0] as f32,
-                vertex.y + local_position[1] as f32,
-                vertex.z + local_position[2] as f32,
-            );
-            surface_tool.add_vertex(position);
-            vertex_pool.push(position);
-        }
-    }
-
-    /// Gets the block ID of a "nearby" block.
-    ///
-    /// This is more optimized than using just `ChunkGenerator.world_block`,
-    /// as most "nearby" blocks are within the current chunk and thus do not
-    /// require a dictionary lookup.
-    fn check_nearby(&self, block_position: BlockPosition, generator: &ChunkGenerator) -> u16 {
-        if block_position.chunk == self.origin {
-            let local_position = block_position.local_position();
-            self.terrain[local_position[0]][local_position[1]][local_position[2]]
-        } else {
-            generator.world_block(block_position)
-        }
-    }
-
-    // once we add the server and client
-    // this should only be called when you receieve all the packets
-    /// Builds the chunk mesh using the current `Chunk.terrain` data.
-    fn construct_mesh(&self, generator: &ChunkGenerator) {
-        let mut vertex_pool = Vector3Array::new();
-        let collision_shape = ConcavePolygonShape::new();
-        let surface_tool = SurfaceTool::new();
-        surface_tool.begin(Mesh::PRIMITIVE_TRIANGLES);
-
-        for x in 0..CHUNK_SIZE_X {
-            for y in 0..CHUNK_SIZE_Y {
-                for z in 0..CHUNK_SIZE_Z {
-                    let block_id = self.terrain[x as usize][y as usize][z as usize];
-                    if block_id == 0 {
-                        // This is an air block, it has no faces.
-                        continue;
-                    }
-                    let local_position = [x, y, z];
-                    let block_position =
-                        BlockPosition::from_local_position(self.origin, local_position);
-
-                    // Check each face to see if it's visible, and if so, add it to the mesh.
-                    for face_type in FACES {
-                        let block_offset = block_position.offset(face_type.block_offset());
-                        if self.check_nearby(block_offset, generator) == 0 {
-                            self.construct_face(face_type, &surface_tool, local_position, block_id, &mut vertex_pool);
-                        }
-                    }
-                }
-            }
-        }
-        let chunk_mesh = surface_tool.commit(Null::null(), Mesh::ARRAY_COMPRESS_DEFAULT).unwrap();
-        self.mesh.set_mesh(chunk_mesh);
-        if let Some(material) = &generator.material {
-            self.mesh.set_surface_material(0, material);
-        }
-        collision_shape.set_faces(vertex_pool);
-        self.collision.set_shape(collision_shape);
     }
 }
 
 fn init(handle: InitHandle) {
-    handle.add_class::<ChunkGenerator>();
+    handle.add_class::<World>();
+    handle.add_class::<ChunkNode>();
 }
 
 godot_init!(init);
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_block_position() {
-        let bp = BlockPosition::new(0, 0, 0);
-        assert_eq!(bp.chunk, [0, 0]);
-        assert_eq!(bp.local_position(), [0, 0, 0]);
-        let bp = BlockPosition::new(31, 0, 31);
-        assert_eq!(bp.chunk, [0, 0]);
-        assert_eq!(bp.local_position(), [31, 0, 31]);
-        let bp = BlockPosition::new(32, 0, 32);
-        assert_eq!(bp.chunk, [1, 1]);
-        assert_eq!(bp.local_position(), [0, 0, 0]);
-        let bp = BlockPosition::new(63, 0, 63);
-        assert_eq!(bp.chunk, [1, 1]);
-        assert_eq!(bp.local_position(), [31, 0, 31]);
-        let bp = BlockPosition::new(64, 0, 64);
-        assert_eq!(bp.chunk, [2, 2]);
-        assert_eq!(bp.local_position(), [0, 0, 0]);
-        let bp = BlockPosition::new(-1, 0, -1);
-        assert_eq!(bp.chunk, [-1, -1]);
-        let bp = BlockPosition::new(-32, 0, -32);
-        assert_eq!(bp.chunk, [-1, -1]);
-        assert_eq!(bp.local_position(), [0, 0, 0]);
-        let bp = BlockPosition::new(-33, 0, -33);
-        assert_eq!(bp.chunk, [-2, -2]);
-        assert_eq!(bp.local_position(), [31, 0, 31]);
-        let bp = BlockPosition::new(-64, 0, -100);
-        assert_eq!(bp.chunk, [-2, -4]);
-        assert_eq!(bp.local_position(), [0, 0, 28]);
-        let bp = BlockPosition::new(-64, 0, -97);
-        assert_eq!(bp.chunk, [-2, -4]);
-        assert_eq!(bp.local_position(), [0, 0, 31]);
-        let bp = BlockPosition::new(-64, 0, -96);
-        assert_eq!(bp.chunk, [-2, -3]);
-        assert_eq!(bp.local_position(), [0, 0, 0]);
-    }
-
-    #[test]
-    fn test_spatial_transform() {
-        let origin = [0, 0];
-        assert_eq!(Chunk::spatial_transform(origin), [0, 0, 0]);
-        let origin = [-1, -1];
-        assert_eq!(Chunk::spatial_transform(origin), [-32, 0, -32]);
-        let origin = [-2, -2];
-        assert_eq!(Chunk::spatial_transform(origin), [-64, 0, -64]);
-        let origin = [3, 3];
-        assert_eq!(Chunk::spatial_transform(origin), [96, 0, 96]);
-    }
-
-    #[test]
-    fn test_from_local_position() {
-        let bp = BlockPosition::from_local_position([0, 0], [0, 0, 0]);
-        assert_eq!([bp.x, bp.y, bp.z], [0, 0, 0]);
-        let bp = BlockPosition::from_local_position([1, 1], [0, 0, 0]);
-        assert_eq!([bp.x, bp.y, bp.z], [32, 0, 32]);
-        let bp = BlockPosition::from_local_position([1, 1], [31, 0, 31]);
-        assert_eq!([bp.x, bp.y, bp.z], [63, 0, 63]);
-        let bp = BlockPosition::from_local_position([2, 2], [0, 0, 0]);
-        assert_eq!([bp.x, bp.y, bp.z], [64, 0, 64]);
-        let bp = BlockPosition::from_local_position([-1, -2], [0, 0, 0]);
-        assert_eq!([bp.x, bp.y, bp.z], [-32, 0, -64]);
-        let bp = BlockPosition::from_local_position([-2, -3], [1, 0, 1]);
-        assert_eq!([bp.x, bp.y, bp.z], [-63, 0, -95]);
-        let bp = BlockPosition::from_local_position([-2, -2], [31, 0, 31]);
-        assert_eq!([bp.x, bp.y, bp.z], [-33, 0, -33]);
-        let bp = BlockPosition::from_local_position([-1, -1], [0, 0, 0]);
-        assert_eq!([bp.x, bp.y, bp.z], [-32, 0, -32]);
-        let bp = BlockPosition::from_local_position([-1, -1], [31, 0, 31]);
-        assert_eq!([bp.x, bp.y, bp.z], [-1, 0, -1]);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_invalid_from_local_position() {
-        BlockPosition::from_local_position([-1, -1], [32, 0, 32]);
-    }
-}

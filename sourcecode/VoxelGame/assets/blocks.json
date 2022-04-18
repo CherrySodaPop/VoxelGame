@@ -1,0 +1,25 @@
+{
+    "module" : "basegame",
+    "blocks" : {
+        "air" : {
+            "id" : 0,
+            "name" : "Air"
+        },
+        "debug": {
+            "id": 1,
+            "name": "Debug Block"
+        },
+        "grass": {
+            "id": 20,
+            "name": "Grass"
+        },
+        "dirt": {
+            "id": 21,
+            "name": "Dirt"
+        },
+        "stone": {
+            "id": 22,
+            "name": "Stone"
+        }
+    }
+  }

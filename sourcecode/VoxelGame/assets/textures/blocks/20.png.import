@@ -2,15 +2,15 @@
 
 importer="texture"
 type="StreamTexture"
-path="res://.import/pbratlas.png-3dd89a7d9162f6e0310bdad81d886415.stex"
+path="res://.import/20.png-43258dc2051c664d3ab7ba6b46dd65e3.stex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/pbratlas.png"
-dest_files=[ "res://.import/pbratlas.png-3dd89a7d9162f6e0310bdad81d886415.stex" ]
+source_file="res://assets/textures/blocks/20.png"
+dest_files=[ "res://.import/20.png-43258dc2051c664d3ab7ba6b46dd65e3.stex" ]
 
 [params]
 
@@ -20,10 +20,10 @@ compress/hdr_mode=0
 compress/bptc_ldr=0
 compress/normal_map=0
 flags/repeat=0
-flags/filter=false
+flags/filter=true
 flags/mipmaps=false
 flags/anisotropic=false
-flags/srgb=1
+flags/srgb=2
 process/fix_alpha_border=true
 process/premult_alpha=false
 process/HDR_as_SRGB=false
@@ -31,5 +31,5 @@ process/invert_color=false
 process/normal_map_invert_y=false
 stream=false
 size_limit=0
-detect_3d=false
+detect_3d=true
 svg/scale=1.0

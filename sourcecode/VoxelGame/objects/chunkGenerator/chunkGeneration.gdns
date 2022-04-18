@@ -4,5 +4,5 @@
 
 [resource]
 resource_name = "ChunkGenerator"
-class_name = "ChunkGenerator"
+class_name = "World"
 library = ExtResource( 1 )
