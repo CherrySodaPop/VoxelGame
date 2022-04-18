@@ -9,6 +9,7 @@ var runSpeed:float = 5.612
 
 var prevChunk:Vector2 = Vector2.ZERO;
 var currentChunk:Vector2 = Vector2.ZERO;
+var lookingAtBlock:Vector3 = Vector3.ZERO;
 
 var mouseSensitivity:float = 0.2;
 var lockMouse:bool = false;
@@ -48,6 +49,8 @@ func UpdateMiscInfo(delta):
 	if (currentChunk != prevChunk):
 		emit_signal("enteredNewChunk");
 		prevChunk = currentChunk;
+		
+	lookingAtBlock = $camera/RayCast.get_collision_point();
 
 func HandleMovement(delta):
 	var desiredVec2Dir:Vector2 = Vector2.ZERO;
@@ -72,7 +75,7 @@ func HandleMovement(delta):
 
 	velocity.y += ((desiredUpDownDir * walkSpeed) - velocity.y) * acceleration * delta;
 
-	move_and_slide(velocity);
+	move_and_slide(velocity, Vector3(0, 1, 0));
 
 func HandleAnimation(delta):
 	$model.rotation.y = $camera.rotation.y + deg2rad(180);

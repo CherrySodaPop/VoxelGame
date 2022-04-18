@@ -23,6 +23,11 @@ current = true
 fov = 100.0
 far = 2000.0
 
+[node name="RayCast" type="RayCast" parent="camera"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.122 )
+enabled = true
+cast_to = Vector3( 0, 0, -6 )
+
 [node name="Label" type="Label" parent="."]
 margin_left = 9.0
 margin_top = 264.0

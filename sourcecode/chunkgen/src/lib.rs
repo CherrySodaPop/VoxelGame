@@ -158,9 +158,23 @@ impl World {
     }
 
     #[export]
-    // TODO: Accept a Vector3 instead of x, y, and z
-    fn set_block_gd(&mut self, _owner: &Node, x: isize, y: isize, z: isize, to: BlockID) {
-        self.set_block(GlobalBlockPos::new(x, y, z), to);
+    fn set_block_gd(&mut self, _owner: &Node, position: Vector3, to: BlockID) {
+        let position = GlobalBlockPos::new(
+            position.x as isize,
+            position.y as isize,
+            position.z as isize,
+        );
+        self.set_block(position, to);
+    }
+
+    #[export]
+    fn get_block_gd(&mut self, _owner: &Node, position: Vector3) -> Option<BlockID> {
+        let position = GlobalBlockPos::new(
+            position.x as isize,
+            position.y as isize,
+            position.z as isize,
+        );
+        self.get_block(position)
     }
 
     /// Returns `true` if `face` is visible (e.g. is not blocked by a

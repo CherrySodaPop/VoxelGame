@@ -13,9 +13,15 @@ _global_script_classes=[ {
 "class": "AtlasConfig",
 "language": "GDScript",
 "path": "res://objects/atlasManager/AtlasConfig.gd"
+}, {
+"base": "Resource",
+"class": "BlockData",
+"language": "GDScript",
+"path": "res://objects/blockManager/BlockData.gd"
 } ]
 _global_script_class_icons={
-"AtlasConfig": ""
+"AtlasConfig": "",
+"BlockData": ""
 }
 
 [application]
