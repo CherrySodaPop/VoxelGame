@@ -1,8 +1,9 @@
-[gd_scene load_steps=5 format=2]
+[gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://objects/clientPlayer/clientPlayer.gd" type="Script" id=1]
 [ext_resource path="res://assets/models/pm/pm.tscn" type="PackedScene" id=2]
 [ext_resource path="res://objects/clientPlayer/crosshair.png" type="Texture" id=3]
+[ext_resource path="res://assets/models/blockoutline/blockoutline.tscn" type="PackedScene" id=4]
 
 [sub_resource type="BoxShape" id=1]
 extents = Vector3( 0.3, 0.9, 0.3 )
@@ -45,3 +46,10 @@ margin_top = 299.0
 margin_right = 513.0
 margin_bottom = 301.0
 texture = ExtResource( 3 )
+
+[node name="MeshInstance" type="MeshInstance" parent="."]
+
+[node name="blockOutlineJoint" type="Spatial" parent="."]
+
+[node name="blockoutline" parent="blockOutlineJoint" instance=ExtResource( 4 )]
+transform = Transform( 1.001, 0, 0, 0, 1.001, 0, 0, 0, 1.001, 0.5, -0.5, 0.5 )
