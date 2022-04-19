@@ -214,7 +214,7 @@ impl World {
     /// Loads a chunk from disk, or generates a new one.
     ///
     /// This does not create the mesh, see `World.update_mesh`.
-    fn load_chunk(&self, position: ChunkPos) -> Chunk {
+    fn load_chunk(&mut self, position: ChunkPos) -> Chunk {
         let chunk_data = if false {
             todo!("Implement loading chunks from disk");
         } else {

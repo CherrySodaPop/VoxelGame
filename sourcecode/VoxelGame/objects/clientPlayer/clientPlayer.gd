@@ -17,7 +17,7 @@ var lockMouse:bool = false;
 signal enteredNewChunk;
 
 func _ready():
-	global_transform.origin.y = 20; # TEMP: Prevent spawning underneath terrain
+	global_transform.origin.y = 30; # TEMP: Prevent spawning underneath terrain
 	$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_SHADOWS_ONLY;
 
 func _process(delta):

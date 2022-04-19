@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    borrow::BorrowMut,
+    collections::{hash_map::Entry, HashMap},
+};
 
 use crate::{
     block::BlockID,
@@ -8,7 +11,31 @@ use crate::{
 
 pub mod trees;
 
-pub type FeatureWaitlist = HashMap<ChunkPos, Vec<(LocalBlockPos, BlockID)>>;
+pub struct FeatureWaitlist {
+    pub chunks: HashMap<ChunkPos, Vec<(LocalBlockPos, BlockID)>>,
+}
+
+impl FeatureWaitlist {
+    pub fn new() -> Self {
+        Self {
+            chunks: HashMap::new(),
+        }
+    }
+
+    pub fn merge(&mut self, other: FeatureWaitlist) {
+        for (chunk_pos, mut add_blocks) in other.chunks.into_iter() {
+            match self.chunks.entry(chunk_pos) {
+                Entry::Occupied(mut entry) => {
+                    let current_blocks = entry.get_mut();
+                    current_blocks.append(&mut add_blocks);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(add_blocks);
+                }
+            }
+        }
+    }
+}
 
 pub trait Feature {
     fn fill(
@@ -27,6 +54,7 @@ pub trait Feature {
                 Err(_) => {
                     let outside_position: LocalBlockPos = origin.offset_global(offset).into();
                     let outside_blocks = waitlist
+                        .chunks
                         .entry(outside_position.chunk)
                         .or_insert_with(Vec::new);
                     outside_blocks.push((outside_position, block_id));
