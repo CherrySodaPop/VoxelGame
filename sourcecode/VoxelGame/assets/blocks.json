@@ -20,6 +20,14 @@
         "stone": {
             "id": 22,
             "name": "Stone"
+        },
+        "chestnut_wood" : {
+            "id" : 23,
+            "name" : "Chestnut Wood"
+        },
+        "chestnut_leaves" : {
+            "id" : 24,
+            "name" : "Chestnut Leaves"
         }
     }
   }
