@@ -1,9 +1,10 @@
 {
-    "module" : "basegame",
-    "blocks" : {
-        "air" : {
-            "id" : 0,
-            "name" : "Air"
+    "module": "basegame",
+    "blocks": {
+        "air": {
+            "id": 0,
+            "name": "Air",
+            "transparent": true
         },
         "debug": {
             "id": 1,
@@ -21,13 +22,14 @@
             "id": 22,
             "name": "Stone"
         },
-        "chestnut_wood" : {
-            "id" : 23,
-            "name" : "Chestnut Wood"
+        "chestnut_wood": {
+            "id": 23,
+            "name": "Chestnut Wood"
         },
-        "chestnut_leaves" : {
-            "id" : 24,
-            "name" : "Chestnut Leaves"
+        "chestnut_leaves": {
+            "id": 24,
+            "name": "Chestnut Leaves",
+            "transparent": true
         }
     }
-  }
+}

@@ -1,5 +1,5 @@
+use crate::block::{Block, BlockID, BLOCK_MANAGER};
 use crate::{constants::*, mesh::Face, positions::*};
-use crate::block::BlockID;
 
 pub struct ChunkData {
     pub position: ChunkPos,
@@ -30,9 +30,11 @@ impl ChunkData {
         position: LocalBlockPos,
         face: &Face,
     ) -> Result<bool, TooLargeError> {
-        position
-            .offset(face.normal.into())
-            .map(|check_position| self.get(check_position) == 0)
+        position.offset(face.normal.into()).map(|check_position| {
+            BLOCK_MANAGER
+                .transparent_blocks
+                .contains(&self.get(check_position))
+        })
     }
 }
 

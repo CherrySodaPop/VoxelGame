@@ -4,6 +4,7 @@
 
 use std::{collections::HashMap, isize};
 
+use block::BLOCK_MANAGER;
 use gdnative::{
     api::{CollisionShape, MeshInstance, StaticBody},
     prelude::*,
@@ -183,7 +184,7 @@ impl World {
     fn is_face_visible(&self, position: GlobalBlockPos, face: &Face) -> bool {
         let check = position.offset(face.normal.into());
         match self.get_block(check) {
-            Some(block_id) => block_id == 0,
+            Some(block_id) => BLOCK_MANAGER.transparent_blocks.contains(&block_id),
             None => true,
         }
     }
