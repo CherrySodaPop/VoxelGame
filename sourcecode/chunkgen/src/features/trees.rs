@@ -165,14 +165,12 @@ impl Feature for Trees {
     fn add_to_chunk(&self, chunk_data: &mut ChunkData) -> FeatureWaitlist {
         println!("Adding trees to {:?}", chunk_data.position);
         let mut waitlist = FeatureWaitlist::new();
-        // let (x, z) = (1, 1);
-        let (x, z) = (31, 31);
+        let (x, z) = (1, 1);
+        // let (x, z) = (31, 31);
         let air_start = chunk_data.get_air_start(x, z);
         match air_start {
             Some(air_start) => {
                 let origin = LocalBlockPos::new(x, air_start, z, chunk_data.position);
-                // TODO: Currently the waitlist only applies to the leaf blocks.
-                //       A way of merging two waitlists should be added.
                 waitlist.merge(self.fill(chunk_data, origin, &Self::LEAVES, 24));
                 waitlist.merge(self.fill(chunk_data, origin, &Self::TRUNK, 23));
             }

@@ -42,8 +42,8 @@ impl std::fmt::Display for NotLoadedError {
 }
 impl std::error::Error for NotLoadedError {}
 
-struct Chunk {
-    data: ChunkData,
+pub struct Chunk {
+    pub data: ChunkData,
     node: Instance<ChunkNode, Shared>,
 }
 
@@ -221,6 +221,7 @@ impl World {
             // The chunk is new.
             self.chunk_generator.generate_chunk(position)
         };
+        self.chunk_generator.apply_waitlist(&mut self.chunks);
         let chunk_node = ChunkNode::new_instance();
         // Ugly godot-rust stuff, moves the chunk node into place.
         chunk_node

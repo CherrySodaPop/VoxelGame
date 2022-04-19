@@ -1,6 +1,8 @@
 //! Chunk generation. Seperate from the `chunk` module as world generation will
 //! likely be expanded a lot more (e.g. biomes).
 
+use std::collections::HashMap;
+
 use gdnative::{api::OpenSimplexNoise, core_types::Vector2, object::Ref, prelude::Unique};
 
 use crate::block::BlockID;
@@ -12,6 +14,7 @@ use crate::features::Feature;
 use crate::features::FeatureWaitlist;
 use crate::macros::*;
 use crate::positions::ChunkPos;
+use crate::Chunk;
 
 struct GenerationConfig {
     top_layer: BlockID,
@@ -57,6 +60,18 @@ impl ChunkGenerator {
     pub fn add_features(&mut self, chunk_data: &mut ChunkData) {
         for feature in &self.config.features {
             self.waitlist.merge(feature.add_to_chunk(chunk_data));
+        }
+    }
+    pub fn apply_waitlist(&mut self, chunks: &mut HashMap<ChunkPos, Chunk>) {
+        for (chunk_pos, chunk) in chunks.iter_mut() {
+            match self.waitlist.chunks.remove(chunk_pos) {
+                Some(add_blocks) => {
+                    for (pos, block_id) in add_blocks {
+                        chunk.data.set(pos, block_id);
+                    }
+                }
+                None => continue,
+            }
         }
     }
     pub fn generate_chunk(&mut self, position: ChunkPos) -> ChunkData {
