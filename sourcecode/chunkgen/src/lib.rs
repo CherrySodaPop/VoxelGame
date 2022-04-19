@@ -14,6 +14,7 @@ mod block;
 mod chunk;
 mod chunk_mesh;
 mod constants;
+mod features;
 mod generate;
 mod macros;
 mod mesh;
@@ -102,7 +103,6 @@ impl From<Rect2> for PositionRange {
 #[derive(NativeClass)]
 #[export]
 #[inherit(Node)]
-#[user_data(gdnative::export::user_data::MutexData<World>)]
 pub struct World {
     chunks: HashMap<ChunkPos, Chunk>,
     chunk_generator: ChunkGenerator,

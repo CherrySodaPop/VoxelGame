@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{borrow::Borrow, fmt::Debug};
 
 use crate::constants::*;
 
@@ -65,6 +65,14 @@ impl From<[isize; 3]> for BlockOffset {
         Self::new(offset[0], offset[1], offset[2])
     }
 }
+
+// TODO: Find a way to make this work.
+// impl<T: Borrow<[isize; 3]>> From<T> for BlockOffset {
+//     fn from(offset: T) -> Self {
+//         let offset = offset.borrow();
+//         Self::new(offset[0], offset[1], offset[2])
+//     }
+// }
 
 /// A local block position, i.e. one that is tied to a chunk.
 ///
@@ -137,7 +145,7 @@ impl From<GlobalBlockPos> for LocalBlockPos {
 }
 
 /// A global block position, i.e. one that is anywhere in the world.
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug, Hash)]
 pub struct GlobalBlockPos {
     pub x: isize,
     pub y: isize,

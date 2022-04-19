@@ -36,6 +36,19 @@ impl ChunkData {
                 .contains(&self.get(check_position))
         })
     }
+
+    /// Gets the y-level of the first air block at `x` and `z` (local-space).
+    ///
+    /// Returns `None` if there's no air blocks at any y-level.
+    pub fn get_air_start(&self, x: usize, z: usize) -> Option<usize> {
+        for y in 0..CHUNK_SIZE_Y {
+            let position = LocalBlockPos::new(x, y, z, self.position);
+            if self.get(position) == 0 {
+                return Some(y);
+            }
+        }
+        None
+    }
 }
 
 impl std::fmt::Debug for ChunkData {

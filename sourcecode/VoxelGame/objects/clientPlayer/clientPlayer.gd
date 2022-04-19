@@ -50,7 +50,7 @@ func UpdateMiscInfo(delta):
 	if (currentChunk != prevChunk):
 		emit_signal("enteredNewChunk");
 		prevChunk = currentChunk;
-		
+
 	lookingAtBlock = $camera/RayCast.get_collision_point();
 	lookingAtBlock += (lookingAtBlock - $camera.global_transform.origin).normalized() * 0.001;
 	lookingAtBlock.x = floor(lookingAtBlock.x);
