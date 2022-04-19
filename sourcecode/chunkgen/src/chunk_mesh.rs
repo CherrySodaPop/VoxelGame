@@ -47,9 +47,25 @@ impl BlockSurface {
     fn create_material(&self) -> Ref<Material, Shared> {
         // TODO: This means we're going to be making a new material per-chunk, per-block-type.
         //       That is, quite obviously, not good for performance or ergonomics.
-        let material = SpatialMaterial::new();
-        material.set_texture(SpatialMaterial::TEXTURE_ALBEDO, self.get_albedo_texture());
-        material.upcast::<Material>().into_shared()
+        let resource_loader = ResourceLoader::godot_singleton();
+        // Check if a custom material for this block type exists in `assets/materials`.
+        let material_path = format!("res://assets/materials/{}.tres", self.block_id); // HARDCODED
+        let material = if resource_loader.exists(&material_path, "") {
+            // Prevent Godot error spam by checking for the material before attempting
+            // to load it.
+            resource_loader.load(material_path, "", false)
+        } else {
+            None
+        };
+        match material {
+            Some(material) => material.cast().unwrap(),
+            None => {
+                // Make a new material containing the block's texture.
+                let material = SpatialMaterial::new();
+                material.set_texture(SpatialMaterial::TEXTURE_ALBEDO, self.get_albedo_texture());
+                material.upcast::<Material>().into_shared()
+            }
+        }
     }
     /// Adds this `BlockSurface` to `mesh` as a surface,
     /// setting the surface's material depending on `self.block_id`.
