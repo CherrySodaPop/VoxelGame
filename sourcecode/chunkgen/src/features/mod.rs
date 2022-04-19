@@ -1,12 +1,9 @@
-use std::{
-    borrow::BorrowMut,
-    collections::{hash_map::Entry, HashMap},
-};
+use std::collections::{hash_map::Entry, HashMap};
 
 use crate::{
     block::BlockID,
     chunk::ChunkData,
-    positions::{BlockOffset, ChunkPos, LocalBlockPos},
+    positions::{ChunkPos, LocalBlockPos},
 };
 
 pub mod trees;

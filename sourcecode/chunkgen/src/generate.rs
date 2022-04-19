@@ -37,7 +37,7 @@ impl ChunkGenerator {
             config: GenerationConfig {
                 top_layer,
                 bottom_layer,
-                features: vec![Box::new(Trees {})],
+                features: vec![Box::new(Trees::new())],
             },
             waitlist: FeatureWaitlist::new(),
         }

@@ -1,8 +1,28 @@
-use crate::{chunk::ChunkData, positions::LocalBlockPos};
+use gdnative::{api::OpenSimplexNoise, prelude::Unique};
+
+use crate::{
+    chunk::ChunkData,
+    constants::{CHUNK_SIZE_X, CHUNK_SIZE_Z},
+    positions::{GlobalBlockPos, LocalBlockPos},
+};
 
 use super::{Feature, FeatureWaitlist};
 
-pub struct Trees {}
+pub struct Trees {
+    noise: gdnative::object::Ref<OpenSimplexNoise, Unique>,
+}
+
+impl Trees {
+    pub fn new() -> Self {
+        let noise = OpenSimplexNoise::new();
+        noise.set_seed(20); // TEMP
+        noise.set_octaves(5);
+        noise.set_period(2.0);
+        noise.set_lacunarity(2.0);
+        noise.set_persistence(1.0);
+        Self { noise }
+    }
+}
 
 impl Trees {
     // TODO: Store all of this somewhere else!
@@ -163,19 +183,35 @@ impl Trees {
 
 impl Feature for Trees {
     fn add_to_chunk(&self, chunk_data: &mut ChunkData) -> FeatureWaitlist {
-        println!("Adding trees to {:?}", chunk_data.position);
         let mut waitlist = FeatureWaitlist::new();
-        let (x, z) = (1, 1);
-        // let (x, z) = (31, 31);
-        let air_start = chunk_data.get_air_start(x, z);
-        match air_start {
-            Some(air_start) => {
-                let origin = LocalBlockPos::new(x, air_start, z, chunk_data.position);
-                waitlist.merge(self.fill(chunk_data, origin, &Self::LEAVES, 24));
-                waitlist.merge(self.fill(chunk_data, origin, &Self::TRUNK, 23));
+        let mut tree_positions = Vec::new();
+        for x in 0..CHUNK_SIZE_X {
+            for z in 0..CHUNK_SIZE_Z {
+                // `global_pos` is only used to get a value from the noise map.
+                let global_pos: GlobalBlockPos =
+                    LocalBlockPos::new(x, 0, z, chunk_data.position).into();
+                if self
+                    .noise
+                    .get_noise_2d(global_pos.x as f64, global_pos.z as f64)
+                    > 0.46
+                {
+                    tree_positions.push((x, z));
+                }
             }
-            None => {}
-        };
+        }
+
+        for (x, z) in tree_positions {
+            let air_start = chunk_data.get_air_start(x, z);
+            match air_start {
+                Some(air_start) => {
+                    let origin = LocalBlockPos::new(x, air_start, z, chunk_data.position);
+                    waitlist.merge(self.fill(chunk_data, origin, &Self::LEAVES, 24));
+                    waitlist.merge(self.fill(chunk_data, origin, &Self::TRUNK, 23));
+                }
+                None => {}
+            };
+        }
+
         waitlist
     }
 }
