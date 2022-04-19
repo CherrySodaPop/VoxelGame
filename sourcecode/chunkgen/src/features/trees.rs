@@ -1,3 +1,5 @@
+//! Trees!
+
 use gdnative::{api::OpenSimplexNoise, prelude::Unique};
 
 use crate::{
@@ -15,7 +17,10 @@ pub struct Trees {
 impl Trees {
     pub fn new() -> Self {
         let noise = OpenSimplexNoise::new();
-        noise.set_seed(20); // TEMP
+        // TODO: Real world seeds. (This is only here to prevent the noise from using
+        //       the same seed as the terrain generation, which would look weird)
+        noise.set_seed(20);
+        // TODO: Make all of these controllable by a single "rarity" parameter.
         noise.set_octaves(5);
         noise.set_period(2.0);
         noise.set_lacunarity(2.0);
@@ -185,6 +190,8 @@ impl Feature for Trees {
     fn add_to_chunk(&self, chunk_data: &mut ChunkData) -> FeatureWaitlist {
         let mut waitlist = FeatureWaitlist::new();
         let mut tree_positions = Vec::new();
+        // Pick some random positions within this chunk to be the origins
+        // of trees.
         for x in 0..CHUNK_SIZE_X {
             for z in 0..CHUNK_SIZE_Z {
                 // `global_pos` is only used to get a value from the noise map.
@@ -201,6 +208,7 @@ impl Feature for Trees {
         }
 
         for (x, z) in tree_positions {
+            // Spawn trees where the ground turns to air.
             let air_start = chunk_data.get_air_start(x, z);
             match air_start {
                 Some(air_start) => {
