@@ -80,7 +80,6 @@ remote func PlayerInfo(networkID:int, pos:Vector3, camRotation:Vector2):
 	obj.global_transform.origin = pos;
 	
 	var skeleton:Skeleton = obj.get_node("model").get_node("PM/Skeleton");
-	print("gaming");
 	var newTransform = Transform(Vector3.RIGHT, Vector3.UP, Vector3.BACK, Vector3.ZERO);
 	newTransform = newTransform.rotated(Vector3.UP, camRotation.y + deg2rad(180));
 	skeleton.set_bone_pose(skeleton.find_bone("core"), newTransform);
