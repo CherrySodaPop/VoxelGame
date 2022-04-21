@@ -11,6 +11,7 @@ var networkTickTimer:float = 0.0;
 var networkTick:float = 1/30;
 # instances
 var playerInstances:Dictionary = {};
+var playerDisconnectedInstances:Dictionary = {};
 var objClientPlayer = preload("res://objects/clientPlayer/clientPlayer.tscn");
 
 func _ready():
@@ -47,8 +48,16 @@ func ClientServerClosed():
 	pass
 
 func SendPlayerInfo():
+	# password!
 	var passwordHashed = password.sha256_text();
-	rpc_id(1, "HandlePlayerInfo", username, passwordHashed);
+	# skin!
+	var skinImage = File.new();
+	var skinPath = "res://gameinfo/skin.png";
+	var skinBase64 = "";
+	if (skinImage.file_exists(skinPath)):
+		skinImage.open(skinPath, File.READ);
+		skinBase64 = Marshalls.raw_to_base64(skinImage.get_buffer(skinImage.get_len()));
+	rpc_id(1, "HandlePlayerInfo", username, passwordHashed, skinBase64);
 
 remote func DisconnectClient(id:int, reason:int):
 	# check if we're disconnecting ourselves, if so, die!
@@ -62,6 +71,7 @@ remote func DisconnectClient(id:int, reason:int):
 		if (is_instance_valid(playerNode)):
 			playerNode.queue_free();
 			playerInstances.erase(id);
+			playerDisconnectedInstances[id] = true;
 			return;
 	push_warning("controllerNetwork: No client to disconnect!")
 
@@ -70,7 +80,10 @@ remote func DisconnectClient(id:int, reason:int):
 ######################################################################
 
 remote func PlayerInfo(networkID:int, pos:Vector3, camRotation:Vector2):
+	# not our own info
 	if (Persistant.get_node("player").networkID == networkID): return;
+	# not a disconnected player's info
+	if (playerDisconnectedInstances.has(networkID)): return;
 	# todo: if their outside the viewdistance dont bother with their info and remove them
 	if (!playerInstances.has(networkID)):
 		var tmpObj = objClientPlayer.instance();
@@ -78,8 +91,4 @@ remote func PlayerInfo(networkID:int, pos:Vector3, camRotation:Vector2):
 		playerInstances[networkID] = tmpObj;
 	var obj:Spatial = playerInstances[networkID];
 	obj.global_transform.origin = pos;
-	
-	var skeleton:Skeleton = obj.get_node("model").get_node("PM/Skeleton");
-	var newTransform = Transform(Vector3.RIGHT, Vector3.UP, Vector3.BACK, Vector3.ZERO);
-	newTransform = newTransform.rotated(Vector3.UP, camRotation.y + deg2rad(180));
-	skeleton.set_bone_pose(skeleton.find_bone("core"), newTransform);
+	obj.camRotation = camRotation;
