@@ -64,10 +64,21 @@ func ClientDisconnected(id:int):
 
 remote func HandlePlayerInfo(username, passwordHashed, skinBase64):
 	var id = get_tree().get_rpc_sender_id();
+	
 	# make sure the sent info is proper
-	if (typeof(username) != TYPE_STRING || typeof(passwordHashed) != TYPE_STRING || typeof(skinBase64) != TYPE_STRING): 
+	if (typeof(username) != TYPE_STRING || typeof(passwordHashed) != TYPE_STRING || typeof(skinBase64) != TYPE_STRING):
 		DisconnectPlayer(id, disconnectTypes.INVALID_INFO);
 		return;
+	# check skin
+	var skinImage = Image.new();
+#	print(skinBase64)
+#	var loadOutput = skinImage.load_png_from_buffer(Marshalls.base64_to_raw(skinBase64));
+	skinImage.create_from_data(64, 64, false, Image.FORMAT_RGBA8, Marshalls.base64_to_raw(skinBase64));
+	print(len(skinImage.data["data"]));
+	if (len(skinImage.data["data"]) != 16384):
+		DisconnectPlayer(id, disconnectTypes.INVALID_INFO);
+		return;
+	
 	# check credentials (pass and username)
 	# - first, do they exist already? - then lets check their info if it's valid
 	if (playerCreds.has(username)):
@@ -76,10 +87,8 @@ remote func HandlePlayerInfo(username, passwordHashed, skinBase64):
 			return;
 	# - info doesnt exist yet, lets make a new "account"
 	else:
-		playerCreds[username] = {"passhash" : passwordHashed};
-	# skin info
-	var skinImage = Image.new();
-	skinImage.load_png_from_buffer(Marshalls.base64_to_raw(skinBase64));
+		playerCreds[username] = {"passhash" : passwordHashed, "skin" : skinBase64};
+	
 	# all is good, create the player
 	var tmpObj = objPlayer.instance();
 	get_tree().current_scene.add_child(tmpObj);
@@ -89,8 +98,24 @@ remote func HandlePlayerInfo(username, passwordHashed, skinBase64):
 	# now store it for ease of access
 	playerInstances[id] = tmpObj;
 	
+	SendAllPlayerSkinInfo(id);
 	# TODO: REMOVE! DONT WRITE ALL THE TIME
 	SavePlayerCredentials();
+
+func SendAllPlayerSkinInfo(clientID:int):
+	var skinDictionary:Dictionary = {};
+	for i in playerCreds.keys():
+		skinDictionary[i] = playerCreds[i]["skin"];
+	rpc_id(clientID, "AllPlayerSkinInfo", skinDictionary);
+
+func SendPlayerAppearance(doNotTouchID:int, requestedID:int):
+	var senderID = get_tree().get_rpc_sender_id();
+	if (playerInstances.has(requestedID)):
+		var objPlayer = playerInstances[requestedID];
+		var skinBase64 = playerCreds[objPlayer.username]["skin"];
+		rpc_id(senderID, "PlayerAppearance", doNotTouchID, skinBase64);
+		return;
+	print("Failed to send player appearance.")
 
 func DisconnectPlayer(id:int, reason:int):
 	if (playerInstances.has(id)):

@@ -51,19 +51,39 @@ func SendPlayerInfo():
 	# password!
 	var passwordHashed = password.sha256_text();
 	# skin!
-	var skinImage = File.new();
-	var skinPath = "res://gameinfo/skin.png";
-	var skinBase64 = "";
-	if (skinImage.file_exists(skinPath)):
-		skinImage.open(skinPath, File.READ);
-		skinBase64 = Marshalls.raw_to_base64(skinImage.get_buffer(skinImage.get_len()));
+#	var skinImage = File.new();
+	var skinPath = "res://skin.png";
+	var skinImage: Image = load(skinPath).get_data()
+	
+	skinImage.convert(Image.FORMAT_RGBA8);
+	var skinBase64 = Marshalls.raw_to_base64(skinImage.get_data())
 	rpc_id(1, "HandlePlayerInfo", username, passwordHashed, skinBase64);
+
+remote func AllPlayerSkinInfo(skinDictionary:Dictionary):
+	for i in skinDictionary.keys():
+		var skinBase64 = skinDictionary[i];
+		var skinImage = Image.new();
+		#skinImage.load_png_from_buffer(Marshalls.base64_to_raw(skinBase64));
+		#skinImage.save_png("res://temp/skins/%s.png" % i);
+
+remote func PlayerAppearance(objID:int, skinBase64:String):
+	var obj:Spatial = instance_from_id(objID);
+	var skinImage = Image.new();
+	skinImage.load_png_from_buffer(Marshalls.base64_to_raw(skinBase64));
+	var skinTexture = ImageTexture.new();
+	skinTexture.create_from_image(skinImage, 0);
+	if (is_instance_valid(obj)):
+		var mesh:MeshInstance = obj.get_node("model/PM/Skeleton/PMMeshObj")
+		var under:SpatialMaterial = mesh.get("material/0");
+		var top:SpatialMaterial = mesh.get("material/1");
+		under.albedo_texture = skinTexture;
+		top.albedo_texture = skinTexture;
 
 remote func DisconnectClient(id:int, reason:int):
 	# check if we're disconnecting ourselves, if so, die!
 	if (Persistant.get_node("player").networkID == id):
 		get_tree().network_peer = null;
-		print("DEBUG: Disconnected by server.")
+		print("DEBUG: Disconnected by server: %s" % reason);
 		return;
 	# no? we're disconnecting another player then, kill em!
 	if (playerInstances.has(id)):
@@ -89,6 +109,7 @@ remote func PlayerInfo(networkID:int, pos:Vector3, camRotation:Vector2):
 		var tmpObj = objClientPlayer.instance();
 		get_tree().current_scene.add_child(tmpObj);
 		playerInstances[networkID] = tmpObj;
+		rpc_id(1, "SendPlayerAppearance", tmpObj.get_instance_id(), networkID);
 	var obj:Spatial = playerInstances[networkID];
 	obj.global_transform.origin = pos;
 	obj.camRotation = camRotation;
