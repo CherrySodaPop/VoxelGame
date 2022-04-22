@@ -10,7 +10,7 @@ use crate::block::BlockID;
 use crate::chunk::ChunkData;
 use crate::constants::*;
 use crate::mesh::{Face, GDMeshData, MeshData, FACES};
-use crate::positions::LocalBlockPos;
+use crate::positions::{ChunkPos, LocalBlockPos};
 
 /// Block-type specific `MeshData`, to allow for different block types
 /// to have their own specific materials.
@@ -125,53 +125,39 @@ impl ChunkMeshData {
         collision_shape.set_faces(GDMeshData::convert_vec3(&all_vertices));
         collision_shape
     }
-}
-
-/// Struct for creating `ChunkMeshData`.
-///
-/// As the face-checking process can be quite involved, this is
-/// a seperate type from `ChunkMeshData` itself.
-//  ^ Could we fix this somehow (i.e. merge the two structs) using some wacky Rust stuff like traits?
-pub struct ChunkMeshDataGenerator<'a> {
-    chunk_data: &'a ChunkData,
-    world: &'a crate::World,
-}
-
-impl<'a> ChunkMeshDataGenerator<'a> {
-    pub fn new(world: &'a crate::World, chunk_data: &'a ChunkData) -> Self {
-        Self { chunk_data, world }
-    }
-    /// Checks to see if `face` of the block at `local_position` should be visible.
-    ///
-    /// Handles checking for faces on chunk boundaries.
-    fn face_visible(&self, local_position: LocalBlockPos, face: &Face) -> bool {
-        match self.chunk_data.is_face_visible(local_position, face) {
-            Ok(face_visible) => face_visible,
-            Err(_) => self.world.is_face_visible(local_position.into(), face),
-        }
-    }
-    /// Adds a block's visible faces to `chunk_mesh`.
-    fn add_block(&self, chunk_mesh: &mut ChunkMeshData, position: LocalBlockPos) {
-        let block_id = self.chunk_data.terrain[position.x][position.y][position.z];
-        if block_id == 0 {
-            // This is an air block, it has no faces.
-            return;
-        }
-        for face in &FACES {
-            let face_visible = self.face_visible(position, face);
-            if face_visible {
-                chunk_mesh.add_face(block_id, face, position);
-            }
-        }
-    }
-    /// Builds the final `ChunkMeshData`.
-    pub fn generate(&self) -> ChunkMeshData {
-        let mut chunk_mesh = ChunkMeshData::new();
+    pub fn new_from_chunk_data(
+        chunk_data: &ChunkData,
+        loaded_chunks: HashMap<ChunkPos, &ChunkData>,
+    ) -> Self {
+        let mut chunk_mesh = Self::new();
         for x in 0..CHUNK_SIZE_X {
             for y in 0..CHUNK_SIZE_Y {
                 for z in 0..CHUNK_SIZE_Z {
-                    let position = LocalBlockPos::new(x, y, z, self.chunk_data.position);
-                    self.add_block(&mut chunk_mesh, position);
+                    let position = LocalBlockPos::new(x, y, z, chunk_data.position);
+                    let block_id = chunk_data.get(position);
+                    if block_id == 0 {
+                        // This is an air block, it has no faces.
+                        continue;
+                    };
+                    for face in &FACES {
+                        let offset = face.normal.into();
+                        let checking_position: LocalBlockPos = position
+                            .offset(offset)
+                            // The block position to check is outside of this chunk_data.
+                            .unwrap_or_else(|_| position.offset_global(offset).into());
+                        let checking_data = if checking_position.chunk == chunk_data.position {
+                            Some(chunk_data)
+                        } else {
+                            loaded_chunks.get(&checking_position.chunk).copied()
+                        };
+                        let should_draw = match checking_data {
+                            Some(checking_data) => checking_data.get(checking_position) == 0,
+                            None => true,
+                        };
+                        if should_draw {
+                            chunk_mesh.add_face(block_id, face, position);
+                        };
+                    }
                 }
             }
         }

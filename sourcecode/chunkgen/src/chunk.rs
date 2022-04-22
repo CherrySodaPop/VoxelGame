@@ -1,5 +1,5 @@
-use crate::{constants::*, mesh::Face, positions::*};
 use crate::block::BlockID;
+use crate::{constants::*, mesh::Face, positions::*};
 
 pub struct ChunkData {
     pub position: ChunkPos,
