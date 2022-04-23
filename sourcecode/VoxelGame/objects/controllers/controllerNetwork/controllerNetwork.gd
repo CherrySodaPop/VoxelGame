@@ -51,26 +51,21 @@ func SendPlayerInfo():
 	# password!
 	var passwordHashed = password.sha256_text();
 	# skin!
-#	var skinImage = File.new();
-	var skinPath = "res://skin.png";
-	var skinImage: Image = load(skinPath).get_data()
-	
-	skinImage.convert(Image.FORMAT_RGBA8);
-	var skinBase64 = Marshalls.raw_to_base64(skinImage.get_data())
+	var skinPath = "user://skin.png";
+	var skinImage = File.new();
+	var skinBase64 = "";
+	if (!skinImage.file_exists(skinPath)):
+		var defaultSkin:StreamTexture = load("res://assets/models/pm/skin.png");
+		defaultSkin.get_data().save_png("user://skin.png");
+	skinImage.open(skinPath, File.READ);
+	skinBase64 = Marshalls.raw_to_base64(skinImage.get_buffer(skinImage.get_len()));
 	rpc_id(1, "HandlePlayerInfo", username, passwordHashed, skinBase64);
-
-remote func AllPlayerSkinInfo(skinDictionary:Dictionary):
-	for i in skinDictionary.keys():
-		var skinBase64 = skinDictionary[i];
-		var skinImage = Image.new();
-		#skinImage.load_png_from_buffer(Marshalls.base64_to_raw(skinBase64));
-		#skinImage.save_png("res://temp/skins/%s.png" % i);
 
 remote func PlayerAppearance(objID:int, skinBase64:String):
 	var obj:Spatial = instance_from_id(objID);
 	var skinImage = Image.new();
-	skinImage.load_png_from_buffer(Marshalls.base64_to_raw(skinBase64));
 	var skinTexture = ImageTexture.new();
+	skinImage.load_png_from_buffer(Marshalls.base64_to_raw(skinBase64));
 	skinTexture.create_from_image(skinImage, 0);
 	if (is_instance_valid(obj)):
 		var mesh:MeshInstance = obj.get_node("model/PM/Skeleton/PMMeshObj")

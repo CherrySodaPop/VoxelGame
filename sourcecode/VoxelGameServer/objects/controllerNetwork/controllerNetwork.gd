@@ -71,11 +71,9 @@ remote func HandlePlayerInfo(username, passwordHashed, skinBase64):
 		return;
 	# check skin
 	var skinImage = Image.new();
-#	print(skinBase64)
-#	var loadOutput = skinImage.load_png_from_buffer(Marshalls.base64_to_raw(skinBase64));
-	skinImage.create_from_data(64, 64, false, Image.FORMAT_RGBA8, Marshalls.base64_to_raw(skinBase64));
+	var loadOutput = skinImage.load_png_from_buffer(Marshalls.base64_to_raw(skinBase64));
 	print(len(skinImage.data["data"]));
-	if (len(skinImage.data["data"]) != 16384):
+	if (loadOutput != OK || len(skinImage.data["data"]) != 16384):
 		DisconnectPlayer(id, disconnectTypes.INVALID_INFO);
 		return;
 	
@@ -85,6 +83,7 @@ remote func HandlePlayerInfo(username, passwordHashed, skinBase64):
 		if (playerCreds[username]["passhash"] != passwordHashed):
 			DisconnectPlayer(id, disconnectTypes.INVALID_CREDS);
 			return;
+		playerCreds[username]["skin"] = skinBase64;
 	# - info doesnt exist yet, lets make a new "account"
 	else:
 		playerCreds[username] = {"passhash" : passwordHashed, "skin" : skinBase64};
@@ -98,17 +97,10 @@ remote func HandlePlayerInfo(username, passwordHashed, skinBase64):
 	# now store it for ease of access
 	playerInstances[id] = tmpObj;
 	
-	SendAllPlayerSkinInfo(id);
 	# TODO: REMOVE! DONT WRITE ALL THE TIME
 	SavePlayerCredentials();
 
-func SendAllPlayerSkinInfo(clientID:int):
-	var skinDictionary:Dictionary = {};
-	for i in playerCreds.keys():
-		skinDictionary[i] = playerCreds[i]["skin"];
-	rpc_id(clientID, "AllPlayerSkinInfo", skinDictionary);
-
-func SendPlayerAppearance(doNotTouchID:int, requestedID:int):
+remote func SendPlayerAppearance(doNotTouchID:int, requestedID:int):
 	var senderID = get_tree().get_rpc_sender_id();
 	if (playerInstances.has(requestedID)):
 		var objPlayer = playerInstances[requestedID];

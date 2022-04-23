@@ -22,6 +22,8 @@ _global_script_class_icons={
 
 config/name="VoxelGame"
 run/main_scene="res://world/world.tscn"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="VoxelGame"
 config/icon="res://icon.png"
 
 [autoload]
