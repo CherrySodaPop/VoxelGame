@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=2]
+[gd_scene load_steps=7 format=2]
 
 [ext_resource path="res://objects/clientPlayer/clientPlayer.tscn" type="PackedScene" id=1]
 [ext_resource path="res://objects/chunkGenerator/chunkGeneration.tscn" type="PackedScene" id=2]
 [ext_resource path="res://objects/worldMeshHandler/worldMeshHandler.tscn" type="PackedScene" id=3]
 [ext_resource path="res://objects/persistant/persistant.gd" type="Script" id=4]
 [ext_resource path="res://objects/blockManager/blockManager.tscn" type="PackedScene" id=5]
+[ext_resource path="res://objects/debugInfo/debugInfo.tscn" type="PackedScene" id=6]
 
 [node name="persistant" type="Node"]
 script = ExtResource( 4 )
@@ -17,3 +18,5 @@ initial_generation_area = Rect2( -4, -4, 8, 8 )
 [node name="worldMeshHandler" parent="." instance=ExtResource( 3 )]
 
 [node name="blockManager" parent="." instance=ExtResource( 5 )]
+
+[node name="debugInfo" parent="." instance=ExtResource( 6 )]

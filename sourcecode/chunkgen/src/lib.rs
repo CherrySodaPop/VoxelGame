@@ -22,14 +22,8 @@ mod performance;
 mod positions;
 
 use crate::{
-    block::BlockID,
-    chunk::ChunkData,
-    chunk_mesh::{ChunkMeshData, ChunkMeshDataGenerator},
-    generate::ChunkGenerator,
-    macros::*,
-    mesh::*,
-    performance::Timings,
-    positions::*,
+    block::BlockID, chunk::ChunkData, chunk_mesh::ChunkMeshData, generate::ChunkGenerator,
+    macros::*, mesh::*, performance::Timings, positions::*,
 };
 
 #[derive(Debug, Clone)]
@@ -189,10 +183,14 @@ impl World {
         }
     }
 
+    /// Returns a "view" into `World.chunks`, mapping `ChunkPos`s to `&ChunkData`s.
+    fn chunk_data_view(&self) -> HashMap<ChunkPos, &ChunkData> {
+        self.chunks.iter().map(|(cp, c)| (*cp, &c.data)).collect()
+    }
+
     /// Updates the mesh for a specific `Chunk`.
     fn update_mesh(&self, chunk: &Chunk) {
-        let mesh_generator = ChunkMeshDataGenerator::new(self, &chunk.data);
-        let mesh_data = mesh_generator.generate();
+        let mesh_data = ChunkMeshData::new_from_chunk_data(&chunk.data, self.chunk_data_view());
         // TODO: This function seems to cause issues when using multithreading.
         unsafe { chunk.node.assume_safe() }
             .map_mut(|cn: &mut ChunkNode, _base| {

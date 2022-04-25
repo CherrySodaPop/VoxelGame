@@ -1,4 +1,5 @@
 use crate::block::{BlockID, BLOCK_MANAGER};
+
 use crate::{constants::*, mesh::Face, positions::*};
 
 pub struct ChunkData {
