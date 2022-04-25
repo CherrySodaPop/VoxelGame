@@ -1,6 +1,6 @@
-use crate::block::{BlockID, BLOCK_MANAGER};
+use crate::block::BlockID;
 
-use crate::{constants::*, mesh::Face, positions::*};
+use crate::{constants::*, positions::*};
 
 pub struct ChunkData {
     pub position: ChunkPos,
@@ -19,23 +19,6 @@ impl ChunkData {
     }
     pub fn set(&mut self, position: LocalBlockPos, to: BlockID) {
         self.terrain[position.x][position.y][position.z] = to;
-    }
-
-    /// Returns `Ok(true)` if `face` is visible (e.g. is not blocked by a
-    /// solid block) at `position`.
-    ///
-    /// This checks in **local space**, and will return `TooLargeError` if
-    /// the block to check for transparency is outside the range of this chunk.
-    pub fn is_face_visible(
-        &self,
-        position: LocalBlockPos,
-        face: &Face,
-    ) -> Result<bool, TooLargeError> {
-        position.offset(face.normal.into()).map(|check_position| {
-            BLOCK_MANAGER
-                .transparent_blocks
-                .contains(&self.get(check_position))
-        })
     }
 
     /// Gets the y-level of the first air block at `x` and `z` (local-space).

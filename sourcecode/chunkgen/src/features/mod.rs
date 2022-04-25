@@ -7,7 +7,7 @@ use std::collections::{hash_map::Entry, HashMap};
 use crate::{
     block::BlockID,
     chunk::ChunkData,
-    positions::{ChunkPos, LocalBlockPos},
+    positions::{ChunkPos, LocalBlockPos, OutOfBoundsError},
 };
 
 pub mod trees;
@@ -70,12 +70,15 @@ pub trait Feature {
                 Err(_) => {
                     // That position is outside of this chunk, add it to the waitlist.
                     // TODO: This should probably be a method of FeatureWaitlist itself.
-                    let outside_position: LocalBlockPos = origin.offset_global(offset).into();
-                    let outside_blocks = waitlist
-                        .chunks
-                        .entry(outside_position.chunk)
-                        .or_insert_with(Vec::new);
-                    outside_blocks.push((outside_position, block_id));
+                    let outside_position: Result<LocalBlockPos, OutOfBoundsError> =
+                        origin.offset_global(offset).map(|global| global.into());
+                    if let Ok(outside_position) = outside_position {
+                        let outside_blocks = waitlist
+                            .chunks
+                            .entry(outside_position.chunk)
+                            .or_insert_with(Vec::new);
+                        outside_blocks.push((outside_position, block_id));
+                    }
                 }
             }
         }

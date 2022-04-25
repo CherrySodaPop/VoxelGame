@@ -4,7 +4,6 @@
 
 use std::{collections::HashMap, isize};
 
-use block::BLOCK_MANAGER;
 use gdnative::{
     api::{CollisionShape, MeshInstance, StaticBody},
     prelude::*,
@@ -23,7 +22,7 @@ mod positions;
 
 use crate::{
     block::BlockID, chunk::ChunkData, chunk_mesh::ChunkMeshData, generate::ChunkGenerator,
-    macros::*, mesh::*, performance::Timings, positions::*,
+    macros::*, performance::Timings, positions::*,
 };
 
 #[derive(Debug, Clone)]
@@ -168,19 +167,6 @@ impl World {
             position.z as isize,
         );
         self.get_block(position)
-    }
-
-    /// Returns `true` if `face` is visible (e.g. is not blocked by a
-    /// solid block) at `position`.
-    ///
-    /// This checks in world space, meaning block faces checked on chunk borders
-    /// will be accurate.
-    fn is_face_visible(&self, position: GlobalBlockPos, face: &Face) -> bool {
-        let check = position.offset(face.normal.into());
-        match self.get_block(check) {
-            Some(block_id) => BLOCK_MANAGER.transparent_blocks.contains(&block_id),
-            None => true,
-        }
     }
 
     /// Returns a "view" into `World.chunks`, mapping `ChunkPos`s to `&ChunkData`s.

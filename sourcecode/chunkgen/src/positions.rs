@@ -3,14 +3,17 @@ use std::fmt::Debug;
 use crate::constants::*;
 
 #[derive(Debug, Clone)]
-pub struct TooLargeError;
+pub struct OutOfBoundsError;
 
-impl std::fmt::Display for TooLargeError {
+impl std::fmt::Display for OutOfBoundsError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "LocalBlockPosition was offset beyond its boundaries")
+        write!(
+            f,
+            "<Local/Global>BlockPosition was offset beyond its boundaries"
+        )
     }
 }
-impl std::error::Error for TooLargeError {}
+impl std::error::Error for OutOfBoundsError {}
 
 /// A chunk in the world.
 ///
@@ -85,6 +88,13 @@ pub struct LocalBlockPos {
     pub chunk: ChunkPos,
 }
 
+/// Checks to see if `<param 1>` is within the range `(0..<param 2>)`.
+macro_rules! in_urange {
+    ($val:expr, $range_end_exclusive:expr) => {
+        (0..$range_end_exclusive).contains($val)
+    };
+}
+
 impl LocalBlockPos {
     pub fn new(x: usize, y: usize, z: usize, chunk: ChunkPos) -> Self {
         Self { x, y, z, chunk }
@@ -93,25 +103,22 @@ impl LocalBlockPos {
     ///
     /// Returns `TooLargeError` if the resulting block position would
     /// end up in another chunk. (See `LocalBlockPos.offset_global`)
-    pub fn offset(&self, offset: BlockOffset) -> Result<Self, TooLargeError> {
+    pub fn offset(&self, offset: BlockOffset) -> Result<Self, OutOfBoundsError> {
         let x = self.x as isize + offset.x;
         let y = self.y as isize + offset.y;
         let z = self.z as isize + offset.z;
-        if !(0 < x && x < 32 && 0 < y && y < 256 && 0 < z && z < 32) {
-            Err(TooLargeError)
-        } else {
+        if in_urange!(&x, 32) && in_urange!(&y, 256) && in_urange!(&z, 32) {
             Ok(Self::new(x as usize, y as usize, z as usize, self.chunk))
+        } else {
+            Err(OutOfBoundsError)
         }
     }
     /// Offsets this block position by `offset`, returning a `GlobalBlockPos`.
     ///
     /// To offset in local space, see `LocalBlockPos.offset`.
-    pub fn offset_global(&self, offset: BlockOffset) -> GlobalBlockPos {
-        let origin = self.chunk.origin();
-        let x = origin.x + self.x as isize + offset.x;
-        let y = self.y as isize + offset.y;
-        let z = origin.z + self.z as isize + offset.z;
-        GlobalBlockPos::new(x, y, z)
+    pub fn offset_global(&self, offset: BlockOffset) -> Result<GlobalBlockPos, OutOfBoundsError> {
+        let global_position: GlobalBlockPos = (*self).into();
+        global_position.offset(offset)
     }
     /// Returns `ChunkPos` that this block position borders.
     ///
@@ -172,11 +179,16 @@ impl GlobalBlockPos {
         ChunkPos::new(chunk_x, chunk_z)
     }
     /// Offsets this block position by `offset`.
-    pub fn offset(&self, offset: BlockOffset) -> Self {
-        Self {
-            x: self.x + offset.x,
-            y: self.y + offset.y,
-            z: self.z + offset.z,
+    pub fn offset(&self, offset: BlockOffset) -> Result<Self, OutOfBoundsError> {
+        let y = self.y + offset.y;
+        if !(0..=255).contains(&y) {
+            Err(OutOfBoundsError)
+        } else {
+            Ok(Self {
+                x: self.x + offset.x,
+                y,
+                z: self.z + offset.z,
+            })
         }
     }
 }
@@ -252,6 +264,43 @@ mod tests {
         };
     }
 
+    macro_rules! test_lbp_offset {
+        ($local_position_base:expr, $chunk_position_base:expr, $offset_base:expr, $end_position:expr, $end_chunk_position:expr) => {
+            let initial = LocalBlockPos::new(
+                $local_position_base[0],
+                $local_position_base[1],
+                $local_position_base[2],
+                ChunkPos::new($chunk_position_base[0], $chunk_position_base[1]),
+            );
+            let offset = BlockOffset::new($offset_base[0], $offset_base[1], $offset_base[2]);
+            assert_eq!(
+                initial.offset(offset).unwrap(),
+                LocalBlockPos::new(
+                    $end_position[0],
+                    $end_position[1],
+                    $end_position[2],
+                    ChunkPos::new($end_chunk_position[0], $end_chunk_position[1])
+                )
+            );
+        };
+    }
+
+    macro_rules! test_lbp_global_offset {
+        ($local_position_base:expr, $chunk_position_base:expr, $offset_base:expr, $end_position:expr) => {
+            let initial = LocalBlockPos::new(
+                $local_position_base[0],
+                $local_position_base[1],
+                $local_position_base[2],
+                ChunkPos::new($chunk_position_base[0], $chunk_position_base[1]),
+            );
+            let offset = BlockOffset::new($offset_base[0], $offset_base[1], $offset_base[2]);
+            assert_eq!(
+                initial.offset_global(offset).unwrap(),
+                GlobalBlockPos::new($end_position[0], $end_position[1], $end_position[2],)
+            );
+        };
+    }
+
     #[test]
     fn test_global_block_pos() {
         // Global position (base), chunk position (expected), local position (expected)
@@ -295,4 +344,30 @@ mod tests {
     }
 
     // TODO: More tests
+
+    #[test]
+    fn test_local_offest() {
+        test_lbp_offset!([4, 0, 4], [0, 0], [0, 0, 0], [4, 0, 4], [0, 0]);
+        test_lbp_offset!([20, 0, 20], [0, 0], [2, 0, 2], [22, 0, 22], [0, 0]);
+    }
+
+    #[test]
+    fn test_global_offset() {
+        test_lbp_global_offset!([10, 0, 10], [0, 0], [0, 0, 0], [10, 0, 10]);
+        test_lbp_global_offset!([31, 0, 31], [0, 0], [1, 0, 1], [32, 0, 32]);
+        test_lbp_global_offset!([31, 0, 31], [1, 1], [1, 0, 1], [64, 0, 64]);
+        test_lbp_global_offset!([0, 0, 0], [-1, 0], [0, 0, 0], [-32, 0, 0]);
+        test_lbp_global_offset!([0, 0, 0], [-1, 0], [4, 2, 0], [-28, 2, 0]);
+        test_lbp_global_offset!([0, 10, 0], [-1, 0], [-4, 0, 0], [-36, 10, 0]);
+    }
+
+    #[should_panic]
+    fn test_local_offset_panic() {
+        test_lbp_offset!([31, 0, 31], [0, 0], [1, 0, 1], [0, 0, 0], [1, 1]);
+    }
+
+    #[should_panic]
+    fn test_local_offset_panic_2() {
+        test_lbp_global_offset!([0, 0, 0], [0, 0], [0, -1, 0], [0, 0, 0]);
+    }
 }
