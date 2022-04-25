@@ -9,6 +9,7 @@ pub type BlockID = u16;
 pub struct Block {
     pub id: BlockID,
     pub name: String,
+    pub durability: f64,
     // FUTURE: This will house fields such as toughness,
     //         tool preference, etc.
 }

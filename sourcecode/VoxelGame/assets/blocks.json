@@ -3,31 +3,38 @@
     "blocks" : {
         "air" : {
             "id" : 0,
-            "name" : "Air"
+            "name" : "Air",
+            "durability" : 0.0
         },
         "debug": {
             "id": 1,
-            "name": "Debug Block"
+            "name": "Debug Block",
+            "durability" : 0.0
         },
         "grass": {
             "id": 20,
-            "name": "Grass"
+            "name": "Grass",
+            "durability" : 1.2
         },
         "dirt": {
             "id": 21,
-            "name": "Dirt"
+            "name": "Dirt",
+            "durability" : 1.2
         },
         "stone": {
             "id": 22,
-            "name": "Stone"
+            "name": "Stone",
+            "durability" : 20.0
         },
         "chestnut_wood" : {
             "id" : 23,
-            "name" : "Chestnut Wood"
+            "name" : "Chestnut Wood",
+            "durability" : 4.0
         },
         "chestnut_leaves" : {
             "id" : 24,
-            "name" : "Chestnut Leaves"
+            "name" : "Chestnut Leaves",
+            "durability" : 0.6
         }
     }
   }

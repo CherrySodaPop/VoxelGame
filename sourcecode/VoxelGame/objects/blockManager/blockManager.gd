@@ -14,6 +14,7 @@ func get_block(block_name: String):
 	var raw_block = blocks_raw[block_name]
 	block_data.id = raw_block["id"]
 	block_data.name = raw_block["name"]
+	block_data.durability = raw_block["durability"];
 	return block_data
 	
 func get_block_by_id(id: int):
