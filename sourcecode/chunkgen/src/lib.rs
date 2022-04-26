@@ -39,8 +39,24 @@ impl std::fmt::Display for NotLoadedError {
 impl std::error::Error for NotLoadedError {}
 
 pub struct Chunk {
+    /// The chunk's position. This is determined by `Chunk.data.position` and
+    /// is copied here for convenience, to prevent requiring locking to access
+    /// something so simple.
+    pub position: ChunkPos,
+    /// The chunk's terrain data.
     pub data: Arc<RwLock<ChunkData>>,
+    /// The chunk node, its manifestation in the Godot world.
     node: Arc<Mutex<Instance<ChunkNode, Shared>>>,
+}
+
+impl Chunk {
+    fn new(data: ChunkData, node: Instance<ChunkNode, Shared>) -> Self {
+        Self {
+            position: data.position,
+            data: Arc::new(RwLock::new(data)),
+            node: Arc::new(Mutex::new(node)),
+        }
+    }
 }
 
 #[derive(NativeClass)]
@@ -142,18 +158,11 @@ impl World {
     /// Returns `NotLoadedError` if the block isn't loaded.
     fn set_block(&mut self, position: GlobalBlockPos, to: BlockID) -> Result<(), NotLoadedError> {
         let local_position: LocalBlockPos = position.into();
-        // Rust foolishness to prevent mutability mishaps
-        {
-            let chunk = self
-                .chunks
-                .get_mut(&local_position.chunk)
-                .ok_or(NotLoadedError)?;
-            chunk.data.write().unwrap().set(local_position, to);
-        };
         let chunk = self
             .chunks
             .get(&local_position.chunk)
             .ok_or(NotLoadedError)?;
+        chunk.data.write().unwrap().set(local_position, to);
         self.update_mesh(chunk);
         for chunk_position in local_position.borders() {
             if let Some(chunk) = self.chunks.get(&chunk_position) {
@@ -183,7 +192,7 @@ impl World {
         self.get_block(position)
     }
 
-    /// Returns a "view" into `World.chunks`, mapping `ChunkPos`s to `&ChunkData`s.
+    /// Returns a "view" into `World.chunks`, mapping `ChunkPos`s to `ChunkData`s.
     fn chunk_data_view(&self) -> HashMap<ChunkPos, Arc<RwLock<ChunkData>>> {
         self.chunks
             .iter()
@@ -193,10 +202,7 @@ impl World {
 
     /// Updates the mesh for a specific `Chunk`.
     fn update_mesh(&self, chunk: &Chunk) {
-        println!(
-            "Updating mesh data for {:?}",
-            chunk.data.read().unwrap().position
-        );
+        println!("Updating mesh data for {:?}", chunk.position);
         let view = self.chunk_data_view();
         let chunk_node = chunk.node.clone();
         let chunk_data = chunk.data.clone();
@@ -239,10 +245,7 @@ impl World {
         let chunk_node = ChunkNode::new_instance();
         // Ugly godot-rust stuff, moves the chunk node into place.
         let chunk_node = chunk_node.into_shared();
-        Chunk {
-            data: Arc::new(RwLock::new(chunk_data)),
-            node: Arc::new(Mutex::new(chunk_node)),
-        }
+        Chunk::new(chunk_data, chunk_node)
     }
 
     /// Takes ownership of `chunk` and adds it to the `World.chunks` HashMap.
@@ -250,8 +253,7 @@ impl World {
     /// This allows other chunks to see it when making face calculations,
     /// and for functions such as `World.set_block` to be able to modify it.
     fn add_chunk(&mut self, chunk: Chunk) {
-        let chunk_position = chunk.data.read().unwrap().position;
-        self.chunks.insert(chunk_position, chunk);
+        self.chunks.insert(chunk.position, chunk);
     }
 
     #[export]
@@ -264,14 +266,13 @@ impl World {
         let chunk = self.load_chunk(chunk_position);
         self.update_mesh(&chunk);
         unsafe {
-            // let chunk = &chunk.read().unwrap();
             chunk
                 .node
                 .lock()
                 .unwrap()
                 .assume_safe()
                 .map_mut(|_cn: &mut ChunkNode, base| {
-                    let chunk_origin = chunk.data.read().unwrap().position.origin();
+                    let chunk_origin = chunk.position.origin();
                     base.translate(vec3!(chunk_origin.x, chunk_origin.y, chunk_origin.z));
                 })
                 .unwrap();
