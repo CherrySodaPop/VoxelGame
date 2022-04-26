@@ -174,6 +174,11 @@ impl World {
         self.chunks.iter().map(|(cp, c)| (*cp, &c.data)).collect()
     }
 
+    /// Returns a "view" into `World.chunks`, mapping `ChunkPos`s to `&ChunkData`s.
+    fn chunk_data_view(&self) -> HashMap<ChunkPos, &ChunkData> {
+        self.chunks.iter().map(|(cp, c)| (*cp, &c.data)).collect()
+    }
+
     /// Updates the mesh for a specific `Chunk`.
     fn update_mesh(&self, chunk: &Chunk) {
         let mesh_data = ChunkMeshData::new_from_chunk_data(&chunk.data, self.chunk_data_view());
