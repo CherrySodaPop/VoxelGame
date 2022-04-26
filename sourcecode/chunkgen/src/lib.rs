@@ -13,6 +13,7 @@ mod block;
 mod chunk;
 mod chunk_mesh;
 mod constants;
+mod features;
 mod generate;
 mod macros;
 mod mesh;
@@ -20,14 +21,8 @@ mod performance;
 mod positions;
 
 use crate::{
-    block::BlockID,
-    chunk::ChunkData,
-    chunk_mesh::{ChunkMeshData, ChunkMeshDataGenerator},
-    generate::ChunkGenerator,
-    macros::*,
-    mesh::*,
-    performance::Timings,
-    positions::*,
+    block::BlockID, chunk::ChunkData, chunk_mesh::ChunkMeshData, generate::ChunkGenerator,
+    macros::*, performance::Timings, positions::*,
 };
 
 #[derive(Debug, Clone)]
@@ -40,8 +35,8 @@ impl std::fmt::Display for NotLoadedError {
 }
 impl std::error::Error for NotLoadedError {}
 
-struct Chunk {
-    data: ChunkData,
+pub struct Chunk {
+    pub data: ChunkData,
     node: Instance<ChunkNode, Shared>,
 }
 
@@ -101,7 +96,6 @@ impl From<Rect2> for PositionRange {
 #[derive(NativeClass)]
 #[export]
 #[inherit(Node)]
-#[user_data(gdnative::export::user_data::MutexData<World>)]
 pub struct World {
     chunks: HashMap<ChunkPos, Chunk>,
     chunk_generator: ChunkGenerator,
@@ -175,23 +169,14 @@ impl World {
         self.get_block(position)
     }
 
-    /// Returns `true` if `face` is visible (e.g. is not blocked by a
-    /// solid block) at `position`.
-    ///
-    /// This checks in world space, meaning block faces checked on chunk borders
-    /// will be accurate.
-    fn is_face_visible(&self, position: GlobalBlockPos, face: &Face) -> bool {
-        let check = position.offset(face.normal.into());
-        match self.get_block(check) {
-            Some(block_id) => block_id == 0,
-            None => true,
-        }
+    /// Returns a "view" into `World.chunks`, mapping `ChunkPos`s to `&ChunkData`s.
+    fn chunk_data_view(&self) -> HashMap<ChunkPos, &ChunkData> {
+        self.chunks.iter().map(|(cp, c)| (*cp, &c.data)).collect()
     }
 
     /// Updates the mesh for a specific `Chunk`.
     fn update_mesh(&self, chunk: &Chunk) {
-        let mesh_generator = ChunkMeshDataGenerator::new(self, &chunk.data);
-        let mesh_data = mesh_generator.generate();
+        let mesh_data = ChunkMeshData::new_from_chunk_data(&chunk.data, self.chunk_data_view());
         // TODO: This function seems to cause issues when using multithreading.
         unsafe { chunk.node.assume_safe() }
             .map_mut(|cn: &mut ChunkNode, _base| {
@@ -213,13 +198,14 @@ impl World {
     /// Loads a chunk from disk, or generates a new one.
     ///
     /// This does not create the mesh, see `World.update_mesh`.
-    fn load_chunk(&self, position: ChunkPos) -> Chunk {
+    fn load_chunk(&mut self, position: ChunkPos) -> Chunk {
         let chunk_data = if false {
             todo!("Implement loading chunks from disk");
         } else {
             // The chunk is new.
             self.chunk_generator.generate_chunk(position)
         };
+        self.chunk_generator.apply_waitlist(&mut self.chunks);
         let chunk_node = ChunkNode::new_instance();
         // Ugly godot-rust stuff, moves the chunk node into place.
         chunk_node

@@ -4,6 +4,7 @@
         "air" : {
             "id" : 0,
             "name" : "Air",
+            "transparent": true,
             "durability" : 0.0
         },
         "debug": {
@@ -34,7 +35,8 @@
         "chestnut_leaves" : {
             "id" : 24,
             "name" : "Chestnut Leaves",
+            "transparent": true,
             "durability" : 0.6
         }
     }
-  }
+}

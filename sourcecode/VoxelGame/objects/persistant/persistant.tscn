@@ -6,6 +6,7 @@
 [ext_resource path="res://objects/persistant/persistant.gd" type="Script" id=4]
 [ext_resource path="res://objects/blockManager/blockManager.tscn" type="PackedScene" id=5]
 [ext_resource path="res://objects/controllers/controllerNetwork/controllerNetwork.tscn" type="PackedScene" id=6]
+[ext_resource path="res://objects/debugInfo/debugInfo.tscn" type="PackedScene" id=7]
 
 [node name="persistant" type="Node"]
 script = ExtResource( 4 )
@@ -19,3 +20,5 @@ script = ExtResource( 4 )
 [node name="blockManager" parent="." instance=ExtResource( 5 )]
 
 [node name="controllerNetwork" parent="." instance=ExtResource( 6 )]
+
+[node name="debugInfo" parent="." instance=ExtResource( 7 )]
