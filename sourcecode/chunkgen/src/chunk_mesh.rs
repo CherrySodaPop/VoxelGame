@@ -6,7 +6,7 @@ use gdnative::api::{
 use gdnative::object::Ref;
 use gdnative::prelude::{Shared, Unique};
 
-use crate::block::BlockID;
+use crate::block::{BlockID, BLOCK_MANAGER};
 use crate::chunk::ChunkData;
 use crate::constants::*;
 use crate::mesh::{Face, GDMeshData, MeshData, FACES};
@@ -139,20 +139,38 @@ impl ChunkMeshData {
                         // This is an air block, it has no faces.
                         continue;
                     };
+                    // Set which of the six block faces should be rendered depending on
+                    // whether the block they're adjacent to is transparent or solid.
                     for face in &FACES {
                         let offset = face.normal.into();
-                        let checking_position: LocalBlockPos = position
-                            .offset(offset)
-                            // The block position to check is outside of this chunk_data.
-                            .unwrap_or_else(|_| position.offset_global(offset).into());
-                        let checking_data = if checking_position.chunk == chunk_data.position {
-                            Some(chunk_data)
-                        } else {
-                            loaded_chunks.get(&checking_position.chunk).copied()
+                        let checking_position = match position.offset(offset) {
+                            Ok(pos) => Ok(pos),
+                            // The block position to check is outside of the current chunk.
+                            Err(_) => position.offset_global(offset).map(|global| global.into()),
                         };
-                        let should_draw = match checking_data {
-                            Some(checking_data) => checking_data.get(checking_position) == 0,
-                            None => true,
+                        let should_draw = match checking_position {
+                            Ok(checking_position) => {
+                                // We have a valid block position, see if it's air.
+                                let checking_data =
+                                    if checking_position.chunk == chunk_data.position {
+                                        // It's inside the chunk we're building the mesh for,
+                                        // just wrap up the current chunk_data.
+                                        Some(chunk_data)
+                                    } else {
+                                        // It's outside of the chunk we're building a mesh for.
+                                        loaded_chunks.get(&checking_position.chunk).copied()
+                                    };
+                                if let Some(checking_data) = checking_data {
+                                    BLOCK_MANAGER
+                                        .transparent_blocks
+                                        .contains(&checking_data.get(checking_position))
+                                } else {
+                                    // Draw faces at borders between loaded and unloaded chunks.
+                                    true
+                                }
+                            }
+                            // Draw faces at the bottom (y=0) and top (y=255) of the world.
+                            Err(_) => true,
                         };
                         if should_draw {
                             chunk_mesh.add_face(block_id, face, position);

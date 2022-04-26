@@ -17,7 +17,7 @@ var lockMouse:bool = false;
 signal enteredNewChunk;
 
 func _ready():
-	global_transform.origin.y = 20; # TEMP: Prevent spawning underneath terrain
+	global_transform.origin.y = 30; # TEMP: Prevent spawning underneath terrain
 	$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_SHADOWS_ONLY;
 
 func _process(delta):
@@ -50,7 +50,7 @@ func UpdateMiscInfo(delta):
 	if (currentChunk != prevChunk):
 		emit_signal("enteredNewChunk");
 		prevChunk = currentChunk;
-		
+
 	lookingAtBlock = $camera/RayCast.get_collision_point();
 	lookingAtBlock += (lookingAtBlock - $camera.global_transform.origin).normalized() * 0.001;
 	lookingAtBlock.x = floor(lookingAtBlock.x);
