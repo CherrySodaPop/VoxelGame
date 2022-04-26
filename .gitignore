@@ -7,9 +7,6 @@ export_presets.cfg
 # Mono-specific ignores
 .mono/
 
-# Compiled builds ignore
-build/
-
 # Visual Studio ignores
 .vscode/
 .vs
@@ -19,3 +16,6 @@ build/
 
 # Compiled Godot bins ignores
 /sourcecode/VoxelGame/bins/*
+
+# Ignore multiplayer info
+/sourcecode/VoxelGameServer/gameinfo/*
