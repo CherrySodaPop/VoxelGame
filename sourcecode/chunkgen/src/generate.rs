@@ -15,7 +15,6 @@ use crate::{
     features::{trees::Trees, Feature, FeatureWaitlist},
     macros::*,
     positions::ChunkPos,
-    Chunk,
 };
 
 struct GenerationConfig {

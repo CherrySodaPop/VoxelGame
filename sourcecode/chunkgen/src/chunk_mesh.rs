@@ -1,14 +1,10 @@
 use std::{
     collections::HashMap,
-    rc::Rc,
     sync::{Arc, RwLock, RwLockReadGuard},
 };
 
 use gdnative::{
-    api::{
-        ArrayMesh, CheckButton, ConcavePolygonShape, Material, ResourceLoader, SpatialMaterial,
-        Texture,
-    },
+    api::{ArrayMesh, ConcavePolygonShape, Material, ResourceLoader, SpatialMaterial, Texture},
     object::Ref,
     prelude::{Shared, Unique},
 };
@@ -19,7 +15,6 @@ use crate::{
     constants::*,
     mesh::{Face, GDMeshData, MeshData, FACES},
     positions::{ChunkPos, LocalBlockPos},
-    Chunk,
 };
 
 /// Block-type specific `MeshData`, to allow for different block types
@@ -86,17 +81,31 @@ impl BlockSurface {
     }
 }
 
+/// Enum representing `ChunkData` that is either in the
+/// "current" chunk, or outside of it.
+///
+/// Provides `.get` to handle getting blocks from either
+/// type without having to deal with locks explicitly.
+enum CheckingData<'a> {
+    SameChunk(&'a RwLockReadGuard<'a, ChunkData>),
+    DifferentChunk(Arc<RwLock<ChunkData>>),
+}
+
+impl<'a> CheckingData<'a> {
+    /// Gets the block at `position`, handling locking if `self` is `DifferentChunk`.
+    fn get(&self, position: LocalBlockPos) -> BlockID {
+        match self {
+            CheckingData::SameChunk(lock_guard) => lock_guard.get(position),
+            CheckingData::DifferentChunk(arc) => arc.read().unwrap().get(position),
+        }
+    }
+}
+
 /// Chunk mesh information, such as vertices.
 ///
 /// Mesh information is stored per-block-type as `BlockSurface`s.
 pub struct ChunkMeshData {
     surfaces: HashMap<BlockID, BlockSurface>,
-}
-
-enum CheckingData<'a> {
-    SameChunk(&'a RwLockReadGuard<'a, ChunkData>),
-    DifferentChunk(Arc<RwLock<ChunkData>>),
-    UnloadedChunk,
 }
 
 impl ChunkMeshData {
@@ -148,11 +157,9 @@ impl ChunkMeshData {
         let mut chunk_mesh = Self::new();
         let chunk_data_arc = chunk_data;
         let chunk_data = chunk_data_arc.read().unwrap();
-        // let chunk_position = chunk_data.read().unwrap().position;
         for x in 0..CHUNK_SIZE_X {
             for y in 0..CHUNK_SIZE_Y {
                 for z in 0..CHUNK_SIZE_Z {
-                    // let chunk_data = chunk_data.clone();
                     let position = LocalBlockPos::new(x, y, z, chunk_data.position);
                     let block_id = chunk_data.get(position);
                     if block_id == 0 {
@@ -166,7 +173,7 @@ impl ChunkMeshData {
                         let checking_position = match position.offset(offset) {
                             Ok(pos) => Ok(pos),
                             // The block position to check is outside of the current chunk.
-                            Err(_) => position.offset_global(offset).map(|global| global.into()),
+                            Err(_) => position.offset_global(offset).map(LocalBlockPos::from),
                         };
                         let should_draw = match checking_position {
                             Ok(checking_position) => {
@@ -174,30 +181,20 @@ impl ChunkMeshData {
                                     if checking_position.chunk == chunk_data.position {
                                         // The block is inside the chunk we're building the mesh for,
                                         // just wrap up the current chunk_data.
-                                        CheckingData::SameChunk(&chunk_data)
+                                        Some(CheckingData::SameChunk(&chunk_data))
                                     } else {
                                         // The block is outside the chunk we're building a mesh for.
-                                        let their_data =
-                                            loaded_chunks.get(&checking_position.chunk).cloned();
-                                        match their_data {
-                                            Some(cd_arc) => CheckingData::DifferentChunk(cd_arc),
-                                            None => CheckingData::UnloadedChunk,
-                                        }
+                                        loaded_chunks
+                                            .get(&checking_position.chunk)
+                                            .map(|arc| CheckingData::DifferentChunk(arc.clone()))
                                     };
-
-                                match checking_data {
-                                    // Draw faces at borders between loaded and unloaded chunks.
-                                    CheckingData::UnloadedChunk => true,
-                                    // TODO: Avoid duplication of the BLOCK_MANAGER.tr<...> code by using
-                                    //       some sort of inline match, or different logic structure
-                                    CheckingData::SameChunk(our_data) => BLOCK_MANAGER
+                                if let Some(checking_data) = checking_data {
+                                    BLOCK_MANAGER
                                         .transparent_blocks
-                                        .contains(&our_data.get(checking_position)),
-                                    CheckingData::DifferentChunk(their_arc) => {
-                                        BLOCK_MANAGER.transparent_blocks.contains(
-                                            &(their_arc.read().unwrap().get(checking_position)),
-                                        )
-                                    }
+                                        .contains(&checking_data.get(checking_position))
+                                } else {
+                                    // Draw faces that are adjacent to unloaded chunks.
+                                    true
                                 }
                             }
                             // Draw faces at the bottom (y=0) and top (y=255) of the world.
