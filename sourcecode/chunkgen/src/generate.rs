@@ -64,12 +64,12 @@ impl ChunkGenerator {
             self.waitlist.merge(feature.add_to_chunk(chunk_data));
         }
     }
-    pub fn apply_waitlist(&mut self, chunks: &mut HashMap<ChunkPos, Arc<RwLock<Chunk>>>) {
-        for (chunk_pos, chunk) in chunks.iter_mut() {
+    pub fn apply_waitlist(&mut self, chunks: &mut HashMap<ChunkPos, Arc<RwLock<ChunkData>>>) {
+        for (chunk_pos, chunk_data) in chunks.iter_mut() {
             match self.waitlist.chunks.remove(chunk_pos) {
                 Some(add_blocks) => {
                     for (pos, block_id) in add_blocks {
-                        chunk.write().unwrap().data.set(pos, block_id);
+                        chunk_data.write().unwrap().set(pos, block_id);
                     }
                 }
                 None => continue,

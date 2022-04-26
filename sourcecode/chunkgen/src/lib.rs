@@ -4,7 +4,7 @@
 
 use std::{
     collections::HashMap,
-    sync::{Arc, RwLock},
+    sync::{Arc, Mutex, RwLock},
 };
 
 use gdnative::{
@@ -25,7 +25,7 @@ mod positions;
 
 use crate::{
     block::BlockID, chunk::ChunkData, chunk_mesh::ChunkMeshData, generate::ChunkGenerator,
-    macros::*, performance::Timings, positions::*,
+    macros::*, positions::*,
 };
 
 #[derive(Debug, Clone)]
@@ -39,8 +39,8 @@ impl std::fmt::Display for NotLoadedError {
 impl std::error::Error for NotLoadedError {}
 
 pub struct Chunk {
-    pub data: ChunkData,
-    node: Instance<ChunkNode, Shared>,
+    pub data: Arc<RwLock<ChunkData>>,
+    node: Arc<Mutex<Instance<ChunkNode, Shared>>>,
 }
 
 #[derive(NativeClass)]
@@ -111,7 +111,7 @@ impl From<Rect2> for PositionRange {
 #[export]
 #[inherit(Node)]
 pub struct World {
-    chunks: HashMap<ChunkPos, Arc<RwLock<Chunk>>>,
+    chunks: HashMap<ChunkPos, Chunk>,
     chunk_generator: ChunkGenerator,
     #[property]
     initial_generation_area: Option<Rect2>,
@@ -133,7 +133,7 @@ impl World {
         let chunk_position = position.chunk();
         self.chunks
             .get(&chunk_position)
-            .map(|chunk| chunk.read().unwrap().data.get(position.into()))
+            .map(|chunk| chunk.data.read().unwrap().get(position.into()))
     }
 
     /// Sets a block in _global_ space. This will update the
@@ -148,17 +148,16 @@ impl World {
                 .chunks
                 .get_mut(&local_position.chunk)
                 .ok_or(NotLoadedError)?;
-            chunk.write().unwrap().data.set(local_position, to);
+            chunk.data.write().unwrap().set(local_position, to);
         };
         let chunk = self
             .chunks
             .get(&local_position.chunk)
-            .ok_or(NotLoadedError)?
-            .clone();
+            .ok_or(NotLoadedError)?;
         self.update_mesh(chunk);
         for chunk_position in local_position.borders() {
             if let Some(chunk) = self.chunks.get(&chunk_position) {
-                self.update_mesh(chunk.clone());
+                self.update_mesh(chunk);
             }
         }
         Ok(())
@@ -185,24 +184,28 @@ impl World {
     }
 
     /// Returns a "view" into `World.chunks`, mapping `ChunkPos`s to `&ChunkData`s.
-    fn chunk_data_view(&self) -> HashMap<ChunkPos, Arc<RwLock<Chunk>>> {
-        self.chunks.iter().map(|(cp, c)| (*cp, c.clone())).collect()
+    fn chunk_data_view(&self) -> HashMap<ChunkPos, Arc<RwLock<ChunkData>>> {
+        self.chunks
+            .iter()
+            .map(|(cp, c)| (*cp, c.data.clone()))
+            .collect()
     }
 
     /// Updates the mesh for a specific `Chunk`.
-    fn update_mesh(&self, chunk: Arc<RwLock<Chunk>>) {
+    fn update_mesh(&self, chunk: &Chunk) {
         println!(
             "Updating mesh data for {:?}",
-            chunk.read().unwrap().data.position
+            chunk.data.read().unwrap().position
         );
         let view = self.chunk_data_view();
+        let chunk_node = chunk.node.clone();
+        let chunk_data = chunk.data.clone();
         // TODO: Somehow use a single thread that gets sent chunks to build meshes for,
         //       rather than creating a new one for each individually.
         std::thread::spawn(move || {
-            let mesh_data = ChunkMeshData::new_from_chunk_data(chunk.clone(), view);
-            // TODO: This function seems to cause issues when using multithreading.
-            let chunk = chunk.read().unwrap();
-            unsafe { chunk.node.assume_safe() }
+            let mesh_data = ChunkMeshData::new_from_chunk_data(chunk_data, view);
+            let chunk_node = chunk_node.lock().unwrap();
+            unsafe { chunk_node.assume_safe() }
                 .map_mut(|cn: &mut ChunkNode, _base| {
                     cn.update_mesh_data(mesh_data);
                 })
@@ -216,7 +219,7 @@ impl World {
         let adjacent = position.adjacent();
         for adj_position in adjacent {
             if let Some(chunk) = self.chunks.get(&adj_position) {
-                self.update_mesh(chunk.clone());
+                self.update_mesh(chunk);
             }
         }
     }
@@ -231,13 +234,14 @@ impl World {
             // The chunk is new.
             self.chunk_generator.generate_chunk(position)
         };
-        self.chunk_generator.apply_waitlist(&mut self.chunks);
+        self.chunk_generator
+            .apply_waitlist(&mut self.chunk_data_view());
         let chunk_node = ChunkNode::new_instance();
         // Ugly godot-rust stuff, moves the chunk node into place.
         let chunk_node = chunk_node.into_shared();
         Chunk {
-            data: chunk_data,
-            node: chunk_node,
+            data: Arc::new(RwLock::new(chunk_data)),
+            node: Arc::new(Mutex::new(chunk_node)),
         }
     }
 
@@ -245,9 +249,9 @@ impl World {
     ///
     /// This allows other chunks to see it when making face calculations,
     /// and for functions such as `World.set_block` to be able to modify it.
-    fn add_chunk(&mut self, chunk: Arc<RwLock<Chunk>>) {
-        self.chunks
-            .insert(chunk.clone().read().unwrap().data.position, chunk);
+    fn add_chunk(&mut self, chunk: Chunk) {
+        let chunk_position = chunk.data.read().unwrap().position;
+        self.chunks.insert(chunk_position, chunk);
     }
 
     #[export]
@@ -257,19 +261,21 @@ impl World {
             // The chunk is already loaded.
             return;
         }
-        let chunk = Arc::new(RwLock::new(self.load_chunk(chunk_position)));
-        self.update_mesh(chunk.clone());
+        let chunk = self.load_chunk(chunk_position);
+        self.update_mesh(&chunk);
         unsafe {
-            let chunk = &chunk.read().unwrap();
+            // let chunk = &chunk.read().unwrap();
             chunk
                 .node
+                .lock()
+                .unwrap()
                 .assume_safe()
                 .map_mut(|_cn: &mut ChunkNode, base| {
-                    let chunk_origin = chunk.data.position.origin();
+                    let chunk_origin = chunk.data.read().unwrap().position.origin();
                     base.translate(vec3!(chunk_origin.x, chunk_origin.y, chunk_origin.z));
                 })
                 .unwrap();
-            owner.call_deferred("add_child", &[chunk.node.to_variant()]);
+            owner.call_deferred("add_child", &[chunk.node.lock().unwrap().to_variant()]);
         }
         self.add_chunk(chunk);
         // Update the meshes of nearby chunks to remove now-hidden faces
