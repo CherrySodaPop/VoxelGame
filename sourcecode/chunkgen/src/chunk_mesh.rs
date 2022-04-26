@@ -1,16 +1,23 @@
-use std::collections::HashMap;
-
-use gdnative::api::{
-    ArrayMesh, ConcavePolygonShape, Material, ResourceLoader, SpatialMaterial, Texture,
+use std::{
+    collections::HashMap,
+    rc::Rc,
+    sync::{Arc, RwLock},
 };
-use gdnative::object::Ref;
-use gdnative::prelude::{Shared, Unique};
 
-use crate::block::{BlockID, BLOCK_MANAGER};
-use crate::chunk::ChunkData;
-use crate::constants::*;
-use crate::mesh::{Face, GDMeshData, MeshData, FACES};
-use crate::positions::{ChunkPos, LocalBlockPos};
+use gdnative::{
+    api::{ArrayMesh, ConcavePolygonShape, Material, ResourceLoader, SpatialMaterial, Texture},
+    object::Ref,
+    prelude::{Shared, Unique},
+};
+
+use crate::{
+    block::{BlockID, BLOCK_MANAGER},
+    chunk::ChunkData,
+    constants::*,
+    mesh::{Face, GDMeshData, MeshData, FACES},
+    positions::{ChunkPos, LocalBlockPos},
+    Chunk,
+};
 
 /// Block-type specific `MeshData`, to allow for different block types
 /// to have their own specific materials.
@@ -126,15 +133,19 @@ impl ChunkMeshData {
         collision_shape
     }
     pub fn new_from_chunk_data(
-        chunk_data: &ChunkData,
-        loaded_chunks: HashMap<ChunkPos, &ChunkData>,
+        chunk_data: Arc<RwLock<Chunk>>,
+        loaded_chunks: HashMap<ChunkPos, Arc<RwLock<Chunk>>>,
     ) -> Self {
         let mut chunk_mesh = Self::new();
         for x in 0..CHUNK_SIZE_X {
             for y in 0..CHUNK_SIZE_Y {
                 for z in 0..CHUNK_SIZE_Z {
-                    let position = LocalBlockPos::new(x, y, z, chunk_data.position);
-                    let block_id = chunk_data.get(position);
+                    let chunk_data = chunk_data.clone();
+                    let position =
+                        LocalBlockPos::new(x, y, z, chunk_data.read().unwrap().data.position);
+                    let position =
+                        LocalBlockPos::new(x, y, z, chunk_data.read().unwrap().data.position);
+                    let block_id = chunk_data.read().unwrap().data.get(position);
                     if block_id == 0 {
                         // This is an air block, it has no faces.
                         continue;
@@ -151,19 +162,23 @@ impl ChunkMeshData {
                         let should_draw = match checking_position {
                             Ok(checking_position) => {
                                 // We have a valid block position, see if it's air.
-                                let checking_data =
-                                    if checking_position.chunk == chunk_data.position {
-                                        // It's inside the chunk we're building the mesh for,
-                                        // just wrap up the current chunk_data.
-                                        Some(chunk_data)
-                                    } else {
-                                        // It's outside of the chunk we're building a mesh for.
-                                        loaded_chunks.get(&checking_position.chunk).copied()
-                                    };
+                                let checking_data = if checking_position.chunk
+                                    == chunk_data.read().unwrap().data.position
+                                {
+                                    // It's inside the chunk we're building the mesh for,
+                                    // just wrap up the current chunk_data.
+                                    Some(chunk_data.clone())
+                                } else {
+                                    // It's outside of the chunk we're building a mesh for.
+                                    loaded_chunks
+                                        .get(&checking_position.chunk)
+                                        .map(|chunk| chunk.clone())
+                                    // .copied()
+                                };
                                 if let Some(checking_data) = checking_data {
-                                    BLOCK_MANAGER
-                                        .transparent_blocks
-                                        .contains(&checking_data.get(checking_position))
+                                    BLOCK_MANAGER.transparent_blocks.contains(
+                                        &checking_data.read().unwrap().data.get(checking_position),
+                                    )
                                 } else {
                                     // Draw faces at borders between loaded and unloaded chunks.
                                     true

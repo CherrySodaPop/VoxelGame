@@ -1,20 +1,22 @@
 //! Chunk generation. Seperate from the `chunk` module as world generation will
 //! likely be expanded a lot more (e.g. biomes).
 
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 
 use gdnative::{api::OpenSimplexNoise, core_types::Vector2, object::Ref, prelude::Unique};
 
-use crate::block::BlockID;
-use crate::block::BLOCK_MANAGER;
-use crate::chunk::ChunkData;
-use crate::constants::*;
-use crate::features::trees::Trees;
-use crate::features::Feature;
-use crate::features::FeatureWaitlist;
-use crate::macros::*;
-use crate::positions::ChunkPos;
-use crate::Chunk;
+use crate::{
+    block::{BlockID, BLOCK_MANAGER},
+    chunk::ChunkData,
+    constants::*,
+    features::{trees::Trees, Feature, FeatureWaitlist},
+    macros::*,
+    positions::ChunkPos,
+    Chunk,
+};
 
 struct GenerationConfig {
     top_layer: BlockID,
@@ -62,12 +64,12 @@ impl ChunkGenerator {
             self.waitlist.merge(feature.add_to_chunk(chunk_data));
         }
     }
-    pub fn apply_waitlist(&mut self, chunks: &mut HashMap<ChunkPos, Chunk>) {
+    pub fn apply_waitlist(&mut self, chunks: &mut HashMap<ChunkPos, Arc<RwLock<Chunk>>>) {
         for (chunk_pos, chunk) in chunks.iter_mut() {
             match self.waitlist.chunks.remove(chunk_pos) {
                 Some(add_blocks) => {
                     for (pos, block_id) in add_blocks {
-                        chunk.data.set(pos, block_id);
+                        chunk.write().unwrap().data.set(pos, block_id);
                     }
                 }
                 None => continue,
