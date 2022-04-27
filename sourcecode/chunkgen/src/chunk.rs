@@ -1,5 +1,4 @@
-use crate::block::BlockID;
-use crate::{constants::*, positions::*};
+use crate::{block::BlockID, constants::*, positions::*};
 
 pub struct ChunkData {
     pub position: ChunkPos,

@@ -2,10 +2,12 @@
 
 use std::borrow::Borrow;
 
-use gdnative::api::{ArrayMesh, ConcavePolygonShape};
-use gdnative::core_types::{VariantArray, Vector2, Vector2Array, Vector3, Vector3Array};
-use gdnative::object::Ref;
-use gdnative::prelude::Unique;
+use gdnative::{
+    api::{ArrayMesh, ConcavePolygonShape},
+    core_types::{VariantArray, Vector2, Vector2Array, Vector3, Vector3Array},
+    object::Ref,
+    prelude::Unique,
+};
 
 use crate::macros::*;
 
