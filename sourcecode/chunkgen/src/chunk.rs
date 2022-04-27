@@ -1,6 +1,8 @@
 use crate::block::BlockID;
 use crate::{constants::*, positions::*};
 
+use crate::{constants::*, positions::*};
+
 pub struct ChunkData {
     pub position: ChunkPos,
     pub terrain: [[[BlockID; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z],
