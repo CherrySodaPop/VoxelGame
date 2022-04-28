@@ -68,6 +68,7 @@ impl BlockSurface {
                 // Make a new material containing the block's texture.
                 let material = SpatialMaterial::new();
                 material.set_texture(SpatialMaterial::TEXTURE_ALBEDO, self.get_albedo_texture());
+                material.
                 material.upcast::<Material>().into_shared()
             }
         }
