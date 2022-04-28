@@ -18,6 +18,12 @@ config/icon="res://icon.png"
 
 Persistant="*res://objects/persistant/persistant.tscn"
 
+[display]
+
+window/size/width=256
+window/size/height=256
+window/size/resizable=false
+
 [physics]
 
 common/enable_pause_aware_picking=true

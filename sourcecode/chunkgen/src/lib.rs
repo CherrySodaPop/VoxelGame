@@ -7,6 +7,7 @@ use std::{
     sync::{Arc, Mutex, RwLock},
 };
 
+use constants::{CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z};
 use gdnative::{
     api::{CollisionShape, MeshInstance, StaticBody},
     prelude::*,
@@ -87,14 +88,11 @@ impl ChunkNode {
     fn update_mesh_data(&mut self, mesh_data: ChunkMeshData) {
         let collision = unsafe { self.collision.assume_safe() };
         let mesh = unsafe { self.mesh.assume_safe() };
-        let build_collision_shape = mesh_data.build_collision_shape();
+        let collision_shape = mesh_data.build_collision_shape();
         unsafe {
             // This MUST be call_deferred, setting the shape when using the
             // Bullet physics engine is NOT thread-safe!
-            collision.call_deferred(
-                "set_shape",
-                &[build_collision_shape.into_shared().to_variant()],
-            );
+            collision.call_deferred("set_shape", &[collision_shape.into_shared().to_variant()]);
         };
         mesh.set_mesh(mesh_data.build_mesh());
     }
@@ -126,19 +124,127 @@ impl From<Rect2> for PositionRange {
 #[derive(NativeClass)]
 #[export]
 #[inherit(Node)]
-pub struct World {
+pub struct ClientChunkLoader {
+    owner: Ref<Node, Shared>,
     chunks: HashMap<ChunkPos, Chunk>,
-    chunk_generator: ChunkGenerator,
-    #[property]
-    initial_generation_area: Option<Rect2>,
 }
 
 #[methods]
-impl World {
-    // constructor
+impl ClientChunkLoader {
+    fn new(owner: &Node) -> Self {
+        Self {
+            owner: unsafe { owner.assume_shared() },
+            chunks: HashMap::new(),
+        }
+    }
+
+    fn get(&self, chunk_position: ChunkPos) -> Option<&Chunk> {
+        self.chunks.get(&chunk_position)
+    }
+
+    /// Returns a "view" into `ClientChunkLoader.chunks`,
+    /// mapping `ChunkPos`s to `RwLock`ed `ChunkData`s.
+    fn data_view(&self) -> HashMap<ChunkPos, Arc<RwLock<ChunkData>>> {
+        self.chunks
+            .iter()
+            .map(|(pos, chunk)| (*pos, chunk.data.clone()))
+            .collect()
+    }
+
+    fn update_mesh(&self, chunk: &Chunk) {
+        println!("Updating mesh data for {:?}", chunk.position);
+        let view = self.data_view();
+        let chunk_node = chunk.node.clone();
+        let chunk_data = chunk.data.clone();
+        // TODO: Somehow use a single thread that gets sent chunks to build meshes for,
+        //       rather than creating a new one for each individually.
+        std::thread::spawn(move || {
+            let mesh_data = ChunkMeshData::new_from_chunk_data(chunk_data, view);
+            let chunk_node = chunk_node.lock().unwrap();
+            unsafe { chunk_node.assume_safe() }
+                .map_mut(|chunk_node, _owner| {
+                    chunk_node.update_mesh_data(mesh_data);
+                })
+                .expect("updating ChunkNode mesh failed");
+        });
+    }
+
+    fn update_nearby_meshes(&self, position: ChunkPos) {
+        let nearby = position.adjacent();
+        for nearby_position in nearby {
+            if let Some(chunk) = self.get(nearby_position) {
+                self.update_mesh(chunk);
+            }
+        }
+    }
+
+    fn spawn_chunk(&mut self, data: ChunkData) {
+        println!("Spawning chunk {:?}", data.position);
+        let node = ChunkNode::new_instance();
+        let origin = data.position.origin();
+        node.map_mut(|_chunk_node, owner| {
+            owner.set_translation(vec3!(origin.x, origin.y, origin.z));
+        })
+        .expect("setting ChunkNode translation failed");
+        let node = node.into_shared();
+        unsafe { self.owner.assume_safe() }.add_child(&node, true);
+        let chunk = Chunk::new(data, node);
+        self.update_mesh(&chunk);
+        self.chunks.insert(chunk.position, chunk);
+    }
+
+    fn decode_data(&self, data: &[u8]) -> [[[BlockID; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X] {
+        let flat_terrain: Vec<u16> = data
+            .chunks(2)
+            .map(|bytes| ((bytes[0] as u16) << 8) + (bytes[1] as u16))
+            .collect();
+        let mut terrain = [[[0; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X];
+        for x in 0..CHUNK_SIZE_X {
+            for y in 0..CHUNK_SIZE_Y {
+                for z in 0..CHUNK_SIZE_Z {
+                    let idx = z + CHUNK_SIZE_X * (y + CHUNK_SIZE_Y * x);
+                    terrain[x][y][z] = flat_terrain[idx];
+                }
+            }
+        }
+        terrain
+    }
+
+    #[export]
+    fn receive_chunk(&mut self, _owner: &Node, data: ByteArray, position: Vector2) {
+        let position = ChunkPos::new(position.x as isize, position.y as isize);
+        if self.chunks.contains_key(&position) {
+            // TODO: Update the mesh here instead of doing... nothing.
+            return;
+        }
+        // NOTE: This data was decompressed via PoolByteArray.decompress() in the networkController.
+        let data_read = data.read();
+        let terrain = self.decode_data(&*data_read);
+        let data = ChunkData { position, terrain };
+        self.spawn_chunk(data);
+    }
+
+    fn _ready(&self, _owner: &Node) {
+        godot_print!("ClientChunkLoader ready!");
+    }
+}
+
+#[derive(NativeClass)]
+#[export]
+#[inherit(Node)]
+pub struct ServerChunkCreator {
+    chunks: HashMap<ChunkPos, ChunkData>,
+    chunk_generator: ChunkGenerator,
+    // #[property]
+    // initial_generation_area: Option<Rect2>,
+}
+
+#[methods]
+impl ServerChunkCreator {
     fn new(_owner: &Node) -> Self {
-        World {
-            ..Default::default()
+        Self {
+            chunks: HashMap::new(),
+            chunk_generator: ChunkGenerator::new(),
         }
     }
 
@@ -147,28 +253,20 @@ impl World {
     /// Returns `None` if the block isn't loaded.
     fn get_block(&self, position: GlobalBlockPos) -> Option<BlockID> {
         let chunk_position = position.chunk();
-        self.chunks
-            .get(&chunk_position)
-            .map(|chunk| chunk.data.read().unwrap().get(position.into()))
+        let chunk_data = self.chunks.get(&chunk_position)?;
+        Some(chunk_data.get(position.into()))
     }
 
-    /// Sets a block in _global_ space. This will update the
-    /// chunk the block is in, as well as its neighbors if necessary.
+    /// Sets a block in _global_ space.
     ///
     /// Returns `NotLoadedError` if the block isn't loaded.
     fn set_block(&mut self, position: GlobalBlockPos, to: BlockID) -> Result<(), NotLoadedError> {
         let local_position: LocalBlockPos = position.into();
-        let chunk = self
+        let data = self
             .chunks
-            .get(&local_position.chunk)
+            .get_mut(&local_position.chunk)
             .ok_or(NotLoadedError)?;
-        chunk.data.write().unwrap().set(local_position, to);
-        self.update_mesh(chunk);
-        for chunk_position in local_position.borders() {
-            if let Some(chunk) = self.chunks.get(&chunk_position) {
-                self.update_mesh(chunk);
-            }
-        }
+        data.set(local_position, to);
         Ok(())
     }
 
@@ -192,146 +290,92 @@ impl World {
         self.get_block(position)
     }
 
-    /// Returns a "view" into `World.chunks`, mapping `ChunkPos`s to `ChunkData`s.
-    fn chunk_data_view(&self) -> HashMap<ChunkPos, Arc<RwLock<ChunkData>>> {
-        self.chunks
-            .iter()
-            .map(|(cp, c)| (*cp, c.data.clone()))
-            .collect()
-    }
-
-    /// Updates the mesh for a specific `Chunk`.
-    fn update_mesh(&self, chunk: &Chunk) {
-        println!("Updating mesh data for {:?}", chunk.position);
-        let view = self.chunk_data_view();
-        let chunk_node = chunk.node.clone();
-        let chunk_data = chunk.data.clone();
-        // TODO: Somehow use a single thread that gets sent chunks to build meshes for,
-        //       rather than creating a new one for each individually.
-        std::thread::spawn(move || {
-            let mesh_data = ChunkMeshData::new_from_chunk_data(chunk_data, view);
-            let chunk_node = chunk_node.lock().unwrap();
-            unsafe { chunk_node.assume_safe() }
-                .map_mut(|cn: &mut ChunkNode, _base| {
-                    cn.update_mesh_data(mesh_data);
-                })
-                .unwrap();
-        });
-    }
-
-    /// Updates the meshes of chunks adjacent to `position`.
-    fn update_nearby(&self, position: ChunkPos) {
-        // TODO: This is mildly broken, may be related to threading?
-        let adjacent = position.adjacent();
-        for adj_position in adjacent {
-            if let Some(chunk) = self.chunks.get(&adj_position) {
-                self.update_mesh(chunk);
-            }
-        }
+    /// Returns a "view" into `ServerChunkCreator.chunks`, mapping `ChunkPos`s to `ChunkData`s.
+    fn data_view(&mut self) -> HashMap<ChunkPos, &ChunkData> {
+        self.chunks.iter().map(|(pos, data)| (*pos, data)).collect()
     }
 
     /// Loads a chunk from disk, or generates a new one.
-    ///
-    /// This does not create the mesh, see `World.update_mesh`.
-    fn load_chunk(&mut self, position: ChunkPos) -> Chunk {
-        let chunk_data = if false {
+    fn load_chunk(&mut self, position: ChunkPos) -> ChunkData {
+        let data = if false {
             todo!("Implement loading chunks from disk");
         } else {
             // The chunk is new.
             self.chunk_generator.generate_chunk(position)
         };
-        self.chunk_generator
-            .apply_waitlist(&mut self.chunk_data_view());
-        let chunk_node = ChunkNode::new_instance();
-        // Ugly godot-rust stuff, moves the chunk node into place.
-        let chunk_node = chunk_node.into_shared();
-        Chunk::new(chunk_data, chunk_node)
+        self.chunk_generator.apply_waitlist(&mut self.chunks);
+        data
     }
 
-    /// Takes ownership of `chunk` and adds it to the `World.chunks` HashMap.
+    /// Takes ownership of `chunk` and adds it to the `ServerChunkCreator.chunks` HashMap.
     ///
     /// This allows other chunks to see it when making face calculations,
-    /// and for functions such as `World.set_block` to be able to modify it.
-    fn add_chunk(&mut self, chunk: Chunk) {
-        self.chunks.insert(chunk.position, chunk);
+    /// and for functions such as `ServerChunkCreator.set_block` to be able to modify it.
+    fn add_chunk(&mut self, data: ChunkData) {
+        self.chunks.insert(data.position, data);
+    }
+
+    fn encode_data(&self, data: &ChunkData) -> Vec<u8> {
+        let mut flat_terrain = Vec::new();
+        for block_id in data.terrain.iter().flatten().flatten() {
+            flat_terrain.push((block_id >> 8) as u8);
+            flat_terrain.push((block_id & 0xff) as u8);
+        }
+        flat_terrain
     }
 
     #[export]
-    fn load_chunk_gd(&mut self, owner: &Node, chunk_position: Vector2) {
+    fn terrain_encoded(&self, _owner: &Node, chunk_position: Vector2) -> Option<ByteArray> {
         let chunk_position = ChunkPos::new(chunk_position.x as isize, chunk_position.y as isize);
-        if self.chunks.contains_key(&chunk_position) {
-            // The chunk is already loaded.
-            return;
-        }
-        let chunk = self.load_chunk(chunk_position);
-        self.update_mesh(&chunk);
-        unsafe {
-            chunk
-                .node
-                .lock()
-                .unwrap()
-                .assume_safe()
-                .map_mut(|_cn: &mut ChunkNode, base| {
-                    let chunk_origin = chunk.position.origin();
-                    base.translate(vec3!(chunk_origin.x, chunk_origin.y, chunk_origin.z));
-                })
-                .unwrap();
-            owner.call_deferred("add_child", &[chunk.node.lock().unwrap().to_variant()]);
-        }
-        self.add_chunk(chunk);
-        // Update the meshes of nearby chunks to remove now-hidden faces
-        self.update_nearby(chunk_position);
+        println!("Encoding chunk data for {:?}", chunk_position);
+        let flat_terrain = self.encode_data(self.chunks.get(&chunk_position)?);
+        Some(ByteArray::from_vec(flat_terrain))
+        // NOTE: This data is compressed using PoolByteArray.compress() in the networkController.
     }
 
     #[export]
-    fn load_around_chunk_gd(&mut self, owner: &Node, chunk_position: Vector2) {
+    /// Loads the chunk at `chunk_position`.
+    ///
+    /// Returns `true` if that chunk is new, otherwise `false`.
+    /// Note that "new" here refers to whether or not the server has seen it before
+    /// in *this session*, not whether it was loaded from the disk or not.
+    fn load_chunk_gd(&mut self, _owner: &Node, chunk_position: Vector2) -> bool {
+        let position = ChunkPos::new(chunk_position.x as isize, chunk_position.y as isize);
+        if self.chunks.contains_key(&position) {
+            return false;
+        }
+        let chunk = self.load_chunk(position);
+        self.add_chunk(chunk);
+        true
+    }
+
+    #[export]
+    /// Loads a 4x4 square of chunks around `chunk_position`.
+    ///
+    /// Returns the positions of those chunks.
+    fn load_around_chunk_gd(&mut self, owner: &Node, chunk_position: Vector2) -> Vec<Vector2> {
         let chunk_position = ChunkPos::new(chunk_position.x as isize, chunk_position.y as isize);
         let mut around = Vec::new();
         for x in -2..=2 {
             for z in -2..=2 {
-                around.push(ChunkPos::new(chunk_position.x + x, chunk_position.z + z));
+                let chunk_pos = vec2!(chunk_position.x + x, chunk_position.z + z);
+                self.load_chunk_gd(owner, chunk_pos);
+                around.push(chunk_pos);
             }
         }
-        for chunk_pos in around {
-            self.load_chunk_gd(owner, vec2!(chunk_pos.x, chunk_pos.z));
-        }
+        around
     }
 
     #[export]
-    fn _ready(&mut self, owner: &Node) {
-        let generate_range = if let Some(initial_generation_area) = self.initial_generation_area {
-            initial_generation_area.into()
-        } else {
-            godot_warn!("Missing default chunk generation rect, using (-2, -2) w=4 h=4");
-            PositionRange {
-                x1: -2,
-                y1: -2,
-                x2: 2,
-                y2: 2,
-            }
-        };
-        // Generate some initial "spawn area" chunks.
-        for x in generate_range.x1..=generate_range.x2 {
-            for z in generate_range.y1..=generate_range.y2 {
-                self.load_chunk_gd(owner, vec2!(x, z));
-            }
-        }
-    }
-}
-
-impl Default for World {
-    fn default() -> Self {
-        Self {
-            chunks: Default::default(),
-            chunk_generator: ChunkGenerator::new(),
-            initial_generation_area: Default::default(),
-        }
+    fn _ready(&mut self, _owner: &Node) {
+        godot_print!("ServerChunkCreator ready!");
     }
 }
 
 fn init(handle: InitHandle) {
-    handle.add_class::<World>();
     handle.add_class::<ChunkNode>();
+    handle.add_class::<ServerChunkCreator>();
+    handle.add_class::<ClientChunkLoader>();
 }
 
 godot_init!(init);

@@ -4,6 +4,5 @@ func _ready():
 	pass
 
 func GenerateChunkMesh(pos:Vector2):
-	if (Persistant.has_node("chunkGeneration")):
-		print(pos);
-		Persistant.get_node("chunkGeneration").load_around_chunk_gd(pos);
+	print("Entered ", pos);
+	Persistant.get_node("controllerNetwork").rpc_id(1, "SendChunkData", pos);

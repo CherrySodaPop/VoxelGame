@@ -3,6 +3,6 @@
 [ext_resource path="res://bins/libchunkgeneration.gdnlib" type="GDNativeLibrary" id=1]
 
 [resource]
-resource_name = "ChunkGenerator"
-class_name = "World"
+resource_name = "chunkCreator"
+class_name = "ServerChunkCreator"
 library = ExtResource( 1 )

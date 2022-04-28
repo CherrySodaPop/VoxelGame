@@ -16,6 +16,7 @@ var networkTick:float = 1/30;
 # instances
 var playerInstances:Dictionary = {};
 var objPlayer = preload("res://objects/player/player.tscn");
+onready var chunkLoader = get_node("chunkCreator")
 # macros!
 const gameinfoPlayerCredsPath = "res://gameinfo/player_creds.json";
 
@@ -50,7 +51,7 @@ func _process(delta):
 
 func HasTicked() -> bool:
 	return (networkTickTimer >= networkTick);
-	
+
 ######################################################################
 # first connection type network functions
 ######################################################################
@@ -64,7 +65,7 @@ func ClientDisconnected(id:int):
 
 remote func HandlePlayerInfo(username, passwordHashed, skinBase64):
 	var id = get_tree().get_rpc_sender_id();
-	
+
 	# make sure the sent info is proper
 	if (typeof(username) != TYPE_STRING || typeof(passwordHashed) != TYPE_STRING || typeof(skinBase64) != TYPE_STRING):
 		DisconnectPlayer(id, disconnectTypes.INVALID_INFO);
@@ -76,7 +77,7 @@ remote func HandlePlayerInfo(username, passwordHashed, skinBase64):
 	if (loadOutput != OK || len(skinImage.data["data"]) != 16384):
 		DisconnectPlayer(id, disconnectTypes.INVALID_INFO);
 		return;
-	
+
 	# check credentials (pass and username)
 	# - first, do they exist already? - then lets check their info if it's valid
 	if (playerCreds.has(username)):
@@ -87,7 +88,7 @@ remote func HandlePlayerInfo(username, passwordHashed, skinBase64):
 	# - info doesnt exist yet, lets make a new "account"
 	else:
 		playerCreds[username] = {"passhash" : passwordHashed, "skin" : skinBase64};
-	
+
 	# all is good, create the player
 	var tmpObj = objPlayer.instance();
 	get_tree().current_scene.add_child(tmpObj);
@@ -96,7 +97,7 @@ remote func HandlePlayerInfo(username, passwordHashed, skinBase64):
 	tmpObj.username = username;
 	# now store it for ease of access
 	playerInstances[id] = tmpObj;
-	
+
 	# TODO: REMOVE! DONT WRITE ALL THE TIME
 	SavePlayerCredentials();
 
@@ -126,3 +127,12 @@ remote func PlayerInfo(pos:Vector3, camRotation:Vector2):
 		var obj:Spatial = playerInstances[id];
 		obj.global_transform.origin = pos;
 		obj.camRotation = camRotation;
+
+remote func SendChunkData(chunkPos: Vector2):
+	var senderID = get_tree().get_rpc_sender_id()
+	var positions = chunkLoader.load_around_chunk_gd(chunkPos)
+	for chunkPos in positions:
+		var chunkData: PoolByteArray = chunkLoader.terrain_encoded(chunkPos)
+		chunkData = chunkData.compress()
+		if chunkData != null:
+			rpc_id(senderID, "ChunkData", chunkData, chunkPos)

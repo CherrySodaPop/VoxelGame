@@ -1,10 +1,7 @@
 //! Chunk generation. Seperate from the `chunk` module as world generation will
 //! likely be expanded a lot more (e.g. biomes).
 
-use std::{
-    collections::HashMap,
-    sync::{Arc, RwLock},
-};
+use std::collections::HashMap;
 
 use gdnative::{api::OpenSimplexNoise, core_types::Vector2, object::Ref, prelude::Unique};
 
@@ -63,12 +60,12 @@ impl ChunkGenerator {
             self.waitlist.merge(feature.add_to_chunk(chunk_data));
         }
     }
-    pub fn apply_waitlist(&mut self, chunks: &mut HashMap<ChunkPos, Arc<RwLock<ChunkData>>>) {
+    pub fn apply_waitlist(&mut self, chunks: &mut HashMap<ChunkPos, ChunkData>) {
         for (chunk_pos, chunk_data) in chunks.iter_mut() {
             match self.waitlist.chunks.remove(chunk_pos) {
                 Some(add_blocks) => {
                     for (pos, block_id) in add_blocks {
-                        chunk_data.write().unwrap().set(pos, block_id);
+                        chunk_data.set(pos, block_id);
                     }
                 }
                 None => continue,

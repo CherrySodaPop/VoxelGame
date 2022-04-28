@@ -9,19 +9,20 @@ var flavor_text = "%s, you're awesome!" % username
 
 # TODO: An actual Debug Menu node!
 func _process(delta):
-	var playerLooking = player.lookingAtBlock;
-	var playerLookingID = Persistant.get_node("chunkGeneration").get_block_gd(playerLooking);
-	var playerLookingBlock = null if (playerLookingID == null) else Persistant.get_node("blockManager").get_block_by_id(playerLookingID).name
-	var playerPosition = player.global_transform.origin
-	var debugText = (
-		"VoxelGame Indev - "
-		+ flavor_text
-		+ "\nPosition:"
-		+ "\n  X: " + str(playerPosition.x)
-		+ "\n  Y: " + str(playerPosition.y)
-		+ "\n  Z: " + str(playerPosition.z)
-		+ "\nLooking at block:"
-		+ "\n  Position: " + str(playerLooking)
-		+ "\n  Type    : %s (ID %s)" % [str(playerLookingBlock), str(playerLookingID)]
-	)
-	label.text = debugText
+	pass
+	# var playerLooking = player.lookingAtBlock;
+	# var playerLookingID = Persistant.get_node("chunkGeneration").get_block_gd(playerLooking);
+	# var playerLookingBlock = null if (playerLookingID == null) else Persistant.get_node("blockManager").get_block_by_id(playerLookingID).name
+	# var playerPosition = player.global_transform.origin
+	# var debugText = (
+	# 	"VoxelGame Indev - "
+	# 	+ flavor_text
+	# 	+ "\nPosition:"
+	# 	+ "\n  X: " + str(playerPosition.x)
+	# 	+ "\n  Y: " + str(playerPosition.y)
+	# 	+ "\n  Z: " + str(playerPosition.z)
+	# 	+ "\nLooking at block:"
+	# 	+ "\n  Position: " + str(playerLooking)
+	# 	+ "\n  Type    : %s (ID %s)" % [str(playerLookingBlock), str(playerLookingID)]
+	# )
+	# label.text = debugText
