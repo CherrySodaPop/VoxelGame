@@ -11,6 +11,7 @@ to switch between many windows.
 """
 
 OS_NAME = system().lower()
+LIBRARY_NAME = "libchunkgeneration" if OS_NAME == "linux" else "chunkgeneration"
 LIBRARY_SUFFIX = ".so" if OS_NAME == "linux" else ".dll"
 CRATE_ROOT = Path(__file__).parent
 PROJECT_ROOT = CRATE_ROOT.parent.parent
@@ -42,7 +43,6 @@ def build_crates() -> bool:
             "always",
             "--release",
         ],
-        shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -57,7 +57,7 @@ def build_crates() -> bool:
 
 def copy_libraries() -> bool:
     print("Copying native libraries...")
-    lib_path = CRATE_ROOT.joinpath("target/release/chunkgeneration").with_suffix(
+    lib_path = CRATE_ROOT.joinpath("target/release/" + LIBRARY_NAME ).with_suffix(
         LIBRARY_SUFFIX
     )
     output_dirs = [
