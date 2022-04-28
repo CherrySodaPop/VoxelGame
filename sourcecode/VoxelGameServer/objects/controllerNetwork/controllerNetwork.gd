@@ -132,7 +132,19 @@ remote func SendChunkData(chunkPos: Vector2):
 	var senderID = get_tree().get_rpc_sender_id();
 	var positions = chunkLoader.load_around_chunk_gd(chunkPos);
 	for chunkPos in positions:
-		var chunkData: PoolByteArray = chunkLoader.terrain_encoded(chunkPos);
+		var chunkData:PoolByteArray = chunkLoader.terrain_encoded(chunkPos);
 		chunkData = chunkData.compress();
 		if chunkData != null:
 			rpc_id(senderID, "ChunkData", chunkData, chunkPos);
+
+remote func SetBlock(blockPos:Vector3, blockID:int):
+	var senderID = get_tree().get_rpc_sender_id();
+	if (playerInstances.has(senderID) && is_instance_valid(playerInstances[senderID])):
+		var obj:Spatial = playerInstances[senderID];
+		if (obj.global_transform.origin.distance_to(blockPos) <= 4.0):
+			Persistant.get_node("controllerNetwork/chunkCreator").set_block_gd(blockPos, blockID);
+			var chunkPos:Vector2 = Vector2(floor(blockPos.x / 32), floor(blockPos.z / 32));
+			var chunkData:PoolByteArray = chunkLoader.terrain_encoded(chunkPos);
+			chunkData = chunkData.compress();
+			if (chunkData != null):
+				rpc_unreliable("ChunkData", chunkData, chunkPos);

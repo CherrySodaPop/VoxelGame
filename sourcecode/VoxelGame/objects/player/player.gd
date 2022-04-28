@@ -63,9 +63,11 @@ func UpdateMiscInfo(delta):
 	adjacentLookingAtBlock.z = floor(adjacentLookingAtBlock.z);
 
 func HandleActions(delta):
+	var network = Persistant.get_node("controllerNetwork");
 	if (Input.is_action_pressed("playerPrimaryAction")):
-		pass #Persistant.get_node("chunkGeneration").set_block_gd(lookingAtBlock, 0);
+		network.rpc_unreliable_id(1, "SetBlock", lookingAtBlock, 0);
 	if (Input.is_action_pressed("playerSecondaryAction")):
+		network.rpc_unreliable_id(1, "SetBlock", adjacentLookingAtBlock, 23);
 		pass #Persistant.get_node("chunkGeneration").set_block_gd(adjacentLookingAtBlock, 23);
 
 func HandleMovement(delta):
