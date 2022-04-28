@@ -9,7 +9,6 @@ This is a very early development of a "voxel based Animal Crossing" sandbox game
   You will have to compile the Rust crates for world generation, easy build scripts are provided!
 
 # Todo
-- Seperate chunk generation on seperate threads<br>
-  *Note: This may not even be nessecary now with Rust's speed (virtualy no hang time, but is still here to think about!)*
-- Server and Client (Multiplayer)
-- Proper player (Inventory, Health, Etc.)
+- ✅ ~~Seperate mesh generation on seperate threads~~
+- ✅ ~~Server and Client (Multiplayer)~~
+- ⬜ Proper player (Inventory, Health, Etc.)
