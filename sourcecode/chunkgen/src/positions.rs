@@ -107,7 +107,10 @@ impl LocalBlockPos {
         let x = self.x as isize + offset.x;
         let y = self.y as isize + offset.y;
         let z = self.z as isize + offset.z;
-        if in_urange!(&x, 32) && in_urange!(&y, 256) && in_urange!(&z, 32) {
+        if in_urange!(&x, CHUNK_SIZE_X as isize)
+            && in_urange!(&y, CHUNK_SIZE_Y as isize)
+            && in_urange!(&z, CHUNK_SIZE_Z as isize)
+        {
             Ok(Self::new(x as usize, y as usize, z as usize, self.chunk))
         } else {
             Err(OutOfBoundsError)

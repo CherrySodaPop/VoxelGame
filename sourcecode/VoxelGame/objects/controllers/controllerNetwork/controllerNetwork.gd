@@ -109,8 +109,12 @@ remote func PlayerInfo(networkID:int, pos:Vector3, camRotation:Vector2):
 	obj.global_transform.origin = pos;
 	obj.camRotation = camRotation;
 
+# The buffer's size is the chunk's volume, multiplied
+# by 2 as every block requires two bytes to store.
+onready var chunkBufferSize = (
+	(Persistant.chunkSize.x * Persistant.chunkSize.y * Persistant.chunkSize.z) * 2
+);
+
 remote func ChunkData(chunkData: PoolByteArray, chunkPos: Vector2):
-	# chunkData's final size is (32 * 256 * 32) * 2,
-	# as every block requires two bytes to store.
-	chunkData = chunkData.decompress(524288) # HARDCODED
+	chunkData = chunkData.decompress(chunkBufferSize)
 	Persistant.chunkLoader.receive_chunk(chunkData, chunkPos)
