@@ -42,8 +42,8 @@ func _input(event:InputEvent):
 
 func UpdateMiscInfo(delta):
 	# chunk pos update
-	currentChunk.x = floor((global_transform.origin.x) / Persistant.chunkSize.x);
-	currentChunk.y = floor((global_transform.origin.z) / Persistant.chunkSize.x);
+	currentChunk.x = floor(global_transform.origin.x / Persistant.chunkSize.x);
+	currentChunk.y = floor(global_transform.origin.z / Persistant.chunkSize.x);
 	if (currentChunk != prevChunk):
 		emit_signal("enteredNewChunk");
 		prevChunk = currentChunk;

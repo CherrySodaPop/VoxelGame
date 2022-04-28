@@ -122,17 +122,17 @@ func DisconnectPlayer(id:int, reason:int):
 ######################################################################
 
 remote func PlayerInfo(pos:Vector3, camRotation:Vector2):
-	var id = get_tree().get_rpc_sender_id();
-	if (playerInstances.has(id) && is_instance_valid(playerInstances[id])):
-		var obj:Spatial = playerInstances[id];
+	var senderID = get_tree().get_rpc_sender_id();
+	if (playerInstances.has(senderID) && is_instance_valid(playerInstances[senderID])):
+		var obj:Spatial = playerInstances[senderID];
 		obj.global_transform.origin = pos;
 		obj.camRotation = camRotation;
 
 remote func SendChunkData(chunkPos: Vector2):
-	var senderID = get_tree().get_rpc_sender_id()
-	var positions = chunkLoader.load_around_chunk_gd(chunkPos)
+	var senderID = get_tree().get_rpc_sender_id();
+	var positions = chunkLoader.load_around_chunk_gd(chunkPos);
 	for chunkPos in positions:
-		var chunkData: PoolByteArray = chunkLoader.terrain_encoded(chunkPos)
-		chunkData = chunkData.compress()
+		var chunkData: PoolByteArray = chunkLoader.terrain_encoded(chunkPos);
+		chunkData = chunkData.compress();
 		if chunkData != null:
-			rpc_id(senderID, "ChunkData", chunkData, chunkPos)
+			rpc_id(senderID, "ChunkData", chunkData, chunkPos);

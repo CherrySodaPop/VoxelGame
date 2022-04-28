@@ -213,15 +213,16 @@ impl ClientChunkLoader {
     #[export]
     fn receive_chunk(&mut self, _owner: &Node, data: ByteArray, position: Vector2) {
         let position = ChunkPos::new(position.x as isize, position.y as isize);
-        if self.chunks.contains_key(&position) {
-            // TODO: Update the mesh here instead of doing... nothing.
-            return;
-        }
         // NOTE: This data was decompressed via PoolByteArray.decompress() in the networkController.
         let data_read = data.read();
         let terrain = self.decode_data(&*data_read);
-        let data = ChunkData { position, terrain };
-        self.spawn_chunk(data);
+        if let Some(loaded_chunk) = self.chunks.get(&position) {
+            loaded_chunk.data.write().unwrap().terrain = terrain;
+            self.update_mesh(loaded_chunk);
+        } else {
+            let data = ChunkData { position, terrain };
+            self.spawn_chunk(data);
+        }
     }
 
     fn _ready(&self, _owner: &Node) {
