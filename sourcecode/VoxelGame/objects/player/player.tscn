@@ -29,13 +29,6 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.122 )
 enabled = true
 cast_to = Vector3( 0, 0, -6 )
 
-[node name="Label" type="Label" parent="."]
-margin_left = 9.0
-margin_top = 264.0
-margin_right = 120.0
-margin_bottom = 278.0
-text = "OOGA BOOGA!!!!"
-
 [node name="Control" type="CenterContainer" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0

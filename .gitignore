@@ -16,6 +16,7 @@ export_presets.cfg
 
 # Compiled Godot bins ignores
 /sourcecode/VoxelGame/bins/*
+/sourcecode/VoxelGameServer/bins/*
 
 # Ignore multiplayer info
 /sourcecode/VoxelGameServer/gameinfo/*
