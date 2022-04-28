@@ -1,3 +1,0 @@
-cargo build --release
-cp target/release/libchunkgeneration.so ../VoxelGame/bins
-cp target/release/libchunkgeneration.so ../VoxelGameServer/bins
