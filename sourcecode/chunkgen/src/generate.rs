@@ -86,7 +86,19 @@ impl ChunkGenerator {
                 }
             }
         }
-        let mut chunk_data = ChunkData { position, terrain };
+
+        // TODO: "update_lightlevel" in lib.rs
+        // TODO: use an unsigned 8 bit int!
+        let mut skylightlevel = [[[0u16; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X];
+        for x in 0..CHUNK_SIZE_X {
+            for z in 0..CHUNK_SIZE_Z {
+                for y in 0..CHUNK_SIZE_Y {
+                    skylightlevel[x][y][z] = 0;
+                }
+            }
+        }
+
+        let mut chunk_data = ChunkData { position, terrain, skylightlevel };
         self.add_features(&mut chunk_data);
         if let Some(add_blocks) = self.waitlist.chunks.remove(&position) {
             for (pos, block_id) in add_blocks {

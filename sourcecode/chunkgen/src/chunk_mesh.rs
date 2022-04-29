@@ -68,7 +68,7 @@ impl BlockSurface {
                 // Make a new material containing the block's texture.
                 let material = SpatialMaterial::new();
                 material.set_texture(SpatialMaterial::TEXTURE_ALBEDO, self.get_albedo_texture());
-                material.
+                material.set_flag(SpatialMaterial::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
                 material.upcast::<Material>().into_shared()
             }
         }
@@ -198,7 +198,7 @@ impl ChunkMeshData {
                                     true
                                 }
                             }
-                            // Draw faces at the bottom (y=0) and top (y=255) of the world.
+                            // Draw faces at the bottom (y=0) and top (y=516) of the world.
                             Err(_) => true,
                         };
                         if should_draw {

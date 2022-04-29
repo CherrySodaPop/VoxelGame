@@ -3,6 +3,7 @@ use crate::{block::BlockID, constants::*, positions::*};
 pub struct ChunkData {
     pub position: ChunkPos,
     pub terrain: [[[BlockID; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z],
+    pub skylightlevel: [[[u16; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z],
 }
 
 impl ChunkData {
@@ -10,6 +11,7 @@ impl ChunkData {
         Self {
             position,
             terrain: [[[0; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z],
+            skylightlevel: [[[0; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z],
         }
     }
     pub fn get(&self, position: LocalBlockPos) -> BlockID {

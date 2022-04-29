@@ -160,7 +160,7 @@ impl MeshData {
             let uv = [(face_offset + uv[0]) * 16.0, uv[1] * 16.0];
             let uv = [uv[0] / 48.0, uv[1] / 16.0];
             self.uvs.push(uv);
-            self.color.push([254.0, 0.0, 0.0, 254.0]);
+            self.color.push([0.2, 0.2, 0.2, 1.0]);
         }
     }
 }
@@ -182,7 +182,6 @@ pub struct GDMeshData {
 
 impl GDMeshData {
     pub fn convert_vec3_color(vec: &Vec<[f32; 4]>) -> ColorArray {
-        // Hopefully this doesn't affect performance too much.
         vec.iter()
             .map(|val| vecColor!(val[0], val[1], val[2], val[3]))
             .collect()

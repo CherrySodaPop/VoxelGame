@@ -133,9 +133,11 @@ remote func SendChunkData(chunkPos: Vector2):
 	var positions = chunkLoader.load_around_chunk_gd(chunkPos);
 	for chunkPos in positions:
 		var chunkData:PoolByteArray = chunkLoader.terrain_encoded(chunkPos);
+		var chunkSkyLightLevel:PoolByteArray = chunkLoader.skylightlevel_encoded(chunkPos);
 		chunkData = chunkData.compress();
+		chunkSkyLightLevel = chunkSkyLightLevel.compress();
 		if chunkData != null:
-			rpc_id(senderID, "ChunkData", chunkData, chunkPos);
+			rpc_id(senderID, "ChunkData", chunkData, chunkSkyLightLevel, chunkPos);
 
 remote func SetBlock(blockPos:Vector3, blockID:int):
 	var senderID = get_tree().get_rpc_sender_id();
@@ -145,6 +147,8 @@ remote func SetBlock(blockPos:Vector3, blockID:int):
 			Persistant.get_node("controllerNetwork/chunkCreator").set_block_gd(blockPos, blockID);
 			var chunkPos:Vector2 = Vector2(floor(blockPos.x / 32), floor(blockPos.z / 32));
 			var chunkData:PoolByteArray = chunkLoader.terrain_encoded(chunkPos);
+			var chunkSkyLightLevel:PoolByteArray = chunkLoader.skylightlevel_encoded(chunkPos);
 			chunkData = chunkData.compress();
+			chunkSkyLightLevel = chunkSkyLightLevel.compress();
 			if (chunkData != null):
-				rpc_unreliable("ChunkData", chunkData, chunkPos);
+				rpc_unreliable("ChunkData", chunkData, chunkSkyLightLevel, chunkPos);
