@@ -1,6 +1,5 @@
 import shutil
 import subprocess
-from http import client
 from pathlib import Path
 from platform import system
 
@@ -57,9 +56,7 @@ def build_crates() -> bool:
 
 def copy_libraries() -> bool:
     print("Copying native libraries...")
-    lib_path = CRATE_ROOT.joinpath("target/release/" + LIBRARY_NAME ).with_suffix(
-        LIBRARY_SUFFIX
-    )
+    lib_path = CRATE_ROOT.joinpath(f"target/release/{LIBRARY_NAME}{LIBRARY_SUFFIX}")
     output_dirs = [
         CLIENT_PATH.joinpath("bins").resolve(),
         SERVER_PATH.joinpath("bins").resolve(),
