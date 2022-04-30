@@ -30,18 +30,20 @@ OFF     = "\x1b[0m"
 # fmt: on
 
 
-def build_crates() -> bool:
+def build_crates(debug_mode: bool = False) -> bool:
     print("Building crate...", end=" ", flush=True)
+    args = [
+        "cargo",
+        "build",
+        # We still want color even though the output is being
+        # piped, as we're just going to print it out later.
+        "--color",
+        "always",
+    ]
+    if not debug_mode:
+        args.append("--release")
     build_proc = subprocess.Popen(
-        [
-            "cargo",
-            "build",
-            # We still want color even though the output is being
-            # piped, as we're just going to print it out later.
-            "--color",
-            "always",
-            "--release",
-        ],
+        args,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -54,26 +56,33 @@ def build_crates() -> bool:
     return True
 
 
-def copy_libraries() -> bool:
+def copy_libraries(debug_mode: bool = False) -> bool:
     print("Copying native libraries...")
-    lib_path = CRATE_ROOT.joinpath(f"target/release/{LIBRARY_NAME}{LIBRARY_SUFFIX}")
+    binary_dir = CRATE_ROOT.joinpath("target").joinpath(
+        "debug" if debug_mode else "release"
+    )
+    lib_path = binary_dir.joinpath(f"{LIBRARY_NAME}{LIBRARY_SUFFIX}")
+    lib_path_display = lib_path.relative_to(CRATE_ROOT.joinpath("target")).as_posix()
     output_dirs = [
         CLIENT_PATH.joinpath("bins").resolve(),
         SERVER_PATH.joinpath("bins").resolve(),
     ]
     for output_dir in output_dirs:
         output_path = output_dir.joinpath(lib_path.with_stem("libchunkgeneration").name)
-        output_path_display = output_path.relative_to(PROJECT_ROOT).as_posix()
+        output_path_display = output_path.relative_to(
+            PROJECT_ROOT.joinpath("sourcecode")
+        ).as_posix()
         try:
             dst = Path(shutil.copy2(lib_path, output_path)).resolve()
         except PermissionError:
             print(
-                f"\t{RED}Permission error{OFF} copying {CYAN}{lib_path.name}{OFF} to {CYAN}{output_path_display}{OFF}!"
+                f"\t{RED}Permission error{OFF} copying"
+                f" {CYAN}{lib_path_display}{OFF} to {CYAN}{output_path_display}{OFF}!"
             )
             print(f"Please ensure that the game isn't running.")
             return False
         print(
-            f"\t{GREEN}Copied{OFF} {CYAN}{lib_path.name}{OFF} to {CYAN}{output_path_display}{OFF}."
+            f"\t{GREEN}Copied{OFF} {CYAN}{lib_path_display}{OFF} to {CYAN}{output_path_display}{OFF}."
         )
     print("Successfully copied native libraries.")
     return True
@@ -114,6 +123,9 @@ def main():
         description=ABOUT, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument(
+        "--debug", "-d", help="Build the crates in debug mode.", action="store_true"
+    )
+    parser.add_argument(
         "--no-build", help="Don't build the Rust crates.", action="store_true"
     )
     parser.add_argument(
@@ -126,10 +138,10 @@ def main():
     args = parser.parse_args()
 
     if not args.no_build:
-        build_successful = build_crates()
+        build_successful = build_crates(args.debug)
         if not build_successful:
             return
-        copy_successful = copy_libraries()
+        copy_successful = copy_libraries(args.debug)
         if not copy_successful:
             return
 

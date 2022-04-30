@@ -193,55 +193,59 @@ impl ClientChunkLoader {
         self.chunks.insert(chunk.position, chunk);
     }
 
-    fn decode_terrain_data(&self, data: &[u8]) -> [[[BlockID; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X] {
-        let flat_terrain: Vec<u16> = data
-            .chunks(2)
-            .map(|bytes| ((bytes[0] as u16) << 8) + (bytes[1] as u16))
-            .collect();
-        let mut terrain = [[[0; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X];
+    fn decode_u8_chunk_data(
+        &self,
+        data: &[u8],
+    ) -> Box<[[[BlockID; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X]> {
+        // TODO: This got merged into a single function from the original
+        //       terrain and light-level specific ones, however it'll actually
+        //       have to be split up again or use some generics/closure magic
+        //       once light level data gets stored as a u8 instead of a u16.
+        let flat: Box<Vec<u16>> = Box::new(
+            data.chunks_exact(2)
+                // TODO: We could maybe use u16::from_le_bytes here
+                .map(|bytes| ((bytes[0] as u16) << 8) + (bytes[1] as u16))
+                .collect(),
+        );
+        let mut packed = Box::new([[[0; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X]);
         for x in 0..CHUNK_SIZE_X {
             for y in 0..CHUNK_SIZE_Y {
                 for z in 0..CHUNK_SIZE_Z {
                     let idx = z + CHUNK_SIZE_X * (y + CHUNK_SIZE_Y * x);
-                    terrain[x][y][z] = flat_terrain[idx];
+                    packed[x][y][z] = flat[idx];
                 }
             }
         }
-        terrain
-    }
-
-    // TODO: use an unsigned 8 bit int!
-    fn decode_skylightlevel_data(&self, data: &[u8]) -> [[[u16; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X] {
-        let flat_terrain: Vec<u16> = data
-            .chunks(2)
-            .map(|bytes| ((bytes[0] as u16) << 8) + (bytes[1] as u16))
-            .collect();
-        let mut terrain = [[[0; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X];
-        for x in 0..CHUNK_SIZE_X {
-            for y in 0..CHUNK_SIZE_Y {
-                for z in 0..CHUNK_SIZE_Z {
-                    let idx = z + CHUNK_SIZE_X * (y + CHUNK_SIZE_Y * x);
-                    terrain[x][y][z] = flat_terrain[idx];
-                }
-            }
-        }
-        terrain
+        packed
     }
 
     #[export]
-    fn receive_chunk(&mut self, _owner: &Node, terrain_data: ByteArray, skylightlevel_data: ByteArray, position: Vector2) {
+    fn receive_chunk(
+        &mut self,
+        _owner: &Node,
+        terrain_data: ByteArray,
+        skylightlevel_data: ByteArray,
+        position: Vector2,
+    ) {
         let position = ChunkPos::new(position.x as isize, position.y as isize);
-        // NOTE: This data was decompressed via PoolByteArray.decompress() in the networkController.
+        // NOTE: These data were decompressed via PoolByteArray.decompress() in the networkController.
         let terrain_data_read = terrain_data.read();
-        let terrain = self.decode_terrain_data(&*terrain_data_read);
         let skylightlevel_data_read = skylightlevel_data.read();
-        let skylightlevel = self.decode_skylightlevel_data(&*skylightlevel_data_read);
+        let terrain = self.decode_u8_chunk_data(&*terrain_data_read);
+        let skylightlevel = self.decode_u8_chunk_data(&*skylightlevel_data_read);
+        // TODO: That was a lot of repetition, which could be fixed in many interesting ways...
+        //       Generic functions, closures, or perhaps a unified BlockInfo type...
         if let Some(loaded_chunk) = self.chunks.get(&position) {
-            loaded_chunk.data.write().unwrap().terrain = terrain;
-            loaded_chunk.data.write().unwrap().skylightlevel = skylightlevel;
+            let mut chunk_data_write = loaded_chunk.data.write().unwrap();
+            chunk_data_write.terrain = terrain;
+            chunk_data_write.skylightlevel = skylightlevel;
             self.update_mesh(loaded_chunk);
         } else {
-            let data = ChunkData { position, terrain, skylightlevel };
+            let data = ChunkData {
+                position,
+                terrain,
+                skylightlevel,
+            };
             self.spawn_chunk(data);
         }
     }
@@ -338,22 +342,22 @@ impl ServerChunkCreator {
     }
 
     fn encode_terrain_data(&self, data: &ChunkData) -> Vec<u8> {
-        let mut flat_terrain = Vec::new();
-        for block_id in data.terrain.iter().flatten().flatten() {
-            flat_terrain.push((block_id >> 8) as u8);
-            flat_terrain.push((block_id & 0xff) as u8);
-        }
-        flat_terrain
+        data.terrain
+            .iter()
+            .flatten()
+            .flatten()
+            .flat_map(|block_id| [(block_id >> 8) as u8, (block_id & 0xff) as u8])
+            .collect()
     }
 
     fn encode_skylightlevel_data(&self, data: &ChunkData) -> Vec<u8> {
-        let mut flat_skylightlevel = Vec::new();
-        for level in data.skylightlevel.iter().flatten().flatten() {
-            flat_skylightlevel.push((level >> 8) as u8);
-            flat_skylightlevel.push((level & 0xff) as u8);
-        }
-        flat_skylightlevel
-    } 
+        data.skylightlevel
+            .iter()
+            .flatten()
+            .flatten()
+            .flat_map(|level| [(level >> 8) as u8, (level & 0xff) as u8])
+            .collect()
+    }
 
     #[export]
     fn terrain_encoded(&self, _owner: &Node, chunk_position: Vector2) -> Option<ByteArray> {

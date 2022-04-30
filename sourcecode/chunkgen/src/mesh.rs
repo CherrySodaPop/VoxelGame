@@ -4,7 +4,7 @@ use std::borrow::Borrow;
 
 use gdnative::{
     api::{ArrayMesh, ConcavePolygonShape},
-    core_types::{VariantArray, Vector2, Vector2Array, Vector3, Vector3Array, Color, ColorArray},
+    core_types::{Color, ColorArray, VariantArray, Vector2, Vector2Array, Vector3, Vector3Array},
     object::Ref,
     prelude::Unique,
 };
@@ -118,7 +118,7 @@ pub const FACES: [Face; 6] = [
 pub struct MeshData {
     pub vertices: Vec<[isize; 3]>,
     pub normals: Vec<[isize; 3]>,
-    pub color: Vec<[f32; 4]>,
+    pub colors: Vec<[f32; 4]>,
     pub uvs: Vec<[f32; 2]>,
 }
 
@@ -129,7 +129,7 @@ impl MeshData {
             vertices: Vec::new(),
             normals: Vec::new(),
             uvs: Vec::new(),
-            color: Vec::new(),
+            colors: Vec::new(),
         }
     }
     /// Adds a `Face` at `position`.
@@ -141,13 +141,6 @@ impl MeshData {
                 position[1] + vertex[1],
                 position[2] + vertex[2],
             ]);
-            // self.uvs.push(Axis::uv(face.uv_use, vertex));
-        }
-    }
-    /// Adds a `Face` at `position`, with UV coordinates.
-    pub fn add_face_with_uv(&mut self, face: &Face, position: [isize; 3]) {
-        self.add_face(face, position);
-        for vertex in face.vertices {
             let uv = Axis::uv(face.uv_use, vertex);
             // TODO: This is tied to our specific texture system,
             //       making it more general may be a good idea.
@@ -160,7 +153,7 @@ impl MeshData {
             let uv = [(face_offset + uv[0]) * 16.0, uv[1] * 16.0];
             let uv = [uv[0] / 48.0, uv[1] / 16.0];
             self.uvs.push(uv);
-            self.color.push([0.2, 0.2, 0.2, 1.0]);
+            self.colors.push([0.2, 0.2, 0.2, 1.0]);
         }
     }
 }
@@ -176,19 +169,21 @@ impl MeshData {
 pub struct GDMeshData {
     vertices: Vector3Array,
     normals: Vector3Array,
-    color: ColorArray,
+    colors: ColorArray,
     uvs: Vector2Array,
 }
 
 impl GDMeshData {
-    pub fn convert_vec3_color(vec: &Vec<[f32; 4]>) -> ColorArray {
+    // TODO: A macro for doing all these conversions.
+    // TODO: Are these super performance-degrading?
+
+    pub fn convert_color(vec: &Vec<[f32; 4]>) -> ColorArray {
         vec.iter()
-            .map(|val| vecColor!(val[0], val[1], val[2], val[3]))
+            .map(|val| color!(val[0], val[1], val[2], val[3]))
             .collect()
     }
 
     pub fn convert_vec3(vec: &Vec<[isize; 3]>) -> Vector3Array {
-        // Hopefully this doesn't affect performance too much.
         vec.iter()
             .map(|val| vec3!(val[0], val[1], val[2]))
             .collect()
@@ -211,7 +206,7 @@ impl GDMeshData {
         gdarray.resize(ArrayMesh::ARRAY_MAX as i32);
         gdarray.set(ArrayMesh::ARRAY_VERTEX as i32, self.vertices.clone());
         gdarray.set(ArrayMesh::ARRAY_NORMAL as i32, self.normals.clone());
-        gdarray.set(ArrayMesh::ARRAY_COLOR as i32, self.color.clone());
+        gdarray.set(ArrayMesh::ARRAY_COLOR as i32, self.colors.clone());
         gdarray.set(ArrayMesh::ARRAY_TEX_UV as i32, self.uvs.clone());
         mesh.add_surface_from_arrays(
             gdnative::api::Mesh::PRIMITIVE_TRIANGLES,
@@ -236,7 +231,7 @@ impl<T: Borrow<MeshData>> From<T> for GDMeshData {
             vertices: Self::convert_vec3(&mesh_data.vertices),
             normals: Self::convert_vec3(&mesh_data.normals),
             uvs: Self::convert_vec2(&mesh_data.uvs),
-            color: Self::convert_vec3_color(&mesh_data.color),
+            colors: Self::convert_color(&mesh_data.colors),
         }
     }
 }

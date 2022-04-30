@@ -74,7 +74,7 @@ impl ChunkGenerator {
     }
     pub fn generate_chunk(&mut self, position: ChunkPos) -> ChunkData {
         println!("Generating terrain data for chunk {:?}", position);
-        let mut terrain = [[[0u16; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X];
+        let mut terrain = Box::new([[[0u16; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X]);
         let chunk_origin = position.origin();
         for x in 0..CHUNK_SIZE_X {
             for z in 0..CHUNK_SIZE_Z {
@@ -87,9 +87,10 @@ impl ChunkGenerator {
             }
         }
 
+        println!("Generating light level data for chunk {:?}", position);
         // TODO: "update_lightlevel" in lib.rs
         // TODO: use an unsigned 8 bit int!
-        let mut skylightlevel = [[[0u16; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X];
+        let mut skylightlevel = Box::new([[[0u16; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X]);
         for x in 0..CHUNK_SIZE_X {
             for z in 0..CHUNK_SIZE_Z {
                 for y in 0..CHUNK_SIZE_Y {
@@ -98,7 +99,11 @@ impl ChunkGenerator {
             }
         }
 
-        let mut chunk_data = ChunkData { position, terrain, skylightlevel };
+        let mut chunk_data = ChunkData {
+            position,
+            terrain,
+            skylightlevel,
+        };
         self.add_features(&mut chunk_data);
         if let Some(add_blocks) = self.waitlist.chunks.remove(&position) {
             for (pos, block_id) in add_blocks {

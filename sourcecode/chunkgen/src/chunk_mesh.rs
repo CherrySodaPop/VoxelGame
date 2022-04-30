@@ -121,7 +121,7 @@ impl ChunkMeshData {
             .surfaces
             .entry(block_id)
             .or_insert_with(|| BlockSurface::new(block_id));
-        block_surface.mesh_data.add_face_with_uv(
+        block_surface.mesh_data.add_face(
             face,
             [
                 position.x as isize,

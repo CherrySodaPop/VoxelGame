@@ -2,16 +2,18 @@ use crate::{block::BlockID, constants::*, positions::*};
 
 pub struct ChunkData {
     pub position: ChunkPos,
-    pub terrain: [[[BlockID; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z],
-    pub skylightlevel: [[[u16; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z],
+    // These fields are Box-ed to prevent the stack from overflowing.
+    // We're storing a whole lot of data!
+    pub terrain: Box<TerrainData>,
+    pub skylightlevel: Box<LightLevelData>,
 }
 
 impl ChunkData {
     pub fn new(position: ChunkPos) -> Self {
         Self {
             position,
-            terrain: [[[0; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z],
-            skylightlevel: [[[0; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z],
+            terrain: Box::new([[[0; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z]),
+            skylightlevel: Box::new([[[0; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z]),
         }
     }
     pub fn get(&self, position: LocalBlockPos) -> BlockID {

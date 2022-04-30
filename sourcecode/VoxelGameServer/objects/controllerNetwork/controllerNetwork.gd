@@ -148,6 +148,8 @@ remote func SetBlock(blockPos:Vector3, blockID:int):
 			var chunkPos:Vector2 = Vector2(floor(blockPos.x / 32), floor(blockPos.z / 32));
 			var chunkData:PoolByteArray = chunkLoader.terrain_encoded(chunkPos);
 			var chunkSkyLightLevel:PoolByteArray = chunkLoader.skylightlevel_encoded(chunkPos);
+			# TODO: Thread this compression/decompression on the Rust side
+			#       to reduce stutter
 			chunkData = chunkData.compress();
 			chunkSkyLightLevel = chunkSkyLightLevel.compress();
 			if (chunkData != null):
