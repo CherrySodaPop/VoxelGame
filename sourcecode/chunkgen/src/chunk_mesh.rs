@@ -69,6 +69,7 @@ impl BlockSurface {
                 let material = SpatialMaterial::new();
                 material.set_texture(SpatialMaterial::TEXTURE_ALBEDO, self.get_albedo_texture());
                 material.set_flag(SpatialMaterial::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+                material.set_flag(SpatialMaterial::FLAG_DISABLE_AMBIENT_LIGHT, true);
                 material.upcast::<Material>().into_shared()
             }
         }

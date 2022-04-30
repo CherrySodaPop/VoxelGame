@@ -153,7 +153,9 @@ impl MeshData {
             let uv = [(face_offset + uv[0]) * 16.0, uv[1] * 16.0];
             let uv = [uv[0] / 48.0, uv[1] / 16.0];
             self.uvs.push(uv);
-            self.colors.push([0.2, 0.2, 0.2, 1.0]);
+
+            // TODO: should be based on the block this face is facing, not the current block position
+            self.colors.push([1.0, 1.0, 1.0, 1.0]);
         }
     }
 }
