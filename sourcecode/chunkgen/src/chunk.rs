@@ -35,6 +35,23 @@ impl ChunkData {
         }
         None
     }
+
+    pub fn encode(&self) -> [Vec<u8>; 2] {
+        [
+            self.terrain
+                .iter()
+                .flatten()
+                .flatten()
+                .flat_map(|block_id| [(block_id >> 8) as u8, (block_id & 0xff) as u8])
+                .collect(),
+            self.skylightlevel
+                .iter()
+                .flatten()
+                .flatten()
+                .flat_map(|level| [(level >> 8) as u8, (level & 0xff) as u8])
+                .collect(),
+        ]
+    }
 }
 
 impl std::fmt::Debug for ChunkData {

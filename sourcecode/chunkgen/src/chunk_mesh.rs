@@ -153,12 +153,10 @@ impl ChunkMeshData {
         collision_shape
     }
     pub fn new_from_chunk_data(
-        chunk_data: Arc<RwLock<ChunkData>>,
-        loaded_chunks: HashMap<ChunkPos, Arc<RwLock<ChunkData>>>,
+        chunk_data: &ChunkData,
+        loaded_chunks: HashMap<ChunkPos, &ChunkData>,
     ) -> Self {
         let mut chunk_mesh = Self::new();
-        let chunk_data_arc = chunk_data;
-        let chunk_data = chunk_data_arc.read().unwrap();
         for x in 0..CHUNK_SIZE_X {
             for y in 0..CHUNK_SIZE_Y {
                 for z in 0..CHUNK_SIZE_Z {
@@ -181,14 +179,9 @@ impl ChunkMeshData {
                             Ok(checking_position) => {
                                 let checking_data =
                                     if checking_position.chunk == chunk_data.position {
-                                        // The block is inside the chunk we're building the mesh for,
-                                        // just wrap up the current chunk_data.
-                                        Some(CheckingData::SameChunk(&chunk_data))
+                                        Some(chunk_data)
                                     } else {
-                                        // The block is outside the chunk we're building a mesh for.
-                                        loaded_chunks
-                                            .get(&checking_position.chunk)
-                                            .map(|arc| CheckingData::DifferentChunk(arc.clone()))
+                                        loaded_chunks.get(&checking_position.chunk).copied()
                                     };
                                 if let Some(checking_data) = checking_data {
                                     BLOCK_MANAGER

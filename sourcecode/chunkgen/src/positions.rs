@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 use crate::constants::*;
 
@@ -45,6 +45,12 @@ impl ChunkPos {
             ChunkPos::new(self.x, self.z + 1),
             ChunkPos::new(self.x, self.z - 1),
         ]
+    }
+}
+
+impl Display for ChunkPos {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Chunk ({}, {})", self.x, self.z)
     }
 }
 
