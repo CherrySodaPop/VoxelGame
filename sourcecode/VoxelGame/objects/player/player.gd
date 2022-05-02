@@ -7,7 +7,7 @@ var networkID = -1;
 # with time, this stuff will moved to the server, but for its early staging, it's fine
 var velocity:Vector3 = Vector3.ZERO;
 var acceleration:float = 16.0;
-var walkSpeed:float = 32.0;
+var walkSpeed:float = 4.0;
 var runSpeed:float = 8.0;
 var jumpForce:float = 10.0;
 var gravity:float = 36.0;
@@ -30,10 +30,8 @@ var lockMouse:bool = false;
 signal enteredNewChunk;
 
 func _ready():
-	global_transform.origin.y = 40; # TEMP: Prevent spawning underneath terrain
+	global_transform.origin.y = 100; # TEMP: Prevent spawning underneath terrain
 	#$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_SHADOWS_ONLY;
-	# VisualServer.set_debug_generate_wireframes(true)
-	# get_viewport().debug_draw=VisualServer.VIEWPORT_DEBUG_DRAW_WIREFRAME
 
 	# update skin
 	var skinFile = File.new();
@@ -121,7 +119,7 @@ func HandleMovement(delta):
 		velocity.y += jumpForce;
 
 	velocity = Vector3(storedInterpolateVelocityVec2.x, velocity.y, storedInterpolateVelocityVec2.y);
-	# velocity.y -= gravity * delta;
+	velocity.y -= gravity * delta;
 
 	move_and_slide(velocity, Vector3(0, 1, 0));
 	if (is_on_floor() || is_on_ceiling()):
