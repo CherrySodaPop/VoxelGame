@@ -109,14 +109,5 @@ remote func PlayerInfo(networkID:int, pos:Vector3, camRotation:Vector2):
 	obj.global_transform.origin = pos;
 	obj.camRotation = camRotation;
 
-# The buffer's size is the chunk's volume, multiplied
-# by 2 as every block requires two bytes to store.
-onready var chunkBufferSize = (
-	(Persistant.chunkSize.x * Persistant.chunkSize.y * Persistant.chunkSize.z) * 2
-);
-onready var chunkSkyLightLevelBufferSize = (
-	(Persistant.chunkSize.x * Persistant.chunkSize.y * Persistant.chunkSize.z) * 2
-);
-
-remote func ChunkData(chunkData:PoolByteArray, chunkSkyLightLevel:PoolByteArray, chunkPos:Vector2):
-	Persistant.chunkLoader.receive_chunk(chunkData, chunkSkyLightLevel, chunkPos);
+remote func ChunkData(chunkDataPacked:PoolByteArray, chunkPos:Vector2, updateNearby:bool):
+	Persistant.chunkLoader.receive_chunk(chunkDataPacked, chunkPos, updateNearby);

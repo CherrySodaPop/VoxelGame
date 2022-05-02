@@ -6,11 +6,10 @@ use std::{
     collections::HashMap,
     sync::{
         mpsc::{self, Receiver, Sender},
-        Arc, Mutex, RwLock,
+        Arc, Mutex,
     },
 };
 
-use constants::{CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z};
 use gdnative::{
     api::{CollisionShape, MeshInstance, StaticBody},
     prelude::*,
@@ -44,8 +43,7 @@ impl std::error::Error for NotLoadedError {}
 
 pub struct Chunk {
     /// The chunk's position. This is determined by `Chunk.data.position` and
-    /// is copied here for convenience, to prevent requiring locking to access
-    /// something so simple.
+    /// is copied here for convenience.
     pub position: ChunkPos,
     /// The chunk's terrain data.
     pub data: ChunkData,
@@ -131,163 +129,154 @@ fn create_view<'a>(chunks: &'a HashMap<ChunkPos, Chunk>) -> HashMap<ChunkPos, &'
         .collect()
 }
 
+enum ChunkUpdate {
+    Create(ChunkData),
+    Update(ChunkData),
+    Exists,
+}
+
 #[derive(NativeClass)]
 #[export]
 #[inherit(Node)]
 pub struct ClientChunkLoader {
     owner: Ref<Node, Shared>,
-    chunks: Arc<RwLock<HashMap<ChunkPos, Chunk>>>,
-    // load_channel: Receiver<Chunk>,
-    send_channel: Sender<(Chunk, Option<ChunkData>)>,
+    chunks: Arc<Mutex<HashMap<ChunkPos, Chunk>>>,
+    send_channel: Sender<LoadThreadChannelContents>,
+}
+
+type LoadThreadChannelContents = (ChunkPos, Option<Vec<u8>>);
+
+struct ChunkLoaderThread {
+    node: Ref<Node, Shared>,
+    chunks_map: Arc<Mutex<HashMap<ChunkPos, Chunk>>>,
+    receiver: Receiver<LoadThreadChannelContents>,
+}
+
+impl ChunkLoaderThread {
+    fn create_chunk(&self, position: ChunkPos, data: ChunkData) -> Chunk {
+        let node = ChunkNode::new_instance();
+        node.map_mut(|_, owner| {
+            // Align the chunk node in the world and add it to the parent node.
+            let origin = position.origin();
+            owner.set_translation(vec3!(origin.x, origin.y, origin.z));
+            unsafe {
+                self.node
+                    .assume_safe()
+                    .call_deferred("add_child", &[owner.assume_shared().to_variant()]);
+            }
+        })
+        .expect("couldn't initialize new ChunkNode");
+        Chunk::new(data, node.into_shared())
+    }
+    fn handle_chunk(&self, position: ChunkPos, new_data: Option<ChunkData>) {
+        let start_time = std::time::Instant::now();
+        let mut chunks = self.chunks_map.lock().unwrap();
+        let chunk = {
+            if let Some(with_data) = new_data {
+                // We have some data, either update an existing chunk
+                // with it or use it to create a new one.
+                match chunks.remove(&position) {
+                    Some(mut chunk) => {
+                        // The chunk exists, update its data.
+                        chunk.data = with_data;
+                        chunk
+                    }
+                    // The chunk doesn't exist, create it with the new data
+                    // and add it to the parent node.
+                    None => self.create_chunk(position, with_data),
+                }
+            } else if let Some(chunk) = chunks.remove(&position) {
+                // No data was provided, however the chunk does exist,
+                // so we'll update its mesh assuming something like the
+                // chunks bordering it changed.
+                chunk
+            } else {
+                // We've been told to update a chunk that doesn't exist
+                // and have not been given the data required to make it exist.
+                return;
+            }
+        };
+        let mesh_data = {
+            let view = create_view(&chunks);
+            ChunkMeshData::new_from_chunk_data(&chunk.data, view)
+        };
+        unsafe { chunk.node.assume_safe() }
+            .map_mut(|chunk_node, _owner| {
+                chunk_node.update_mesh_data(mesh_data);
+            })
+            .expect("updating ChunkNode mesh failed");
+        chunks.insert(position, chunk);
+        let took = start_time.elapsed();
+        println!(
+            "[{}] Generated mesh in {:.2} ms",
+            position,
+            took.as_micros() as f64 / 1000.0
+        );
+    }
+    fn recv(&self) {
+        let (position, packed_data) = self.receiver.recv().unwrap();
+        let new_data = packed_data.map(|packed_data| ChunkData::unpack(position, &packed_data));
+        self.handle_chunk(position, new_data)
+    }
 }
 
 #[methods]
 impl ClientChunkLoader {
-    fn load_thread(
-        chunks_map: Arc<RwLock<HashMap<ChunkPos, Chunk>>>,
-    ) -> Sender<(Chunk, Option<ChunkData>)> {
-        let (sender, receiver): (
-            Sender<(Chunk, Option<ChunkData>)>,
-            Receiver<(Chunk, Option<ChunkData>)>,
-        ) = mpsc::channel();
-        std::thread::spawn(move || loop {
-            let start_time = std::time::Instant::now();
-            let (mut chunk, new_data) = receiver.recv().unwrap();
-            let position = chunk.position;
-            if let Some(data) = new_data {
-                chunk.data = data;
-            }
-            let mesh_data = {
-                let chunks = chunks_map.read().unwrap();
-                let view = create_view(&chunks);
-                ChunkMeshData::new_from_chunk_data(&chunk.data, view)
-            };
-            unsafe { chunk.node.assume_safe() }
-                .map_mut(|chunk_node, _owner| {
-                    chunk_node.update_mesh_data(mesh_data);
-                })
-                .expect("updating ChunkNode mesh failed");
-            let mut chunks = chunks_map.write().unwrap();
-            chunks.insert(chunk.position, chunk);
-            let took = start_time.elapsed();
-            println!(
-                "[{}] Generated mesh in {:.2} ms",
-                position,
-                took.as_micros() as f64 / 1000.0
-            );
-        });
-        sender
-    }
     fn new(owner: &Node) -> Self {
-        let chunks = Arc::new(RwLock::new(HashMap::new()));
-        let send_channel = Self::load_thread(chunks.clone());
+        let owner = unsafe { owner.assume_shared() };
+        let chunks = Arc::new(Mutex::new(HashMap::new()));
+        let (sender, receiver): (
+            Sender<LoadThreadChannelContents>,
+            Receiver<LoadThreadChannelContents>,
+        ) = mpsc::channel();
+        let loader_thread = ChunkLoaderThread {
+            node: owner.clone(),
+            chunks_map: chunks.clone(),
+            receiver,
+        };
+        std::thread::spawn(move || loop {
+            loader_thread.recv()
+        });
         Self {
-            owner: unsafe { owner.assume_shared() },
+            owner,
             chunks,
-            send_channel,
+            send_channel: sender,
         }
     }
 
-    /// Tells the chunk updater thread to update the chunk `Chunk` with `new_data`.
-    fn queue_update_with(&self, chunk: Chunk, new_data: ChunkData) {
-        self.send_channel.send((chunk, Some(new_data))).unwrap();
-    }
-
-    /// Tells the chunk updater thread to update the chunk at `position`.
+    /// Tells the chunk updater thread to update the chunk at `position`
+    /// with `new_data_packed`. The chunk's mesh is always updated, and
+    /// its terrain/light level data is updated if `new_data_packed` is `Some`.
     ///
-    /// Useful when the chunk itself hasn't changed, but the chunks it borders
-    /// have.
-    ///
-    /// Does nothing if a chunk doesn't exist at `position`.
-    fn queue_update(&self, position: ChunkPos) {
-        let chunk = self.chunks.write().unwrap().remove(&position);
-        if let Some(chunk) = chunk {
-            self.send_channel.send((chunk, None)).unwrap();
-        }
+    /// Does nothing if the chunk at `position` doesn't exist.
+    fn queue_update(&self, position: ChunkPos, new_data_packed: Option<Vec<u8>>) {
+        self.send_channel.send((position, new_data_packed)).unwrap();
     }
 
-    fn update_nearby(&self, position: ChunkPos) {
-        let nearby = position.adjacent();
-        for nearby_position in nearby {
-            self.queue_update(position);
+    /// Runs `queue_update` on `position`, as well as the chunks adjacent
+    /// to it.
+    fn queue_update_with_nearby(&self, position: ChunkPos, new_data: Option<Vec<u8>>) {
+        self.queue_update(position, new_data);
+        for nearby_position in position.adjacent() {
+            self.queue_update(nearby_position, None);
         }
-    }
-
-    fn create_empty_chunk(&self, position: ChunkPos) -> Chunk {
-        // Position chunk node at chunk origin.
-        let node = ChunkNode::new_instance();
-        let origin = position.origin();
-        node.map_mut(|_chunk_node, owner| {
-            owner.set_translation(vec3!(origin.x, origin.y, origin.z));
-        })
-        .expect("setting ChunkNode translation failed");
-        // Add the chunk node to the scene tree.
-        let node = node.into_shared();
-        unsafe { self.owner.assume_safe() }.add_child(&node, true);
-        Chunk::new(ChunkData::new(position), node)
-    }
-
-    fn decode_u8_chunk_data(
-        &self,
-        compressed: &[u8],
-    ) -> Box<[[[BlockID; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X]> {
-        let mut decompressed = Vec::new();
-        lzzzz::lz4f::decompress_to_vec(compressed, &mut decompressed).unwrap();
-
-        // TODO: This got merged into a single function from the original
-        //       terrain and light-level specific ones, however it'll actually
-        //       have to be split up again or use some generics/closure magic
-        //       once light level data gets stored as a u8 instead of a u16.
-        let flat: Box<Vec<u16>> = Box::new(
-            decompressed
-                .chunks_exact(2)
-                // TODO: We could maybe use u16::from_le_bytes here
-                .map(|bytes| ((bytes[0] as u16) << 8) + (bytes[1] as u16))
-                .collect(),
-        );
-        let mut packed = Box::new([[[0; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X]);
-        for x in 0..CHUNK_SIZE_X {
-            for y in 0..CHUNK_SIZE_Y {
-                for z in 0..CHUNK_SIZE_Z {
-                    let idx = z + CHUNK_SIZE_X * (y + CHUNK_SIZE_Y * x);
-                    packed[x][y][z] = flat[idx];
-                }
-            }
-        }
-        packed
     }
 
     #[export]
     fn receive_chunk(
         &mut self,
         _owner: &Node,
-        terrain_data: ByteArray,
-        skylightlevel_data: ByteArray,
+        packed_data: ByteArray,
         position: Vector2,
+        update_nearby: bool,
     ) {
         let position = ChunkPos::new(position.x as isize, position.y as isize);
-        // let (terrain_data, skylightlevel_data): (ByteArray, ByteArray) =
-        //     (encoded.get(0).to().unwrap(), encoded.get(1).to().unwrap());
-        let terrain_data_read = terrain_data.read();
-        let skylightlevel_data_read = skylightlevel_data.read();
-        let terrain = self.decode_u8_chunk_data(&*terrain_data_read);
-        let skylightlevel = self.decode_u8_chunk_data(&*skylightlevel_data_read);
-        // TODO: That was a lot of repetition, which could be fixed in many interesting ways...
-        //       Generic functions, closures, or perhaps a unified BlockInfo type...
-
-        let mut chunk_data = ChunkData::new(position);
-        chunk_data.terrain = terrain;
-        chunk_data.skylightlevel = skylightlevel;
-        let chunk = {
-            // This is in a seperate scope so that the write lock on self.chunks
-            // gets dropped before we update the mesh.
-            let mut chunks = self.chunks.write().unwrap();
-            chunks
-                .remove(&position)
-                .unwrap_or_else(|| self.create_empty_chunk(position))
-        };
-        self.queue_update_with(chunk, chunk_data);
-        self.update_nearby(position);
+        let new_data_packed = Some(packed_data.read().to_vec());
+        if update_nearby {
+            self.queue_update_with_nearby(position, new_data_packed);
+        } else {
+            self.queue_update(position, new_data_packed);
+        }
     }
 
     fn _ready(&self, _owner: &Node) {
@@ -381,30 +370,10 @@ impl ServerChunkCreator {
         self.chunks.insert(data.position, data);
     }
 
-    fn compress_to_bytearray(source: &[u8]) -> ByteArray {
-        let compression_prefs = lzzzz::lz4f::Preferences::default();
-        let mut compressed_buffer =
-            vec![0; lzzzz::lz4f::max_compressed_size(source.len(), &compression_prefs)];
-
-        let compressed_size =
-            lzzzz::lz4f::compress(source, &mut compressed_buffer, &compression_prefs).unwrap();
-        let compressed: Vec<u8> = compressed_buffer[..compressed_size].into();
-
-        ByteArray::from_vec(compressed)
-    }
-
     #[export]
-    fn terrain_encoded(&self, _owner: &Node, chunk_position: Vector2) -> Option<ByteArray> {
-        let position = ChunkPos::new(chunk_position.x as isize, chunk_position.y as isize);
-        let data = self.chunks.get(&position)?;
-        Some(Self::compress_to_bytearray(&data.encode()[0]))
-    }
-
-    #[export]
-    fn skylightlevel_encoded(&self, _owner: &Node, chunk_position: Vector2) -> Option<ByteArray> {
-        let position = ChunkPos::new(chunk_position.x as isize, chunk_position.y as isize);
-        let data = self.chunks.get(&position)?;
-        Some(Self::compress_to_bytearray(&data.encode()[1]))
+    fn chunk_data_packed(&self, _owner: &Node, position: Vector2) -> Option<Vec<u8>> {
+        let position = ChunkPos::new(position.x as isize, position.y as isize);
+        self.chunks.get(&position).map(|data| data.pack())
     }
 
     #[export]
