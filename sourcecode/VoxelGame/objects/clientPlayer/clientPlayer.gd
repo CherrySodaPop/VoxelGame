@@ -23,15 +23,15 @@ func HandleAnimations(delta):
 	var bodyToHeadyRotation = fixedCamRotationY + (headBodyDifShort * 1.0);
 	if (abs(headBodyDifShort) > deg2rad(25)):
 		bodyRotation = lerp_angle(bodyRotation, fixedCamRotationY + deg2rad(-sign(headBodyDifShort) * 25.0), 8.0 * delta);
-	
+
 	var skeleton:Skeleton = get_node("model").get_node("PM/Skeleton");
 	var bodyTransform = Transform(Vector3.RIGHT, Vector3.UP, Vector3.BACK, Vector3.ZERO);
 	bodyTransform = bodyTransform.rotated(Vector3.UP, bodyRotation);
-	
+
 	var headTransform = Transform(Vector3.RIGHT, Vector3.UP, Vector3.BACK, Vector3.ZERO);
 	headTransform = headTransform.rotated(Vector3.LEFT, camRotation.x);
 	headTransform = headTransform.rotated(Vector3.FORWARD, fixedCamRotationY);
-	
+
 	skeleton.set_bone_pose(skeleton.find_bone("core"), bodyTransform);
 	skeleton.set_bone_pose(skeleton.find_bone("head"), headTransform);
 

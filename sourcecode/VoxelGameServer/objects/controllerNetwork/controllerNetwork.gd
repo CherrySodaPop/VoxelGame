@@ -145,4 +145,5 @@ remote func SetBlock(blockPos:Vector3, blockID:int):
 			var chunkPos:Vector2 = Vector2(floor(blockPos.x / 32), floor(blockPos.z / 32));
 			var chunkDataPacked:PoolByteArray = chunkLoader.chunk_data_packed(chunkPos);
 			if (chunkDataPacked != null):
+				# TODO: Make update_nearby `true` if this is a chunk boundary.
 				rpc_unreliable("ChunkData", chunkDataPacked, chunkPos, false);

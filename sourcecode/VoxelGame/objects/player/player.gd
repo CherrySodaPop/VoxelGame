@@ -27,11 +27,13 @@ var legRightRotation:float = 0.0;
 var mouseSensitivity:float = 0.2;
 var lockMouse:bool = false;
 
+var thirdPerson:bool = false;
+
 signal enteredNewChunk;
 
 func _ready():
 	global_transform.origin.y = 100; # TEMP: Prevent spawning underneath terrain
-	#$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_SHADOWS_ONLY;
+	$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_SHADOWS_ONLY;
 
 	# update skin
 	var skinFile = File.new();
@@ -66,6 +68,15 @@ func _process(delta):
 func _input(event:InputEvent):
 	if (event is InputEventMouseMotion):
 		HandleCamera(event.relative);
+	if event.is_action_pressed("playerTogglePerspective"):
+		thirdPerson = not thirdPerson
+		if thirdPerson:
+			$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_ON;
+			$cameraJoint/camera.translation = Vector3(0, 0, 2)
+		else:
+			$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_SHADOWS_ONLY;
+			$cameraJoint/camera.translation = Vector3(0, 0, 0)
+
 
 func UpdateMiscInfo(delta):
 	# chunk pos update

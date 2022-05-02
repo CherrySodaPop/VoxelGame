@@ -181,6 +181,28 @@ impl ClientChunkLoader {
         }
     }
 
+    #[export]
+    fn debug_info(&self, _owner: &Node, player_looking_at: Vector3) -> Option<VariantArray> {
+        if let Ok(chunks) = self.chunks.try_lock() {
+            let player_looking_at: LocalBlockPos = GlobalBlockPos::new(
+                player_looking_at.x as isize,
+                player_looking_at.y as isize,
+                player_looking_at.z as isize,
+            )
+            .into();
+            let player_looking_block = chunks
+                .get(&player_looking_at.chunk)
+                .map(|chunk| chunk.data.get(player_looking_at));
+            let loaded_chunks = chunks.len();
+            let debug_info = VariantArray::new();
+            debug_info.push(player_looking_block);
+            debug_info.push(loaded_chunks);
+            Some(debug_info.into_shared())
+        } else {
+            None
+        }
+    }
+
     fn _ready(&self, _owner: &Node) {
         godot_print!("ClientChunkLoader ready!");
     }
