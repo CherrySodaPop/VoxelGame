@@ -119,8 +119,4 @@ onready var chunkSkyLightLevelBufferSize = (
 );
 
 remote func ChunkData(chunkData:PoolByteArray, chunkSkyLightLevel:PoolByteArray, chunkPos:Vector2):
-	# TODO: Thread this compression/decompression on the Rust side
-	#       to reduce stutter
-	chunkData = chunkData.decompress(chunkBufferSize);
-	chunkSkyLightLevel = chunkSkyLightLevel.decompress(chunkSkyLightLevelBufferSize);
 	Persistant.chunkLoader.receive_chunk(chunkData, chunkSkyLightLevel, chunkPos);

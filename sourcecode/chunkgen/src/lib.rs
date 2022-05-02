@@ -195,14 +195,18 @@ impl ClientChunkLoader {
 
     fn decode_u8_chunk_data(
         &self,
-        data: &[u8],
+        compressed: &[u8],
     ) -> Box<[[[BlockID; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X]> {
+        let mut decompressed = Vec::new();
+        lzzzz::lz4f::decompress_to_vec(compressed, &mut decompressed).unwrap();
+
         // TODO: This got merged into a single function from the original
         //       terrain and light-level specific ones, however it'll actually
         //       have to be split up again or use some generics/closure magic
         //       once light level data gets stored as a u8 instead of a u16.
         let flat: Box<Vec<u16>> = Box::new(
-            data.chunks_exact(2)
+            decompressed
+                .chunks_exact(2)
                 // TODO: We could maybe use u16::from_le_bytes here
                 .map(|bytes| ((bytes[0] as u16) << 8) + (bytes[1] as u16))
                 .collect(),
@@ -228,7 +232,6 @@ impl ClientChunkLoader {
         position: Vector2,
     ) {
         let position = ChunkPos::new(position.x as isize, position.y as isize);
-        // NOTE: These data were decompressed via PoolByteArray.decompress() in the networkController.
         let terrain_data_read = terrain_data.read();
         let skylightlevel_data_read = skylightlevel_data.read();
         let terrain = self.decode_u8_chunk_data(&*terrain_data_read);
@@ -359,13 +362,24 @@ impl ServerChunkCreator {
             .collect()
     }
 
+    fn compress_to_bytearray(source: &[u8]) -> ByteArray {
+        let compression_prefs = lzzzz::lz4f::Preferences::default();
+        let mut compressed_buffer =
+            vec![0; lzzzz::lz4f::max_compressed_size(source.len(), &compression_prefs)];
+
+        let compressed_size =
+            lzzzz::lz4f::compress(source, &mut compressed_buffer, &compression_prefs).unwrap();
+        let compressed: Vec<u8> = compressed_buffer[..compressed_size].into();
+
+        ByteArray::from_vec(compressed)
+    }
+
     #[export]
     fn terrain_encoded(&self, _owner: &Node, chunk_position: Vector2) -> Option<ByteArray> {
         let chunk_position = ChunkPos::new(chunk_position.x as isize, chunk_position.y as isize);
-        println!("Encoding chunk data for {:?}", chunk_position);
+        println!("Encoding terrain data for {:?}", chunk_position);
         let flat_terrain = self.encode_terrain_data(self.chunks.get(&chunk_position)?);
-        Some(ByteArray::from_vec(flat_terrain))
-        // NOTE: This data is compressed using PoolByteArray.compress() in the networkController.
+        Some(Self::compress_to_bytearray(&flat_terrain))
     }
 
     #[export]
@@ -373,8 +387,7 @@ impl ServerChunkCreator {
         let chunk_position = ChunkPos::new(chunk_position.x as isize, chunk_position.y as isize);
         println!("Encoding skylightlevel data for {:?}", chunk_position);
         let flat_skylightlevel = self.encode_skylightlevel_data(self.chunks.get(&chunk_position)?);
-        Some(ByteArray::from_vec(flat_skylightlevel))
-        // NOTE: This data is compressed using PoolByteArray.compress() in the networkController.
+        Some(Self::compress_to_bytearray(&flat_skylightlevel))
     }
 
     #[export]
