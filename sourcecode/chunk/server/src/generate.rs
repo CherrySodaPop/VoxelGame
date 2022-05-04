@@ -5,14 +5,9 @@ use std::collections::HashMap;
 
 use gdnative::{api::OpenSimplexNoise, core_types::Vector2, object::Ref, prelude::Unique};
 
-use crate::{
-    block::{BlockID, BLOCK_MANAGER},
-    chunk::ChunkData,
-    constants::*,
-    features::{trees::Trees, Feature, FeatureWaitlist},
-    macros::*,
-    positions::ChunkPos,
-};
+use chunkcommon::{block::BLOCK_MANAGER, chunk::ChunkData, prelude::*, vec2};
+
+use crate::features::{trees::Trees, Feature, FeatureWaitlist};
 
 struct GenerationConfig {
     top_layer: BlockID,

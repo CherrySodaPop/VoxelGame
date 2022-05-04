@@ -2,7 +2,7 @@
 
 use gdnative::{api::OpenSimplexNoise, prelude::Unique};
 
-use crate::{
+use chunkcommon::{
     chunk::ChunkData,
     constants::{CHUNK_SIZE_X, CHUNK_SIZE_Z},
     positions::{GlobalBlockPos, LocalBlockPos},

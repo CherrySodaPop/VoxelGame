@@ -1,3 +1,5 @@
+//! Chunk mesh creation facilities.
+
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock, RwLockReadGuard},
@@ -9,13 +11,9 @@ use gdnative::{
     prelude::{Shared, Unique},
 };
 
-use crate::{
-    block::{BlockID, BLOCK_MANAGER},
-    chunk::ChunkData,
-    constants::*,
-    mesh::{Face, GDMeshData, MeshData, FACES},
-    positions::{ChunkPos, LocalBlockPos},
-};
+use chunkcommon::{block::BLOCK_MANAGER, chunk::ChunkData, prelude::*};
+
+use crate::mesh::{Face, GDMeshData, MeshData, FACES};
 
 /// Block-type specific `MeshData`, to allow for different block types
 /// to have their own specific materials.

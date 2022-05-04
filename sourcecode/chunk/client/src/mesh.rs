@@ -9,7 +9,7 @@ use gdnative::{
     prelude::Unique,
 };
 
-use crate::macros::*;
+use chunkcommon::{color, vec2, vec3};
 
 #[derive(Clone, Copy, Debug)]
 enum Axis {
@@ -118,7 +118,7 @@ pub const FACES: [Face; 6] = [
 pub struct MeshData {
     pub vertices: Vec<[isize; 3]>,
     pub normals: Vec<[isize; 3]>,
-    pub colors: Vec<[f32; 4]>,
+    pub colors: Vec<[u8; 4]>,
     pub uvs: Vec<[f32; 2]>,
 }
 
@@ -155,7 +155,7 @@ impl MeshData {
             self.uvs.push(uv);
 
             // TODO: should be based on the block this face is facing, not the current block position
-            self.colors.push([1.0, 1.0, 1.0, 1.0]);
+            self.colors.push([255, 255, 255, 255]);
         }
     }
 }
@@ -179,27 +179,20 @@ impl GDMeshData {
     // TODO: A macro for doing all these conversions.
     // TODO: Are these super performance-degrading?
 
-    pub fn convert_color(vec: &Vec<[f32; 4]>) -> ColorArray {
+    pub fn convert_color(vec: &[[u8; 4]]) -> ColorArray {
         vec.iter()
             .map(|val| color!(val[0], val[1], val[2], val[3]))
             .collect()
     }
 
-    pub fn convert_vec3(vec: &Vec<[isize; 3]>) -> Vector3Array {
+    pub fn convert_vec3(vec: &[[isize; 3]]) -> Vector3Array {
         vec.iter()
             .map(|val| vec3!(val[0], val[1], val[2]))
             .collect()
     }
 
-    pub fn convert_vec2(vec: &Vec<[f32; 2]>) -> Vector2Array {
+    pub fn convert_vec2(vec: &[[f32; 2]]) -> Vector2Array {
         vec.iter().map(|val| vec2!(val[0], val[1])).collect()
-    }
-
-    /// Creates an `ArrayMesh` from this `GDMeshData`.
-    pub fn create_mesh(&self) -> Ref<ArrayMesh, Unique> {
-        let mut mesh = ArrayMesh::new();
-        self.add_to(&mut mesh);
-        mesh
     }
 
     /// Adds this `GDMeshData` to `mesh` as a new surface.
@@ -216,13 +209,6 @@ impl GDMeshData {
             VariantArray::new().into_shared(),
             2194432,
         );
-    }
-
-    /// Creates a `ConcavePolygonShape` from this `GDMeshData`.
-    pub fn create_collision_shape(&self) -> Ref<ConcavePolygonShape, Unique> {
-        let collision_shape = ConcavePolygonShape::new();
-        collision_shape.set_faces(self.vertices.clone());
-        collision_shape
     }
 }
 

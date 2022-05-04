@@ -4,11 +4,7 @@
 
 use std::collections::{hash_map::Entry, HashMap};
 
-use crate::{
-    block::BlockID,
-    chunk::ChunkData,
-    positions::{ChunkPos, LocalBlockPos, OutOfBoundsError},
-};
+use chunkcommon::{chunk::ChunkData, positions::OutOfBoundsError, prelude::*};
 
 pub mod trees;
 

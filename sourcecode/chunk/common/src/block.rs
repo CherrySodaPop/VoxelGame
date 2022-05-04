@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use serde::Deserialize;
 use std::collections::HashMap;
 
-const BLOCKS_JSON: &str = include_str!("../../VoxelGame/assets/blocks.json"); // HARDCODED
+const BLOCKS_JSON: &str = include_str!("../../../VoxelGame/assets/blocks.json"); // HARDCODED
 pub type BlockID = u16;
 
 #[derive(Debug, Deserialize)]
