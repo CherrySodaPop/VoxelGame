@@ -27,14 +27,12 @@ var legRightRotation:float = 0.0;
 var mouseSensitivity:float = 0.2;
 var lockMouse:bool = false;
 
-var thirdPerson:bool = false;
-
 signal enteredNewChunk;
 
 func _ready():
 	global_transform.origin.y = 100; # TEMP: Prevent spawning underneath terrain
-	$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_SHADOWS_ONLY;
-
+	#$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_SHADOWS_ONLY;
+	
 	# update skin
 	var skinFile = File.new();
 	var skinImage = Image.new();
@@ -51,13 +49,13 @@ func _ready():
 
 func _process(delta):
 	animationTimer += (delta * 2.0) + ((GetVelocityDif(delta) / walkSpeed) * delta * 10.0);
-
+	
 	if (Input.is_action_just_pressed("gamePause")):
 		if (Input.get_mouse_mode() == Input.MOUSE_MODE_VISIBLE):
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED);
 		else:
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE);
-
+	
 	UpdateMiscInfo(delta);
 	HandleActions(delta);
 	HandleMovement(delta);
@@ -68,15 +66,6 @@ func _process(delta):
 func _input(event:InputEvent):
 	if (event is InputEventMouseMotion):
 		HandleCamera(event.relative);
-	if event.is_action_pressed("playerTogglePerspective"):
-		thirdPerson = not thirdPerson
-		if thirdPerson:
-			$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_ON;
-			$cameraJoint/camera.translation = Vector3(0, 0, 2)
-		else:
-			$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_SHADOWS_ONLY;
-			$cameraJoint/camera.translation = Vector3(0, 0, 0)
-
 
 func UpdateMiscInfo(delta):
 	# chunk pos update
@@ -85,16 +74,16 @@ func UpdateMiscInfo(delta):
 	if (currentChunk != prevChunk):
 		emit_signal("enteredNewChunk");
 		prevChunk = currentChunk;
-
+	
 	$RayCast.rotation = $cameraJoint.rotation;
-
+	
 	# looking at block
 	lookingAtBlock = $RayCast.get_collision_point();
 	lookingAtBlock += (lookingAtBlock - $cameraJoint.global_transform.origin).normalized() * 0.001;
 	lookingAtBlock.x = floor(lookingAtBlock.x);
 	lookingAtBlock.y = ceil(lookingAtBlock.y);
 	lookingAtBlock.z = floor(lookingAtBlock.z);
-
+	
 	# adjacent block
 	adjacentLookingAtBlock = $RayCast.get_collision_point();
 	adjacentLookingAtBlock -= (adjacentLookingAtBlock - $cameraJoint.global_transform.origin).normalized() * 0.01;
@@ -112,7 +101,7 @@ func HandleActions(delta):
 
 func HandleMovement(delta):
 	prevPos = global_transform.origin;
-
+	
 	var desiredVec2Dir:Vector2 = Vector2.ZERO;
 	if (Input.is_action_pressed("playerMoveForward")):
 		desiredVec2Dir.y += 1;
@@ -125,13 +114,13 @@ func HandleMovement(delta):
 	desiredVec2Dir = CorrectRotation(desiredVec2Dir.normalized());
 	var velocityVec2 = Vector2(velocity.x, velocity.z);
 	var storedInterpolateVelocityVec2 = velocityVec2.linear_interpolate(desiredVec2Dir * walkSpeed, acceleration * delta)
-
+	
 	if (Input.is_action_pressed("playerJump") && is_on_floor()):
 		velocity.y += jumpForce;
-
+	
 	velocity = Vector3(storedInterpolateVelocityVec2.x, velocity.y, storedInterpolateVelocityVec2.y);
 	velocity.y -= gravity * delta;
-
+	
 	move_and_slide(velocity, Vector3(0, 1, 0));
 	if (is_on_floor() || is_on_ceiling()):
 		velocity.y = 0.0;
@@ -141,7 +130,7 @@ func HandleAnimation(delta):
 	var headBodyDif = fmod(fixedCamRotationY - bodyRotation, TAU);
 	var headBodyDifShort = fmod(2 * headBodyDif, TAU) - headBodyDif;
 	var bodyToHeadRotation = fixedCamRotationY + (headBodyDifShort * 1.0);
-
+	
 	var headTransform = Transform(Vector3.RIGHT, Vector3.UP, Vector3.BACK, Vector3.ZERO);
 	headTransform = headTransform.rotated(Vector3.LEFT, $cameraJoint.rotation.x);
 	headTransform = headTransform.rotated(Vector3.FORWARD, fixedCamRotationY);
@@ -149,9 +138,9 @@ func HandleAnimation(delta):
 	var armRightTransform = Transform(Vector3.RIGHT, Vector3.UP, Vector3.BACK, Vector3.ZERO);
 	var legLeftTransform = Transform(Vector3.RIGHT, Vector3.UP, Vector3.BACK, Vector3.ZERO);
 	var legRightTransform = Transform(Vector3.RIGHT, Vector3.UP, Vector3.BACK, Vector3.ZERO);
-
+	
 	var skeleton:Skeleton = get_node("model").get_node("PM/Skeleton");
-
+	
 	if (is_zero_approx(round(velocity.x)) && is_zero_approx(round(velocity.z))):
 		if (abs(headBodyDifShort) > deg2rad(25)):
 			bodyRotation = lerp_angle(bodyRotation, fixedCamRotationY + deg2rad(-sign(headBodyDifShort) * 25.0), 8.0 * delta);
@@ -161,17 +150,17 @@ func HandleAnimation(delta):
 	else:
 		var vec2velocity = Vector2(velocity.x, velocity.z).normalized();
 		var desiredBodyAngle = -Vector2.ZERO.angle_to_point(vec2velocity) + deg2rad(90);
-
+		
 		var headMovementBodyDif = fmod(fixedCamRotationY - desiredBodyAngle, TAU);
 		var headMovementBodyDifShort = fmod(2 * headMovementBodyDif, TAU) - headMovementBodyDif;
 		if (abs(headMovementBodyDifShort) > deg2rad(25)):
 			desiredBodyAngle = fixedCamRotationY + deg2rad(-sign(headMovementBodyDifShort) * 25.0);
-
+		
 		bodyRotation = lerp_angle(bodyRotation, desiredBodyAngle, 8.0 * delta);
 		var bodyTransform = Transform(Vector3.RIGHT, Vector3.UP, Vector3.BACK, Vector3.ZERO);
 		bodyTransform = bodyTransform.rotated(Vector3.UP, bodyRotation);
 		skeleton.set_bone_pose(skeleton.find_bone("core"), bodyTransform);
-
+	
 	var speedAmp = GetVelocityDif(delta) / walkSpeed;
 	armLeftRotation = sin(animationTimer) * (0.06 + (speedAmp * 0.5));
 	armRightRotation = -sin(animationTimer) * (0.06 + (speedAmp * 0.5));
@@ -185,7 +174,7 @@ func HandleAnimation(delta):
 	skeleton.set_bone_pose(skeleton.find_bone("arm_R"), armRightTransform);
 	skeleton.set_bone_pose(skeleton.find_bone("leg_L"), legLeftTransform);
 	skeleton.set_bone_pose(skeleton.find_bone("leg_R"), legRightTransform);
-
+	
 	skeleton.set_bone_pose(skeleton.find_bone("head"), headTransform);
 
 func HandleHud(delta):
@@ -203,7 +192,7 @@ func HandleCamera(mouseMotion:Vector2):
 	if (Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED):
 		mouseMotion = -mouseMotion * mouseSensitivity;
 		$cameraJoint.rotate_y(deg2rad(mouseMotion.x));
-
+		
 		var allowRotation:bool = true;
 		if (($cameraJoint.rotation.x + deg2rad(mouseMotion.y)) >= PI/2):
 			$cameraJoint.rotation.x = PI/2;

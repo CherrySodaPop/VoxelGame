@@ -24,13 +24,3 @@ custom_fonts/normal_font = SubResource( 1 )
 text = "VoxelGame Indev"
 fit_content_height = true
 scroll_active = false
-
-[node name="RefreshTimer" type="Timer" parent="."]
-wait_time = 0.1
-autostart = true
-__meta__ = {
-"_editor_description_": "Controls how often the debug info refreshes.
-This prevents the ClientChunkLoader from locking every single frame and utterly destroying performance."
-}
-
-[connection signal="timeout" from="RefreshTimer" to="." method="_on_RefreshTimer_timeout"]

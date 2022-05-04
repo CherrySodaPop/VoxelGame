@@ -8,18 +8,6 @@ pub struct ChunkData {
     pub skylightlevel: Box<LightLevelData>,
 }
 
-fn compress(source: &[u8]) -> Vec<u8> {
-    let compression_prefs = lzzzz::lz4f::Preferences::default();
-    let mut compressed_buffer =
-        vec![0; lzzzz::lz4f::max_compressed_size(source.len(), &compression_prefs)];
-
-    let compressed_size =
-        lzzzz::lz4f::compress(source, &mut compressed_buffer, &compression_prefs).unwrap();
-    let compressed: Vec<u8> = compressed_buffer[..compressed_size].into();
-
-    compressed
-}
-
 impl ChunkData {
     pub fn new(position: ChunkPos) -> Self {
         Self {
@@ -46,50 +34,6 @@ impl ChunkData {
             }
         }
         None
-    }
-
-    pub fn pack(&self) -> Vec<u8> {
-        let mut combined = Vec::new();
-        for x in 0..CHUNK_SIZE_X {
-            for y in 0..CHUNK_SIZE_Y {
-                for z in 0..CHUNK_SIZE_Z {
-                    let block = self.terrain[x][y][z];
-                    let skylightlevel = self.skylightlevel[x][y][z];
-                    combined.push(((block as u32) << 16) + (skylightlevel as u32));
-                }
-            }
-        }
-        let split: Vec<u8> = combined
-            .into_iter()
-            .flat_map(|num| num.to_le_bytes())
-            .collect();
-        compress(&split)
-    }
-
-    pub fn unpack(position: ChunkPos, packed: &[u8]) -> Self {
-        let mut split = Vec::new();
-        lzzzz::lz4f::decompress_to_vec(packed, &mut split).unwrap();
-
-        let combined: Vec<u32> = split
-            .chunks_exact(4)
-            .map(|bytes| u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
-            .collect();
-
-        let mut terrain = Box::new([[[0; CHUNK_SIZE_X]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z]);
-        let mut skylightlevel = Box::new([[[0; CHUNK_SIZE_X]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z]);
-        for x in 0..CHUNK_SIZE_X {
-            for y in 0..CHUNK_SIZE_Y {
-                for z in 0..CHUNK_SIZE_Z {
-                    let idx = z + CHUNK_SIZE_X * (y + CHUNK_SIZE_Y * x);
-                    skylightlevel[x][y][z] = (combined[idx] & 0xffffff) as u16;
-                    terrain[x][y][z] = (combined[idx] >> 16) as u16;
-                }
-            }
-        }
-        let mut data = ChunkData::new(position);
-        data.terrain = terrain;
-        data.skylightlevel = skylightlevel;
-        data
     }
 }
 
