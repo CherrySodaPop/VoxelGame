@@ -1,5 +1,7 @@
 use std::fmt::Debug;
 
+use serde::{Deserialize, Serialize};
+
 use crate::constants::*;
 
 #[derive(Debug, Clone)]
@@ -19,7 +21,7 @@ impl std::error::Error for OutOfBoundsError {}
 ///
 /// Keep in mind that the x and z values here do not represent *block* positions.
 /// Use `ChunkPos.origin` if you want the position of the chunk's origin block.
-#[derive(Clone, Copy, Eq, PartialEq, Debug, Hash)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug, Hash, Serialize, Deserialize)]
 pub struct ChunkPos {
     pub x: isize,
     pub z: isize,

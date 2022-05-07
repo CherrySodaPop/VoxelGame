@@ -1,5 +1,7 @@
 use crate::{block::BlockID, constants::*, positions::*};
+use serde::{Deserialize, Serialize};
 
+#[derive(Serialize, Deserialize)]
 pub struct ChunkData {
     pub position: ChunkPos,
     // These fields are Box-ed to prevent the stack from overflowing.
@@ -12,15 +14,21 @@ impl ChunkData {
     pub fn new(position: ChunkPos) -> Self {
         Self {
             position,
-            terrain: Box::new([[[0; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z]),
-            skylightlevel: Box::new([[[0; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_Z]),
+            terrain: Box::new(TerrainData::from_elem(
+                [CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z],
+                0,
+            )),
+            skylightlevel: Box::new(LightLevelData::from_elem(
+                [CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z],
+                0,
+            )),
         }
     }
     pub fn get(&self, position: LocalBlockPos) -> BlockID {
-        self.terrain[position.x][position.y][position.z]
+        self.terrain[[position.x, position.y, position.z]]
     }
     pub fn set(&mut self, position: LocalBlockPos, to: BlockID) {
-        self.terrain[position.x][position.y][position.z] = to;
+        self.terrain[[position.x, position.y, position.z]] = to;
     }
 
     /// Gets the y-level of the first air block at `x` and `z` (local-space).

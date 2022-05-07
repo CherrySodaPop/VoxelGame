@@ -128,16 +128,17 @@ remote func PlayerInfo(pos:Vector3, camRotation:Vector2):
 		obj.global_transform.origin = pos;
 		obj.camRotation = camRotation;
 
+# TODO: Rename this!!
+func SendChunkData2(senderID, chunkPos):
+	var chunkData = chunkLoader.chunk_data_encoded(chunkPos);
+	if chunkData != null:
+		rpc_id(senderID, "ChunkData", chunkData, chunkPos);
+
 remote func SendChunkData(chunkPos: Vector2):
 	var senderID = get_tree().get_rpc_sender_id();
 	var positions = chunkLoader.load_around_chunk_gd(chunkPos);
 	for chunkPos in positions:
-		var chunkData:PoolByteArray = chunkLoader.terrain_encoded(chunkPos);
-		var chunkSkyLightLevel:PoolByteArray = chunkLoader.skylightlevel_encoded(chunkPos);
-		chunkData = chunkData.compress();
-		chunkSkyLightLevel = chunkSkyLightLevel.compress();
-		if chunkData != null:
-			rpc_id(senderID, "ChunkData", chunkData, chunkSkyLightLevel, chunkPos);
+		SendChunkData2(senderID, chunkPos)
 
 remote func SetBlock(blockPos:Vector3, blockID:int):
 	var senderID = get_tree().get_rpc_sender_id();
@@ -146,11 +147,4 @@ remote func SetBlock(blockPos:Vector3, blockID:int):
 		if (obj.global_transform.origin.distance_to(blockPos) <= 4.0):
 			Persistant.get_node("controllerNetwork/chunkCreator").set_block_gd(blockPos, blockID);
 			var chunkPos:Vector2 = Vector2(floor(blockPos.x / 32), floor(blockPos.z / 32));
-			var chunkData:PoolByteArray = chunkLoader.terrain_encoded(chunkPos);
-			var chunkSkyLightLevel:PoolByteArray = chunkLoader.skylightlevel_encoded(chunkPos);
-			# TODO: Thread this compression/decompression on the Rust side
-			#       to reduce stutter
-			chunkData = chunkData.compress();
-			chunkSkyLightLevel = chunkSkyLightLevel.compress();
-			if (chunkData != null):
-				rpc_unreliable("ChunkData", chunkData, chunkSkyLightLevel, chunkPos);
+			SendChunkData2(senderID, chunkPos)

@@ -104,60 +104,20 @@ impl ClientChunkLoader {
         self.chunks.insert(chunk.position, chunk);
     }
 
-    fn decode_u8_chunk_data(
-        &self,
-        data: &[u8],
-    ) -> Box<[[[BlockID; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X]> {
-        // TODO: This got merged into a single function from the original
-        //       terrain and light-level specific ones, however it'll actually
-        //       have to be split up again or use some generics/closure magic
-        //       once light level data gets stored as a u8 instead of a u16.
-        let flat: Box<Vec<u16>> = Box::new(
-            data.chunks_exact(2)
-                // TODO: We could maybe use u16::from_le_bytes here
-                .map(|bytes| ((bytes[0] as u16) << 8) + (bytes[1] as u16))
-                .collect(),
-        );
-        let mut packed = Box::new([[[0; CHUNK_SIZE_Z]; CHUNK_SIZE_Y]; CHUNK_SIZE_X]);
-        for x in 0..CHUNK_SIZE_X {
-            for y in 0..CHUNK_SIZE_Y {
-                for z in 0..CHUNK_SIZE_Z {
-                    let idx = z + CHUNK_SIZE_X * (y + CHUNK_SIZE_Y * x);
-                    packed[x][y][z] = flat[idx];
-                }
-            }
-        }
-        packed
-    }
-
     #[export]
-    fn receive_chunk(
-        &mut self,
-        _owner: &Node,
-        terrain_data: ByteArray,
-        skylightlevel_data: ByteArray,
-        position: Vector2,
-    ) {
+    fn receive_chunk(&mut self, _owner: &Node, data: ByteArray, position: Vector2) {
         let position = ChunkPos::new(position.x as isize, position.y as isize);
-        // NOTE: These data were decompressed via PoolByteArray.decompress() in the networkController.
-        let terrain_data_read = terrain_data.read();
-        let skylightlevel_data_read = skylightlevel_data.read();
-        let terrain = self.decode_u8_chunk_data(&*terrain_data_read);
-        let skylightlevel = self.decode_u8_chunk_data(&*skylightlevel_data_read);
-        // TODO: That was a lot of repetition, which could be fixed in many interesting ways...
-        //       Generic functions, closures, or perhaps a unified BlockInfo type...
+        let data = data.read();
+        let received_chunk_data: ChunkData = bincode::deserialize(&*data).unwrap();
         if let Some(loaded_chunk) = self.chunks.get(&position) {
             let mut chunk_data_write = loaded_chunk.data.write().unwrap();
-            chunk_data_write.terrain = terrain;
-            chunk_data_write.skylightlevel = skylightlevel;
+            // This should just replace `loaded_chunk.data`, but it can't
+            // without violating borrowing rules at the moment.
+            chunk_data_write.terrain = received_chunk_data.terrain;
+            chunk_data_write.skylightlevel = received_chunk_data.skylightlevel;
             self.update_mesh(loaded_chunk);
         } else {
-            let data = ChunkData {
-                position,
-                terrain,
-                skylightlevel,
-            };
-            self.spawn_chunk(data);
+            self.spawn_chunk(received_chunk_data);
         }
     }
 
