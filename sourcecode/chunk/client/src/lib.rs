@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{chunk_mesh::ChunkMeshData, chunk_node::ChunkNode};
-use chunkcommon::{chunk::ChunkData, prelude::*, vec3};
+use chunkcommon::{chunk::ChunkData, network::decode_compressed, prelude::*, vec3};
 use gdnative::prelude::*;
 
 mod chunk_mesh;
@@ -108,7 +108,7 @@ impl ClientChunkLoader {
     fn receive_chunk(&mut self, _owner: &Node, data: ByteArray, position: Vector2) {
         let position = ChunkPos::new(position.x as isize, position.y as isize);
         let data = data.read();
-        let received_chunk_data: ChunkData = bincode::deserialize(&*data).unwrap();
+        let received_chunk_data: ChunkData = decode_compressed(&*data);
         if let Some(loaded_chunk) = self.chunks.get(&position) {
             let mut chunk_data_write = loaded_chunk.data.write().unwrap();
             // This should just replace `loaded_chunk.data`, but it can't

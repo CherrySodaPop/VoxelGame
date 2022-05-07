@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use crate::generate::ChunkGenerator;
-use chunkcommon::{chunk::ChunkData, errors::NotLoadedError, prelude::*, vec2};
+use chunkcommon::{
+    chunk::ChunkData, errors::NotLoadedError, network::encode_and_compress, prelude::*, vec2,
+};
 use gdnative::prelude::*;
 
 mod features;
@@ -122,8 +124,7 @@ impl ServerChunkCreator {
         println!("Encoding chunk data for {:?}", chunk_position);
         self.chunks
             .get(&chunk_position)
-            // TODO: Compress this data
-            .map(|chunk| ByteArray::from_vec(bincode::serialize(chunk).unwrap()))
+            .map(|data| ByteArray::from_vec(encode_and_compress(data)))
     }
 
     #[export]
