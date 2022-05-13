@@ -2,20 +2,7 @@ use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
-use crate::constants::*;
-
-#[derive(Debug, Clone)]
-pub struct OutOfBoundsError;
-
-impl std::fmt::Display for OutOfBoundsError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "<Local/Global>BlockPosition was offset beyond its boundaries"
-        )
-    }
-}
-impl std::error::Error for OutOfBoundsError {}
+use crate::{constants::*, errors::OffsetError};
 
 /// A chunk in the world.
 ///
@@ -47,6 +34,12 @@ impl ChunkPos {
             ChunkPos::new(self.x, self.z + 1),
             ChunkPos::new(self.x, self.z - 1),
         ]
+    }
+}
+
+impl std::fmt::Display for ChunkPos {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}, {}]", self.x, self.z)
     }
 }
 
@@ -102,26 +95,24 @@ impl LocalBlockPos {
         Self { x, y, z, chunk }
     }
     /// Offsets this block position by `offset`.
-    ///
-    /// Returns `TooLargeError` if the resulting block position would
-    /// end up in another chunk. (See `LocalBlockPos.offset_global`)
-    pub fn offset(&self, offset: BlockOffset) -> Result<Self, OutOfBoundsError> {
+    pub fn offset(&self, offset: BlockOffset) -> Result<Self, OffsetError> {
         let x = self.x as isize + offset.x;
         let y = self.y as isize + offset.y;
         let z = self.z as isize + offset.z;
-        if in_urange!(&x, CHUNK_SIZE_X as isize)
-            && in_urange!(&y, CHUNK_SIZE_Y as isize)
-            && in_urange!(&z, CHUNK_SIZE_Z as isize)
-        {
-            Ok(Self::new(x as usize, y as usize, z as usize, self.chunk))
+        if in_urange!(&x, CHUNK_SIZE_X as isize) && in_urange!(&z, CHUNK_SIZE_Z as isize) {
+            if in_urange!(&y, CHUNK_SIZE_Y as isize) {
+                Ok(Self::new(x as usize, y as usize, z as usize, self.chunk))
+            } else {
+                Err(OffsetError::OutOfBounds)
+            }
         } else {
-            Err(OutOfBoundsError)
+            Err(OffsetError::DifferentChunk)
         }
     }
     /// Offsets this block position by `offset`, returning a `GlobalBlockPos`.
     ///
     /// To offset in local space, see `LocalBlockPos.offset`.
-    pub fn offset_global(&self, offset: BlockOffset) -> Result<GlobalBlockPos, OutOfBoundsError> {
+    pub fn offset_global(&self, offset: BlockOffset) -> Result<GlobalBlockPos, OffsetError> {
         let global_position: GlobalBlockPos = (*self).into();
         global_position.offset(offset)
     }
@@ -184,10 +175,10 @@ impl GlobalBlockPos {
         ChunkPos::new(chunk_x, chunk_z)
     }
     /// Offsets this block position by `offset`.
-    pub fn offset(&self, offset: BlockOffset) -> Result<Self, OutOfBoundsError> {
+    pub fn offset(&self, offset: BlockOffset) -> Result<Self, OffsetError> {
         let y = self.y + offset.y;
-        if !(0..=255).contains(&y) {
-            Err(OutOfBoundsError)
+        if !in_urange!(&y, CHUNK_SIZE_Y as isize) {
+            Err(OffsetError::OutOfBounds)
         } else {
             Ok(Self {
                 x: self.x + offset.x,
@@ -366,11 +357,13 @@ mod tests {
         test_lbp_global_offset!([0, 10, 0], [-1, 0], [-4, 0, 0], [-36, 10, 0]);
     }
 
+    #[test]
     #[should_panic]
     fn test_local_offset_panic() {
         test_lbp_offset!([31, 0, 31], [0, 0], [1, 0, 1], [0, 0, 0], [1, 1]);
     }
 
+    #[test]
     #[should_panic]
     fn test_local_offset_panic_2() {
         test_lbp_global_offset!([0, 0, 0], [0, 0], [0, -1, 0], [0, 0, 0]);

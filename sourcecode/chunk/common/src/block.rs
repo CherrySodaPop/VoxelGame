@@ -33,7 +33,6 @@ impl BlockManager {
             serde_json::from_str(BLOCKS_JSON).unwrap();
         let blocks: HashMap<String, Block> =
             serde_json::from_value(game_dict.remove("blocks").unwrap()).unwrap();
-        println!("{:?}", blocks);
         let transparent_blocks = blocks
             .iter()
             // TODO: Replace with `.then_some(block.id)` if `bool_to_option` gets stabilized

@@ -49,10 +49,6 @@ impl ClientChunkLoader {
         }
     }
 
-    fn get(&self, chunk_position: ChunkPos) -> Option<&Chunk> {
-        self.chunks.get(&chunk_position)
-    }
-
     /// Returns a "view" into `ClientChunkLoader.chunks`,
     /// mapping `ChunkPos`s to `RwLock`ed `ChunkData`s.
     fn data_view(&self) -> HashMap<ChunkPos, Arc<RwLock<ChunkData>>> {
@@ -83,7 +79,7 @@ impl ClientChunkLoader {
     fn update_nearby_meshes(&self, position: ChunkPos) {
         let nearby = position.adjacent();
         for nearby_position in nearby {
-            if let Some(chunk) = self.get(nearby_position) {
+            if let Some(chunk) = self.chunks.get(&nearby_position) {
                 self.update_mesh(chunk);
             }
         }

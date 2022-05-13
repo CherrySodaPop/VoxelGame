@@ -3,7 +3,7 @@
 use std::borrow::Borrow;
 
 use gdnative::{
-    api::{ArrayMesh, ConcavePolygonShape},
+    api::ArrayMesh,
     core_types::{Color, ColorArray, VariantArray, Vector2, Vector2Array, Vector3, Vector3Array},
     object::Ref,
     prelude::Unique,
@@ -195,20 +195,31 @@ impl GDMeshData {
         vec.iter().map(|val| vec2!(val[0], val[1])).collect()
     }
 
-    /// Adds this `GDMeshData` to `mesh` as a new surface.
-    pub fn add_to(&self, mesh: &mut Ref<ArrayMesh, Unique>) {
+    /// Converts this `GDMeshData` into a single `VariantArray` for use with
+    /// Godot's `ArrayMesh` its associated concepts.
+    pub fn to_array(&self) -> VariantArray<Unique> {
         let gdarray = VariantArray::new();
         gdarray.resize(ArrayMesh::ARRAY_MAX as i32);
         gdarray.set(ArrayMesh::ARRAY_VERTEX as i32, self.vertices.clone());
         gdarray.set(ArrayMesh::ARRAY_NORMAL as i32, self.normals.clone());
         gdarray.set(ArrayMesh::ARRAY_COLOR as i32, self.colors.clone());
         gdarray.set(ArrayMesh::ARRAY_TEX_UV as i32, self.uvs.clone());
+        gdarray
+    }
+
+    /// Adds this `GDMeshData` to `mesh` as a new surface.
+    ///
+    /// Returns the new surface's "surface index".
+    pub fn add_to(&self, mesh: &mut Ref<ArrayMesh, Unique>) -> i64 {
+        let gdarray = self.to_array();
+        let surf_idx = mesh.get_surface_count();
         mesh.add_surface_from_arrays(
             gdnative::api::Mesh::PRIMITIVE_TRIANGLES,
             gdarray.into_shared(),
             VariantArray::new().into_shared(),
             2194432,
         );
+        surf_idx
     }
 }
 
