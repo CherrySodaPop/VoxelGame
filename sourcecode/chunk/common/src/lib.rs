@@ -1,5 +1,6 @@
 pub mod block;
 pub mod chunk;
+pub mod chunkmesh;
 pub mod constants;
 pub mod errors;
 pub mod macros;

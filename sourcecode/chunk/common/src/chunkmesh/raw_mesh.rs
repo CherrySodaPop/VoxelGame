@@ -1,15 +1,12 @@
 //! Mesh data structs and Godot `ArrayMesh` generation.
 
-use std::borrow::Borrow;
-
 use gdnative::{
     api::ArrayMesh,
     core_types::{Color, ColorArray, VariantArray, Vector2, Vector2Array, Vector3, Vector3Array},
-    object::Ref,
     prelude::Unique,
 };
 
-use chunkcommon::{color, vec2, vec3};
+use crate::{color, vec2, vec3};
 
 #[derive(Clone, Copy, Debug)]
 enum Axis {
@@ -158,81 +155,43 @@ impl MeshData {
             self.colors.push([255, 255, 255, 255]);
         }
     }
-}
-
-/// Like `MeshData`, but using Godot types.
-///
-/// This allows abstraction over mesh data, while still permitting
-/// things like passing `self.vertices.clone()` to Godot.
-///
-/// Keep in mind that `Vector3Array`s are reference-counted, meaning
-/// that `Vector3Array.clone()` does not actually clone the *data*.
-/// See godot-rust's documentation on `PoolArray` for more info.
-pub struct GDMeshData {
-    vertices: Vector3Array,
-    normals: Vector3Array,
-    colors: ColorArray,
-    uvs: Vector2Array,
-}
-
-impl GDMeshData {
-    // TODO: A macro for doing all these conversions.
-    // TODO: Are these super performance-degrading?
-
-    pub fn convert_color(vec: &[[u8; 4]]) -> ColorArray {
-        vec.iter()
-            .map(|val| color!(val[0], val[1], val[2], val[3]))
-            .collect()
-    }
-
-    pub fn convert_vec3(vec: &[[isize; 3]]) -> Vector3Array {
-        vec.iter()
-            .map(|val| vec3!(val[0], val[1], val[2]))
-            .collect()
-    }
-
-    pub fn convert_vec2(vec: &[[f32; 2]]) -> Vector2Array {
-        vec.iter().map(|val| vec2!(val[0], val[1])).collect()
-    }
-
-    /// Converts this `GDMeshData` into a single `VariantArray` for use with
-    /// Godot's `ArrayMesh` its associated concepts.
-    pub fn to_array(&self) -> VariantArray<Unique> {
+    /// Converts this `MeshData` into a `VariantArray` for use with
+    /// Godot's `ArrayMesh` and its associated concepts.
+    pub fn to_gd_array(&self) -> VariantArray<Unique> {
         let gdarray = VariantArray::new();
         gdarray.resize(ArrayMesh::ARRAY_MAX as i32);
-        gdarray.set(ArrayMesh::ARRAY_VERTEX as i32, self.vertices.clone());
-        gdarray.set(ArrayMesh::ARRAY_NORMAL as i32, self.normals.clone());
-        gdarray.set(ArrayMesh::ARRAY_COLOR as i32, self.colors.clone());
-        gdarray.set(ArrayMesh::ARRAY_TEX_UV as i32, self.uvs.clone());
-        gdarray
-    }
-
-    /// Adds this `GDMeshData` to `mesh` as a new surface.
-    ///
-    /// Returns the new surface's "surface index".
-    pub fn add_to(&self, mesh: &mut Ref<ArrayMesh, Unique>) -> i64 {
-        let gdarray = self.to_array();
-        let surf_idx = mesh.get_surface_count();
-        mesh.add_surface_from_arrays(
-            gdnative::api::Mesh::PRIMITIVE_TRIANGLES,
-            gdarray.into_shared(),
-            VariantArray::new().into_shared(),
-            2194432,
+        gdarray.set(
+            ArrayMesh::ARRAY_VERTEX as i32,
+            Vector3Array::from_iter(self.vertices.iter().map(|v| vec3!(v))),
         );
-        surf_idx
+        gdarray.set(
+            ArrayMesh::ARRAY_NORMAL as i32,
+            Vector3Array::from_iter(self.normals.iter().map(|v| vec3!(v))),
+        );
+        gdarray.set(
+            ArrayMesh::ARRAY_TEX_UV as i32,
+            Vector2Array::from_iter(self.uvs.iter().map(|v| vec2!(v))),
+        );
+        gdarray.set(
+            ArrayMesh::ARRAY_COLOR as i32,
+            ColorArray::from_iter(self.colors.iter().map(|v| color!(v))),
+        );
+        gdarray
     }
 }
 
-impl<T: Borrow<MeshData>> From<T> for GDMeshData {
-    fn from(mesh_data_ref: T) -> Self {
-        let mesh_data: &MeshData = mesh_data_ref.borrow();
-        GDMeshData {
-            vertices: Self::convert_vec3(&mesh_data.vertices),
-            normals: Self::convert_vec3(&mesh_data.normals),
-            uvs: Self::convert_vec2(&mesh_data.uvs),
-            colors: Self::convert_color(&mesh_data.colors),
-        }
-    }
+/// Adds `array_data` to `mesh` as a new surface.
+///
+/// Returns the new surface's "surface index".
+pub fn add_surface(array_data: VariantArray<gdnative::prelude::Shared>, mesh: &ArrayMesh) -> i64 {
+    let surf_idx = mesh.get_surface_count();
+    mesh.add_surface_from_arrays(
+        gdnative::api::Mesh::PRIMITIVE_TRIANGLES,
+        array_data,
+        VariantArray::new().into_shared(),
+        2194432,
+    );
+    surf_idx
 }
 
 // TODO: tests

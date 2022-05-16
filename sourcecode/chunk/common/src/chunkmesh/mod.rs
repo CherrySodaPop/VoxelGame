@@ -1,4 +1,6 @@
-//! Chunk mesh creation facilities.
+//! Chunk mesh creation facilities and related nodes.
+pub mod nodes;
+pub(crate) mod raw_mesh;
 
 use std::{
     collections::HashMap,
@@ -7,18 +9,19 @@ use std::{
 
 use gdnative::{
     api::{ArrayMesh, ConcavePolygonShape, Material, ResourceLoader, SpatialMaterial, Texture},
+    core_types::{Vector3, Vector3Array},
     object::Ref,
     prelude::{Shared, Unique},
 };
 
-use chunkcommon::{
+use crate::{
     block::BLOCK_MANAGER,
     chunk::ChunkData,
+    chunkmesh::raw_mesh::{add_surface, Face, MeshData, FACES},
     errors::{NotLoadedError, OffsetError},
     prelude::*,
+    vec3,
 };
-
-use crate::mesh::{Face, GDMeshData, MeshData, FACES};
 
 /// Block-type specific `MeshData`, to allow for different block types
 /// to have their own specific materials.
@@ -80,8 +83,8 @@ impl BlockSurface {
     /// Adds this `BlockSurface` to `mesh` as a surface,
     /// setting the surface's material depending on `self.block_id`.
     fn add_to_mesh(&self, mesh: &mut Ref<ArrayMesh, Unique>) {
-        let gd_mesh_data: GDMeshData = (&self.mesh_data).into();
-        let surf_idx = gd_mesh_data.add_to(mesh);
+        let array_data = self.mesh_data.to_gd_array().into_shared();
+        let surf_idx = add_surface(array_data, mesh);
         mesh.surface_set_material(surf_idx, self.create_material());
     }
 }
@@ -171,14 +174,15 @@ impl ChunkMeshData {
     /// Constructs a `ConcavePolygonShape` from this `ChunkMeshData`.
     pub fn build_collision_shape(&self) -> Ref<ConcavePolygonShape, Unique> {
         // Pool every vertex from every block type in the mesh data together.
-        let all_vertices: Vec<[isize; 3]> = self
-            .surfaces
-            .values()
-            // TODO: No clone >:(
-            .flat_map(|bs| bs.mesh_data.vertices.clone())
-            .collect();
         let collision_shape = ConcavePolygonShape::new();
-        collision_shape.set_faces(GDMeshData::convert_vec3(&all_vertices));
+        collision_shape.set_faces(Vector3Array::from_iter(
+            // Get the vertices from every BlockSurface.
+            self.surfaces
+                .values()
+                .flat_map(|bs| &bs.mesh_data.vertices)
+                // Convert them into Vector3s so that Vector3Array will accept them.
+                .map(|v| vec3!(v)),
+        ));
         collision_shape
     }
     pub fn new_from_chunk_data(
