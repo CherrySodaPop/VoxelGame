@@ -1,11 +1,11 @@
 //! Chunk nodes, for use by the server and client.
 
 use gdnative::{
-    api::{CollisionShape, MeshInstance},
+    api::{CollisionShape, MeshInstance, StaticBody},
     prelude::*,
 };
 
-use crate::chunkmesh::ChunkMeshData;
+use crate::{chunkmesh::ChunkMeshData, prelude::ChunkPos, vec3};
 
 #[derive(NativeClass)]
 #[export]
@@ -22,8 +22,7 @@ impl ChunkCollisionShape {
             base: unsafe { base.assume_shared() },
         }
     }
-
-    pub fn update_shape(&mut self, mesh_data: &ChunkMeshData) {
+    fn update(&mut self, mesh_data: &ChunkMeshData) {
         let new_collision_shape = mesh_data.build_collision_shape();
         unsafe {
             // This MUST be call_deferred, setting the shape when using the
@@ -51,9 +50,54 @@ impl ChunkMeshInstance {
             base: unsafe { base.assume_shared() },
         }
     }
-
-    pub fn update_mesh(&mut self, mesh_data: &ChunkMeshData) {
+    fn update(&mut self, mesh_data: &ChunkMeshData) {
         let new_mesh = mesh_data.build_mesh();
         unsafe { self.base.assume_safe() }.set_mesh(new_mesh);
+    }
+}
+
+pub struct ChunkNode {
+    body: Ref<StaticBody, Shared>,
+    mesh: Option<Instance<ChunkMeshInstance, Shared>>,
+    collision: Instance<ChunkCollisionShape, Shared>,
+}
+
+impl ChunkNode {
+    pub fn new(mesh: Option<Instance<ChunkMeshInstance, Unique>>) -> Self {
+        let body = StaticBody::new();
+        let collision = ChunkCollisionShape::new_instance().into_shared();
+        body.add_child(&collision, true);
+        let mesh = mesh.map(|m| m.into_shared());
+        if let Some(ref mesh) = mesh {
+            body.add_child(mesh, true);
+        }
+        Self {
+            body: body.into_shared(),
+            collision,
+            mesh,
+        }
+    }
+
+    pub fn new_with_mesh() -> Self {
+        Self::new(Some(ChunkMeshInstance::new_instance()))
+    }
+
+    pub fn spawn(&mut self, parent: &Node, position: ChunkPos) {
+        let origin = position.origin();
+        unsafe { self.body.assume_safe() }.set_translation(vec3!(origin.x, origin.y, origin.z));
+        parent.add_child(self.body, true);
+    }
+
+    pub fn update(&mut self, mesh_data: &ChunkMeshData) {
+        unsafe { self.collision.assume_safe() }
+            .map_mut(|collision, _base| collision.update(mesh_data))
+            .unwrap();
+        if let Some(ref mesh) = self.mesh {
+            unsafe { mesh.assume_safe() }
+                .map_mut(|mesh, _base| {
+                    mesh.update(mesh_data);
+                })
+                .unwrap();
+        }
     }
 }

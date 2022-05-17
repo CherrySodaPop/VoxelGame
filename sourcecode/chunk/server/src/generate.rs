@@ -55,15 +55,10 @@ impl ChunkGenerator {
             self.waitlist.merge(feature.add_to_chunk(chunk_data));
         }
     }
-    pub fn apply_waitlist(&mut self, chunks: &mut HashMap<ChunkPos, ChunkData>) {
-        for (chunk_pos, chunk_data) in chunks.iter_mut() {
-            match self.waitlist.chunks.remove(chunk_pos) {
-                Some(add_blocks) => {
-                    for (pos, block_id) in add_blocks {
-                        chunk_data.set(pos, block_id);
-                    }
-                }
-                None => continue,
+    pub fn apply_waitlist_to(&mut self, data: &mut ChunkData) {
+        if let Some(add_blocks) = self.waitlist.chunks.remove(&data.position) {
+            for (pos, block_id) in add_blocks {
+                data.set(pos, block_id);
             }
         }
     }

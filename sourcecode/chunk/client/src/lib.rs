@@ -6,57 +6,15 @@ use std::{
 use chunkcommon::{
     chunk::ChunkData,
     chunkmesh::{
-        nodes::{ChunkCollisionShape, ChunkMeshInstance},
+        nodes::{ChunkCollisionShape, ChunkMeshInstance, ChunkNode},
         ChunkMeshData,
     },
     network::decode_compressed,
     prelude::*,
-    vec3,
 };
-use gdnative::{api::StaticBody, prelude::*};
+use gdnative::prelude::*;
 
-/// This type is **not** thread-safe and needs to be wrapped in a Mutex to be shared
-/// between threads.
-struct ClientChunkNode {
-    body: Ref<StaticBody, Shared>,
-    collision: Instance<ChunkCollisionShape, Shared>,
-    mesh: Instance<ChunkMeshInstance, Shared>,
-}
-
-impl ClientChunkNode {
-    fn new() -> Self {
-        let body = StaticBody::new();
-        let collision = ChunkCollisionShape::new_instance().into_shared();
-        let mesh = ChunkMeshInstance::new_instance().into_shared();
-        body.add_child(&collision, true);
-        body.add_child(&mesh, true);
-        Self {
-            body: body.into_shared(),
-            collision,
-            mesh,
-        }
-    }
-
-    fn spawn(&mut self, parent: &Node, position: ChunkPos) {
-        let origin = position.origin();
-        unsafe { self.body.assume_safe() }.set_translation(vec3!(origin.x, origin.y, origin.z));
-        parent.add_child(self.body, true);
-    }
-
-    /// Update the mesh and collision nodes with `mesh_data`.
-    ///
-    /// This can only be called from a thread with **exclusive access** to this `ClientChunkNode`.
-    fn update(&mut self, mesh_data: &ChunkMeshData) {
-        unsafe { self.collision.assume_safe() }
-            .map_mut(|collision, _base| collision.update_shape(mesh_data))
-            .unwrap();
-        unsafe { self.mesh.assume_safe() }
-            .map_mut(|mesh, _base| mesh.update_mesh(mesh_data))
-            .unwrap();
-    }
-}
-
-pub struct Chunk {
+pub struct ClientChunk {
     /// The chunk's position. This is determined by `Chunk.data.position` and
     /// is copied here for convenience, to prevent requiring locking to access
     /// something so simple.
@@ -64,11 +22,11 @@ pub struct Chunk {
     /// The chunk's terrain data.
     pub data: Arc<RwLock<ChunkData>>,
     /// The chunk node, its manifestation in the Godot world.
-    node: Arc<Mutex<ClientChunkNode>>,
+    node: Arc<Mutex<ChunkNode>>,
 }
 
-impl Chunk {
-    fn new(data: ChunkData, node: ClientChunkNode) -> Self {
+impl ClientChunk {
+    fn new(data: ChunkData, node: ChunkNode) -> Self {
         Self {
             position: data.position,
             data: Arc::new(RwLock::new(data)),
@@ -82,7 +40,7 @@ impl Chunk {
 #[inherit(Node)]
 pub struct ClientChunkLoader {
     base: Ref<Node, Shared>,
-    chunks: HashMap<ChunkPos, Chunk>,
+    chunks: HashMap<ChunkPos, ClientChunk>,
 }
 
 #[methods]
@@ -103,7 +61,7 @@ impl ClientChunkLoader {
             .collect()
     }
 
-    fn update_mesh(&self, chunk: &Chunk) {
+    fn update_mesh(&self, chunk: &ClientChunk) {
         println!("Updating mesh data for {:?}", chunk.position);
         let view = self.data_view();
         let chunk_node = chunk.node.clone();
@@ -128,9 +86,9 @@ impl ClientChunkLoader {
 
     fn spawn_chunk(&mut self, data: ChunkData) {
         println!("Spawning chunk {:?}", data.position);
-        let mut node = ClientChunkNode::new();
+        let mut node = ChunkNode::new_with_mesh();
         node.spawn(&*unsafe { self.base.assume_safe() }, data.position);
-        let chunk = Chunk::new(data, node);
+        let chunk = ClientChunk::new(data, node);
         self.update_mesh(&chunk);
         self.chunks.insert(chunk.position, chunk);
     }
