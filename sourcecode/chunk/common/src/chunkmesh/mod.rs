@@ -91,12 +91,12 @@ impl BlockSurface {
 
 /// Gets the block at `position` from `position.chunk` if it is present in `loaded_chunks`.
 fn get_global(
-    loaded_chunks: &HashMap<ChunkPos, Arc<RwLock<ChunkData>>>,
+    loaded_chunks: &HashMap<ChunkPos, &ChunkData>,
     position: LocalBlockPos,
 ) -> Result<BlockID, NotLoadedError> {
     loaded_chunks
         .get(&position.chunk)
-        .map(|data| data.read().unwrap().get(position))
+        .map(|data| data.get(position))
         .ok_or(NotLoadedError)
 }
 
@@ -110,7 +110,7 @@ fn get_global(
 fn should_draw_face(
     face: &Face,
     chunk_data: &ChunkData,
-    loaded_chunks: &HashMap<ChunkPos, Arc<RwLock<ChunkData>>>,
+    loaded_chunks: &HashMap<ChunkPos, &ChunkData>,
     position: LocalBlockPos,
 ) -> bool {
     let offset = face.normal.into();
@@ -186,11 +186,10 @@ impl ChunkMeshData {
         collision_shape
     }
     pub fn new_from_chunk_data(
-        chunk_data: Arc<RwLock<ChunkData>>,
-        loaded_chunks: HashMap<ChunkPos, Arc<RwLock<ChunkData>>>,
+        chunk_data: &ChunkData,
+        loaded_chunks: HashMap<ChunkPos, &ChunkData>,
     ) -> Self {
         let mut chunk_mesh = Self::new();
-        let chunk_data = chunk_data.read().unwrap();
         for x in 0..CHUNK_SIZE_X {
             for y in 0..CHUNK_SIZE_Y {
                 for z in 0..CHUNK_SIZE_Z {
@@ -209,5 +208,39 @@ impl ChunkMeshData {
             }
         }
         chunk_mesh
+    }
+    /// A thread-safe version of [`Self::new_from_chunk_data`].
+    ///
+    /// Locks `chunk_data` and all of its neighbors within `guarded_chunks`,
+    /// and unlocks them once mesh generation is complete.
+    ///
+    /// Returns the new mesh.
+    pub fn new_from_chunk_data_threaded(
+        chunk_data: Arc<RwLock<ChunkData>>,
+        guarded_chunks: HashMap<ChunkPos, Arc<RwLock<ChunkData>>>,
+    ) -> Self {
+        let chunk_data = chunk_data.read().unwrap();
+        let adjacent = chunk_data.position.adjacent();
+
+        /*
+            Praise to the Rust gods
+            And to the borrow checker
+            For I have been blessed
+        */
+
+        // The read guards need to be stored here so that they can be dropped
+        // once this function returns.
+        // If they are not stored, the borrow checker will begin to move the Earth.
+        let read_guards: HashMap<ChunkPos, std::sync::RwLockReadGuard<_>> = guarded_chunks
+            .iter()
+            // We only want to lock the adjacent chunks.
+            .filter(|(pos, _data)| adjacent.contains(pos))
+            .map(|(pos, data)| (*pos, data.read().unwrap()))
+            .collect();
+        let loaded_chunks = read_guards
+            .iter()
+            .map(|(pos, data)| (*pos, /* what the FUCK! */ &*(*data)))
+            .collect();
+        Self::new_from_chunk_data(&*chunk_data, loaded_chunks)
     }
 }

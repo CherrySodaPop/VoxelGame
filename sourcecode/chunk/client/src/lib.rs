@@ -111,7 +111,7 @@ impl ClientChunkLoader {
         // TODO: Somehow use a single thread that gets sent chunks to build meshes for,
         //       rather than creating a new one for each individually.
         std::thread::spawn(move || {
-            let mesh_data = ChunkMeshData::new_from_chunk_data(chunk_data, view);
+            let mesh_data = ChunkMeshData::new_from_chunk_data_threaded(chunk_data, view);
             let mut chunk_node = chunk_node.lock().unwrap();
             chunk_node.update(&mesh_data);
         });
