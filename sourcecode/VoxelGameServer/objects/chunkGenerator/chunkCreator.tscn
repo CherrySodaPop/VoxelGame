@@ -2,5 +2,5 @@
 
 [ext_resource path="res://objects/chunkGenerator/chunkCreator.gdns" type="Script" id=1]
 
-[node name="chunkCreator" type="Node"]
+[node name="chunkCreator" type="Spatial"]
 script = ExtResource( 1 )

@@ -1,8 +1,6 @@
 //! Chunk generation. Seperate from the `chunk` module as world generation will
 //! likely be expanded a lot more (e.g. biomes).
 
-use std::collections::HashMap;
-
 use gdnative::{api::OpenSimplexNoise, core_types::Vector2, object::Ref, prelude::Unique};
 
 use chunkcommon::{block::BLOCK_MANAGER, chunk::ChunkData, prelude::*, vec2};

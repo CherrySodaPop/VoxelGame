@@ -16,7 +16,7 @@ var networkTick:float = 1/30;
 # instances
 var playerInstances:Dictionary = {};
 var objPlayer = preload("res://objects/player/player.tscn");
-onready var chunkLoader = get_node("chunkCreator")
+onready var chunkLoader = get_tree().get_root().get_node("world/chunkCreator")
 # macros!
 const gameinfoPlayerCredsPath = "res://gameinfo/player_creds.json";
 
@@ -145,6 +145,8 @@ remote func SetBlock(blockPos:Vector3, blockID:int):
 	if (playerInstances.has(senderID) && is_instance_valid(playerInstances[senderID])):
 		var obj:Spatial = playerInstances[senderID];
 		if (obj.global_transform.origin.distance_to(blockPos) <= 4.0):
-			Persistant.get_node("controllerNetwork/chunkCreator").set_block_gd(blockPos, blockID);
+			var chunkCreator = get_tree().get_root().get_node("world/chunkCreator")
+			print(get_tree().get_root())
+			chunkCreator.set_block_gd(blockPos, blockID);
 			var chunkPos:Vector2 = Vector2(floor(blockPos.x / 32), floor(blockPos.z / 32));
 			SendChunkData2(senderID, chunkPos)

@@ -20,9 +20,8 @@ Persistant="*res://objects/persistant/persistant.tscn"
 
 [display]
 
-window/size/width=256
-window/size/height=256
-window/size/resizable=false
+window/size/width=512
+window/size/height=512
 
 [physics]
 

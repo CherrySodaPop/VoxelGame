@@ -3,7 +3,10 @@ use std::collections::HashMap;
 use crate::generate::ChunkGenerator;
 use chunkcommon::{
     chunk::ChunkData,
-    chunkmesh::nodes::{ChunkCollisionShape, ChunkNode},
+    chunkmesh::{
+        nodes::{ChunkCollisionShape, ChunkNode},
+        ChunkMeshData,
+    },
     errors::NotLoadedError,
     network::encode_and_compress,
     prelude::*,
@@ -85,6 +88,7 @@ impl ServerChunkCreator {
     ///
     /// Returns `NotLoadedError` if the block isn't loaded.
     fn set_block(&mut self, position: GlobalBlockPos, to: BlockID) -> Result<(), NotLoadedError> {
+        // TODO: The collision shape needs to be updated here as well.
         let local_position: LocalBlockPos = position.into();
         let chunk = self
             .chunks
@@ -146,6 +150,10 @@ impl ServerChunkCreator {
         chunk
             .node
             .spawn(&*unsafe { self.base.assume_safe() }, position);
+        chunk.node.update(&ChunkMeshData::new_from_chunk_data(
+            &chunk.data,
+            self.data_view(),
+        ));
         self.chunks.insert(position, chunk);
     }
 
