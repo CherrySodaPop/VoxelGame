@@ -1,5 +1,14 @@
-[gd_scene load_steps=2 format=2]
+[gd_scene load_steps=4 format=2]
 
 [ext_resource path="res://assets/models/pm/pm.glb" type="PackedScene" id=1]
+[ext_resource path="res://assets/models/pm/mat_pm_top.material" type="Material" id=2]
+[ext_resource path="res://assets/models/pm/mat_pm_under.material" type="Material" id=3]
 
 [node name="pm" instance=ExtResource( 1 )]
+
+[node name="Skeleton" parent="PM" index="0"]
+bones/1/rest = Transform( 0, 0, -1, 0, -1, 0, -1, 0, 0, 0.347, 0.5, 0 )
+
+[node name="PMMeshObj" parent="PM/Skeleton" index="0"]
+material/0 = ExtResource( 3 )
+material/1 = ExtResource( 2 )

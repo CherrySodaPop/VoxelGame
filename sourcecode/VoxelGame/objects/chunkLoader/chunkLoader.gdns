@@ -1,0 +1,8 @@
+[gd_resource type="NativeScript" load_steps=2 format=2]
+
+[ext_resource path="res://bins/chunkclient.gdnlib" type="GDNativeLibrary" id=1]
+
+[resource]
+resource_name = "ChunkLoader"
+class_name = "ClientChunkLoader"
+library = ExtResource( 1 )
