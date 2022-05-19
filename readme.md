@@ -5,10 +5,16 @@ This is a very early development of a "voxel based Animal Crossing" sandbox game
 
 # Things of Importance
 - Godot Project version: 3.4.4
+- Required Rust edition is 2021, the MSRV is currently undetermined.
 
-  You will have to compile the Rust crates for world generation, easy build scripts are provided!
+  You will have to compile the Rust crates for world generation, a convenient build script is provided!
+  
+  LLVM is required for the first build (see [godot-rust](https://godot-rust.github.io/book/getting-started/setup.html)'s documentation).
 
 # Todo
-- ✅ ~~Seperate mesh generation on seperate threads~~
-- ✅ ~~Server and Client (Multiplayer)~~
-- ⬜ Proper player (Inventory, Health, Etc.)
+- ⬜ Threaded mesh generation
+  - ✅ Basic threading (currently creates unlimited threads)
+  - ⬜ Better threading (a thread pool, or a single thread using channels)
+- ✅ ~~Server and client (multiplayer)~~
+- ⬜ Proper player (inventory, health, etc.)
+- ⬜ NPCs (see branch `npcs`)

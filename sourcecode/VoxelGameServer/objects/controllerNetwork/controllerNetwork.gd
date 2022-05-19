@@ -121,6 +121,13 @@ func DisconnectPlayer(id:int, reason:int):
 # GAMEPLAY RELATED NETWORKING AFTER THIS POINT!
 ######################################################################
 
+remote func PlayerInfo(pos:Vector3, camRotation:Vector2):
+	var senderID = get_tree().get_rpc_sender_id();
+	if (playerInstances.has(senderID) && is_instance_valid(playerInstances[senderID])):
+		var obj:Spatial = playerInstances[senderID];
+		obj.global_transform.origin = pos;
+		obj.camRotation = camRotation;
+
 # TODO: Rename this!!
 func SendChunkData2(senderID, chunkPos):
 	var chunkData = chunkLoader.chunk_data_encoded(chunkPos);
@@ -131,25 +138,15 @@ remote func SendChunkData(chunkPos: Vector2):
 	var senderID = get_tree().get_rpc_sender_id();
 	var positions = chunkLoader.load_around_chunk_gd(chunkPos);
 	for chunkPos in positions:
-		SendChunkData2(senderID, chunkPos);
+		SendChunkData2(senderID, chunkPos)
 
 remote func SetBlock(blockPos:Vector3, blockID:int):
 	var senderID = get_tree().get_rpc_sender_id();
 	if (playerInstances.has(senderID) && is_instance_valid(playerInstances[senderID])):
 		var obj:Spatial = playerInstances[senderID];
 		if (obj.global_transform.origin.distance_to(blockPos) <= 4.0):
-			var chunkCreator = get_tree().get_root().get_node("world/chunkCreator");
-			print(get_tree().get_root());
+			var chunkCreator = get_tree().get_root().get_node("world/chunkCreator")
+			print(get_tree().get_root())
 			chunkCreator.set_block_gd(blockPos, blockID);
 			var chunkPos:Vector2 = Vector2(floor(blockPos.x / 32), floor(blockPos.z / 32));
-			SendChunkData2(senderID, chunkPos);
-
-remote func PlayerInfo(pos:Vector3, camRotation:Vector2):
-	var senderID = get_tree().get_rpc_sender_id();
-	if (playerInstances.has(senderID) && is_instance_valid(playerInstances[senderID])):
-		var obj:Spatial = playerInstances[senderID];
-		obj.global_transform.origin = pos;
-		obj.camRotation = camRotation;
-
-remote func NPCBaseInfo(pos:Vector3, viewRotation:Vector2):
-	pass
+			SendChunkData2(senderID, chunkPos)
