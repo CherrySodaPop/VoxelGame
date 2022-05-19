@@ -199,6 +199,12 @@ impl ServerChunkCreator {
         around
     }
 
+    #[export]
+    fn is_chunk_loaded(&mut self, _base: &Spatial, chunk_position: Vector2) -> bool {
+        let position = ChunkPos::new(chunk_position.x as isize, chunk_position.y as isize);
+        self.chunks.contains_key(&position)
+    }
+
     // TODO: a "update_lightlevel" function, goes through the entire
     // terrain info, lowering the light level depending on it's distance from a light source or sky
 

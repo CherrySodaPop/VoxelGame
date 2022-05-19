@@ -12,7 +12,11 @@ var networkTick:float = 1/30;
 # instances
 var playerInstances:Dictionary = {};
 var playerDisconnectedInstances:Dictionary = {};
+var npcInstances:Dictionary = {};
+var npcDestroyedInstances:Dictionary = {};
+# preload info
 var objClientPlayer = preload("res://objects/clientPlayer/clientPlayer.tscn");
+var npcInfo = preload("res://objects/controllers/controllerNetwork/npcInfo.gd");
 
 func _ready():
 	# connect to server
@@ -94,6 +98,9 @@ remote func DisconnectClient(id:int, reason:int):
 # GAMEPLAY RELATED NETWORKING AFTER THIS POINT!
 ######################################################################
 
+remote func ChunkData(chunkData:PoolByteArray, chunkPos:Vector2):
+	Persistant.chunkLoader.receive_chunk(chunkData, chunkPos);
+
 remote func PlayerInfo(networkID:int, pos:Vector3, camRotation:Vector2):
 	# not our own info
 	if (Persistant.get_node("player").networkID == networkID): return;
@@ -103,11 +110,24 @@ remote func PlayerInfo(networkID:int, pos:Vector3, camRotation:Vector2):
 	if (!playerInstances.has(networkID)):
 		var tmpObj = objClientPlayer.instance();
 		get_tree().current_scene.add_child(tmpObj);
+		tmpObj.networkID = networkID;
 		playerInstances[networkID] = tmpObj;
 		rpc_id(1, "SendPlayerAppearance", tmpObj.get_instance_id(), networkID);
 	var obj:Spatial = playerInstances[networkID];
-	obj.global_transform.origin = pos;
-	obj.camRotation = camRotation;
+	if (is_instance_valid(obj)):
+		obj.global_transform.origin = pos;
+		obj.camRotation = camRotation;
 
-remote func ChunkData(chunkData:PoolByteArray, chunkPos:Vector2):
-	Persistant.chunkLoader.receive_chunk(chunkData, chunkPos);
+remote func NPCBaseInfo(id:int, pos:Vector3, camRotation:Vector2):
+	# not an already destroyed npc
+	if (npcDestroyedInstances.has(id)):
+		return;
+	if (!npcInstances.has(id)):
+		var tmpObj = npcInfo.npcList[npcInfo.npcID.BASE].instance();
+		get_tree().current_scene.add_child(tmpObj);
+		tmpObj.networkID = id;
+		npcInstances[id] = tmpObj;
+	var obj:Spatial = npcInstances[id];
+	if (is_instance_valid(obj)):
+		obj.global_transform.origin = pos;
+		obj.camRotation = camRotation;

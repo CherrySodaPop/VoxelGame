@@ -13,9 +13,15 @@ _global_script_classes=[ {
 "class": "BlockData",
 "language": "GDScript",
 "path": "res://objects/blockManager/BlockData.gd"
+}, {
+"base": "Spatial",
+"class": "npc_base",
+"language": "GDScript",
+"path": "res://objects/npcs/npc_base/npc_base.gd"
 } ]
 _global_script_class_icons={
-"BlockData": ""
+"BlockData": "",
+"npc_base": ""
 }
 
 [application]

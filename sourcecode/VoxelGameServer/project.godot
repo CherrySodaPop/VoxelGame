@@ -8,6 +8,16 @@
 
 config_version=4
 
+_global_script_classes=[ {
+"base": "KinematicBody",
+"class": "npc_base",
+"language": "GDScript",
+"path": "res://objects/npcs/npc_base/npc_base.gd"
+} ]
+_global_script_class_icons={
+"npc_base": ""
+}
+
 [application]
 
 config/name="VoxelGame-Server"

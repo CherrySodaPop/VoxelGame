@@ -31,7 +31,7 @@ signal enteredNewChunk;
 
 func _ready():
 	global_transform.origin.y = 100; # TEMP: Prevent spawning underneath terrain
-	#$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_SHADOWS_ONLY;
+	$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_SHADOWS_ONLY;
 	
 	# update skin
 	var skinFile = File.new();
