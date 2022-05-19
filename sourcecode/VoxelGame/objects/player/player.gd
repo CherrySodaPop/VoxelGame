@@ -8,7 +8,7 @@ var networkID = -1;
 var velocity:Vector3 = Vector3.ZERO;
 var acceleration:float = 16.0;
 var walkSpeed:float = 4.0;
-var runSpeed:float = 8.0;
+var runSpeed:float = 6.0;
 var jumpForce:float = 10.0;
 var gravity:float = 36.0;
 
@@ -26,12 +26,14 @@ var legRightRotation:float = 0.0;
 
 var mouseSensitivity:float = 0.2;
 var lockMouse:bool = false;
+var thirdPerson:bool = false;
+var wireframeView:bool = false;
 
 signal enteredNewChunk;
 
 func _ready():
 	global_transform.origin.y = 100; # TEMP: Prevent spawning underneath terrain
-	#$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_SHADOWS_ONLY;
+	$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_SHADOWS_ONLY;
 	
 	# update skin
 	var skinFile = File.new();
@@ -50,12 +52,6 @@ func _ready():
 func _process(delta):
 	animationTimer += (delta * 2.0) + ((GetVelocityDif(delta) / walkSpeed) * delta * 10.0);
 	
-	if (Input.is_action_just_pressed("gamePause")):
-		if (Input.get_mouse_mode() == Input.MOUSE_MODE_VISIBLE):
-			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED);
-		else:
-			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE);
-	
 	UpdateMiscInfo(delta);
 	HandleActions(delta);
 	HandleMovement(delta);
@@ -63,9 +59,36 @@ func _process(delta):
 	HandleHud(delta);
 	Network();
 
+func TogglePerspective():
+	thirdPerson = not thirdPerson
+	if thirdPerson:
+		$cameraJoint.get_node("camera").translation.z = 2;
+		$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_ON;
+	else:
+		$cameraJoint.get_node("camera").translation.z = 0;
+		$model/PM/Skeleton/PMMeshObj.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_SHADOWS_ONLY;
+
+func ToggleWireframeView():
+	wireframeView = not wireframeView;
+	VisualServer.set_debug_generate_wireframes(wireframeView);
+	get_viewport().debug_draw = (
+		Viewport.DEBUG_DRAW_WIREFRAME
+		if wireframeView
+		else Viewport.DEBUG_DRAW_DISABLED
+	);
+
 func _input(event:InputEvent):
 	if (event is InputEventMouseMotion):
 		HandleCamera(event.relative);
+	elif event.is_action_pressed("playerTogglePerspective"):
+		TogglePerspective();
+	elif event.is_action_pressed("debugToggleWireframe"):
+		ToggleWireframeView();
+	elif event.is_action_pressed("gamePause"):
+		if (Input.get_mouse_mode() == Input.MOUSE_MODE_VISIBLE):
+			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED);
+		else:
+			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE);
 
 func UpdateMiscInfo(delta):
 	# chunk pos update
@@ -113,7 +136,10 @@ func HandleMovement(delta):
 		desiredVec2Dir.x -= 1;
 	desiredVec2Dir = CorrectRotation(desiredVec2Dir.normalized());
 	var velocityVec2 = Vector2(velocity.x, velocity.z);
-	var storedInterpolateVelocityVec2 = velocityVec2.linear_interpolate(desiredVec2Dir * walkSpeed, acceleration * delta)
+	var movementSpeed = runSpeed if Input.is_action_pressed("playerSprint") else walkSpeed;
+	var storedInterpolateVelocityVec2 = velocityVec2.linear_interpolate(
+		desiredVec2Dir * movementSpeed, acceleration * delta
+	);
 	
 	if (Input.is_action_pressed("playerJump") && is_on_floor()):
 		velocity.y += jumpForce;
