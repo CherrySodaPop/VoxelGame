@@ -1,4 +1,5 @@
 //! Chunk mesh creation facilities and related nodes.
+mod material;
 pub mod nodes;
 pub(crate) mod raw_mesh;
 
@@ -8,10 +9,9 @@ use std::{
 };
 
 use gdnative::{
-    api::{ArrayMesh, ConcavePolygonShape, Material, ResourceLoader, SpatialMaterial, Texture},
+    api::{ArrayMesh, ConcavePolygonShape},
     core_types::{Vector3, Vector3Array},
-    object::Ref,
-    prelude::{Shared, Unique},
+    prelude::*,
 };
 
 use crate::{
@@ -22,6 +22,8 @@ use crate::{
     prelude::*,
     vec3,
 };
+
+use self::material::MATERIALS;
 
 /// Block-type specific `MeshData`, to allow for different block types
 /// to have their own specific materials.
@@ -41,51 +43,12 @@ impl BlockSurface {
             block_id,
         }
     }
-    /// Loads the texture for `self.block_id` from the game assets.
-    fn get_albedo_texture(&self) -> Ref<Texture, Shared> {
-        let tex_path = format!("res://assets/textures/blocks/{}.png", self.block_id);
-        let resource_loader = ResourceLoader::godot_singleton();
-        // TODO: Fail more gracefully if the texture isn't found
-        let texture: Ref<Texture, Shared> = resource_loader
-            .load(tex_path, "", false)
-            .unwrap()
-            .cast()
-            .unwrap();
-        unsafe { texture.assume_safe() }.set_flags(Texture::FLAGS_DEFAULT ^ Texture::FLAG_FILTER);
-        texture
-    }
-    /// Creates the block-type-specific material for this surface.
-    fn create_material(&self) -> Ref<Material, Shared> {
-        // TODO: This means we're going to be making a new material per-chunk, per-block-type.
-        //       That is, quite obviously, not good for performance or ergonomics.
-        let resource_loader = ResourceLoader::godot_singleton();
-        // Check if a custom material for this block type exists in `assets/materials`.
-        let material_path = format!("res://assets/materials/{}.tres", self.block_id); // HARDCODED
-        let material = if resource_loader.exists(&material_path, "") {
-            // Prevent Godot error spam by checking for the material before attempting
-            // to load it.
-            resource_loader.load(material_path, "", false)
-        } else {
-            None
-        };
-        match material {
-            Some(material) => material.cast().unwrap(),
-            None => {
-                // Make a new material containing the block's texture.
-                let material = SpatialMaterial::new();
-                material.set_texture(SpatialMaterial::TEXTURE_ALBEDO, self.get_albedo_texture());
-                material.set_flag(SpatialMaterial::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
-                material.set_flag(SpatialMaterial::FLAG_DISABLE_AMBIENT_LIGHT, true);
-                material.upcast::<Material>().into_shared()
-            }
-        }
-    }
     /// Adds this `BlockSurface` to `mesh` as a surface,
     /// setting the surface's material depending on `self.block_id`.
     fn add_to_mesh(&self, mesh: &mut Ref<ArrayMesh, Unique>) {
         let array_data = self.mesh_data.to_gd_array().into_shared();
         let surf_idx = add_surface(array_data, mesh);
-        mesh.surface_set_material(surf_idx, self.create_material());
+        mesh.surface_set_material(surf_idx, MATERIALS.get(&self.block_id).unwrap());
     }
 }
 
