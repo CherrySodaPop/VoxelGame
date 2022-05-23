@@ -1,5 +1,4 @@
-//! Chunk generation. Seperate from the `chunk` module as world generation will
-//! likely be expanded a lot more (e.g. biomes).
+//! Chunk generation, like features, biomes, etc.
 
 use gdnative::{api::OpenSimplexNoise, core_types::Vector2, object::Ref, prelude::Unique};
 
@@ -7,9 +6,17 @@ use chunkcommon::{block::BLOCK_MANAGER, chunk::ChunkData, prelude::*, vec2};
 
 use crate::features::{trees::Trees, Feature, FeatureWaitlist};
 
+macro_rules! blockid {
+    ($name:expr) => {
+        BLOCK_MANAGER.block($name).unwrap().id
+    };
+}
+
 struct GenerationConfig {
-    top_layer: BlockID,
-    bottom_layer: BlockID,
+    top: BlockID,
+    layers: Vec<(isize, BlockID)>,
+    filler: BlockID,
+    bottom: BlockID,
     features: Vec<Box<dyn Feature>>,
 }
 
@@ -21,32 +28,41 @@ pub struct ChunkGenerator {
 
 impl ChunkGenerator {
     pub fn new() -> Self {
-        let top_layer = BLOCK_MANAGER.block("grass").unwrap().id;
-        let bottom_layer = BLOCK_MANAGER.block("dirt").unwrap().id;
+        let layers = vec![(4, blockid!("dirt")), (8, blockid!("pebbled_dirt"))];
         Self {
             noise: OpenSimplexNoise::new(),
             config: GenerationConfig {
-                top_layer,
-                bottom_layer,
+                top: blockid!("grass"),
+                layers,
+                filler: blockid!("stone"),
+                bottom: blockid!("silicate"),
                 features: vec![Box::new(Trees::new())],
             },
             waitlist: FeatureWaitlist::new(),
         }
     }
     pub fn generate_block(&self, y: isize, terrain_peak: isize) -> BlockID {
-        if y > terrain_peak {
-            return 0;
-        }
-        let block_id = if y > 6 {
-            self.config.top_layer
+        if y == terrain_peak {
+            self.config.top
+        } else if y == 0 {
+            self.config.bottom
+        } else if y > terrain_peak {
+            0
         } else {
-            self.config.bottom_layer
-        };
-        block_id
+            let distance_from_peak = terrain_peak - y;
+            for (gen_before, block_id) in &self.config.layers {
+                if distance_from_peak <= *gen_before {
+                    return *block_id;
+                }
+            }
+            // We've run out of layers.
+            self.config.filler
+        }
     }
     fn get_terrain_peak(&self, x: isize, z: isize) -> isize {
         let noise_height: f64 = self.noise.get_noise_2dv(vec2!(x, z));
-        ((CHUNK_SIZE_Y as f64) * ((noise_height / 2.0) + 0.5) * 0.1) as isize
+        let peak = CHUNK_SIZE_Y as f64 * ((noise_height / 14.0) + 0.1);
+        peak as isize
     }
     pub fn add_features(&mut self, chunk_data: &mut ChunkData) {
         for feature in &self.config.features {

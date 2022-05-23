@@ -23,6 +23,7 @@ const gameinfoPlayerCredsPath = "res://gameinfo/player_creds.json";
 func _ready():
 	# load any info before starting (creds, world, etc)
 	PrepareGameInfo();
+	PrepareSpawn();
 	# create server
 	peer.create_server(25565, 32);
 	get_tree().network_peer = peer;
@@ -32,6 +33,9 @@ func _ready():
 
 func PrepareGameInfo():
 	LoadPlayerCredentials();
+
+func PrepareSpawn():
+	chunkLoader.load_around_chunk_gd(Vector2(0, 0));
 
 # player creds loader and saver
 func LoadPlayerCredentials():
@@ -58,6 +62,7 @@ func HasTicked() -> bool:
 func ClientConnected(id:int):
 	print_debug("DEBUG: Client %s connected." % id);
 	rpc_id(id, "ServerID", id);
+	SendChunkDataAround(Vector2(0, 0))
 
 func ClientDisconnected(id:int):
 	DisconnectPlayer(id, disconnectTypes.LEFT);
@@ -128,17 +133,16 @@ remote func PlayerInfo(pos:Vector3, camRotation:Vector2):
 		obj.global_transform.origin = pos;
 		obj.camRotation = camRotation;
 
-# TODO: Rename this!!
-func SendChunkData2(senderID, chunkPos):
+func SendChunkData(senderID, chunkPos):
 	var chunkData = chunkLoader.chunk_data_encoded(chunkPos);
 	if chunkData != null:
 		rpc_id(senderID, "ChunkData", chunkData, chunkPos);
 
-remote func SendChunkData(chunkPos: Vector2):
+remote func SendChunkDataAround(chunkPos: Vector2):
 	var senderID = get_tree().get_rpc_sender_id();
 	var positions = chunkLoader.load_around_chunk_gd(chunkPos);
 	for chunkPos in positions:
-		SendChunkData2(senderID, chunkPos)
+		SendChunkData(senderID, chunkPos)
 
 remote func SetBlock(blockPos:Vector3, blockID:int):
 	var senderID = get_tree().get_rpc_sender_id();
@@ -149,4 +153,4 @@ remote func SetBlock(blockPos:Vector3, blockID:int):
 			print(get_tree().get_root())
 			chunkCreator.set_block_gd(blockPos, blockID);
 			var chunkPos:Vector2 = Vector2(floor(blockPos.x / 32), floor(blockPos.z / 32));
-			SendChunkData2(senderID, chunkPos)
+			SendChunkData(senderID, chunkPos)

@@ -94,7 +94,11 @@ impl ServerChunkCreator {
             .chunks
             .get_mut(&local_position.chunk)
             .ok_or(NotLoadedError)?;
-        chunk.data.set(local_position, to);
+        // HARDCODED
+        // Don't allow for breaking silicate in any way.
+        if chunk.data.get(local_position) != 25 {
+            chunk.data.set(local_position, to);
+        }
         Ok(())
     }
 
