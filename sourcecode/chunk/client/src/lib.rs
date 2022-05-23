@@ -100,10 +100,7 @@ impl ClientChunkLoader {
         let received_chunk_data: ChunkData = decode_compressed(&*data);
         if let Some(loaded_chunk) = self.chunks.get(&position) {
             let mut chunk_data_write = loaded_chunk.data.write().unwrap();
-            // This should just replace `loaded_chunk.data`, but it can't
-            // without violating borrowing rules at the moment.
-            chunk_data_write.terrain = received_chunk_data.terrain;
-            chunk_data_write.skylightlevel = received_chunk_data.skylightlevel;
+            *chunk_data_write = received_chunk_data;
             self.update_mesh(loaded_chunk);
         } else {
             self.spawn_chunk(received_chunk_data);
