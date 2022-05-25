@@ -16,14 +16,12 @@ var networkTick:float = 1/30;
 # instances
 var playerInstances:Dictionary = {};
 var objPlayer = preload("res://objects/player/player.tscn");
-onready var chunkLoader = get_tree().get_root().get_node("world/chunkCreator")
 # macros!
 const gameinfoPlayerCredsPath = "res://gameinfo/player_creds.json";
 
 func _ready():
 	# load any info before starting (creds, world, etc)
 	PrepareGameInfo();
-	PrepareSpawn();
 	# create server
 	peer.create_server(25565, 32);
 	get_tree().network_peer = peer;
@@ -35,6 +33,7 @@ func PrepareGameInfo():
 	LoadPlayerCredentials();
 
 func PrepareSpawn():
+	var chunkLoader = get_tree().get_root().get_node("world/chunkCreator")
 	chunkLoader.load_around_chunk_gd(Vector2(0, 0));
 
 # player creds loader and saver
@@ -62,7 +61,6 @@ func HasTicked() -> bool:
 func ClientConnected(id:int):
 	print_debug("DEBUG: Client %s connected." % id);
 	rpc_id(id, "ServerID", id);
-	SendChunkDataAround(Vector2(0, 0))
 
 func ClientDisconnected(id:int):
 	DisconnectPlayer(id, disconnectTypes.LEFT);
@@ -78,7 +76,6 @@ remote func HandlePlayerInfo(username, passwordHashed, skinBase64):
 	# check skin
 	var skinImage = Image.new();
 	var loadOutput = skinImage.load_png_from_buffer(Marshalls.base64_to_raw(skinBase64));
-	print(len(skinImage.data["data"]));
 	if (loadOutput != OK || len(skinImage.data["data"]) != 16384):
 		DisconnectPlayer(id, disconnectTypes.INVALID_INFO);
 		return;
@@ -134,12 +131,14 @@ remote func PlayerInfo(pos:Vector3, camRotation:Vector2):
 		obj.camRotation = camRotation;
 
 func SendChunkData(senderID, chunkPos):
+	var chunkLoader = get_tree().get_root().get_node("world/chunkCreator")
 	var chunkData = chunkLoader.chunk_data_encoded(chunkPos);
 	if chunkData != null:
 		rpc_id(senderID, "ChunkData", chunkData, chunkPos);
 
 remote func SendChunkDataAround(chunkPos: Vector2):
 	var senderID = get_tree().get_rpc_sender_id();
+	var chunkLoader = get_tree().get_root().get_node("world/chunkCreator")
 	var positions = chunkLoader.load_around_chunk_gd(chunkPos);
 	for chunkPos in positions:
 		SendChunkData(senderID, chunkPos)
@@ -150,7 +149,12 @@ remote func SetBlock(blockPos:Vector3, blockID:int):
 		var obj:Spatial = playerInstances[senderID];
 		if (obj.global_transform.origin.distance_to(blockPos) <= 4.0):
 			var chunkCreator = get_tree().get_root().get_node("world/chunkCreator")
-			print(get_tree().get_root())
 			chunkCreator.set_block_gd(blockPos, blockID);
 			var chunkPos:Vector2 = Vector2(floor(blockPos.x / 32), floor(blockPos.z / 32));
 			SendChunkData(senderID, chunkPos)
+
+remote func LoadClientWorld(worldName: String):
+	var saveManager = Persistent.get_node("saveManager");
+	saveManager.loadWorld(worldName)
+	PrepareSpawn();
+	SendChunkDataAround(Vector2(0, 0))

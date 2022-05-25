@@ -13,6 +13,7 @@ var networkTick:float = 1/30;
 var playerInstances:Dictionary = {};
 var playerDisconnectedInstances:Dictionary = {};
 var objClientPlayer = preload("res://objects/clientPlayer/clientPlayer.tscn");
+var worldToLoad = ""; # Set in the title screen, mildly hacky.
 
 func _ready():
 	# connect to server
@@ -36,6 +37,9 @@ func HasTicked() -> bool:
 func ClientConnectedToServer():
 	# succesfuly connected
 	pass
+
+func StartWorld():
+	rpc_id(1, "LoadClientWorld", worldToLoad);
 
 remote func ServerID(id:int):
 	Persistent.get_node("player").networkID = id;

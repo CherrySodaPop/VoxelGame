@@ -78,8 +78,7 @@ impl ChunkGenerator {
     }
     pub fn generate_chunk(&mut self, position: ChunkPos) -> ChunkData {
         let mut data = ChunkData::new(position);
-
-        println!("Generating terrain data for chunk {:?}", position);
+        println!("{} Generating terrain data.", position);
         let chunk_origin = position.origin();
         for x in 0..CHUNK_SIZE_X {
             for z in 0..CHUNK_SIZE_Z {
@@ -92,7 +91,7 @@ impl ChunkGenerator {
             }
         }
 
-        println!("Generating light level data for chunk {:?}", position);
+        println!("{} Generating light level data.", position);
         // TODO: "update_lightlevel" in lib.rs
         // TODO: use an unsigned 8 bit int!
         for x in 0..CHUNK_SIZE_X {

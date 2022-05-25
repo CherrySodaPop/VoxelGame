@@ -1,6 +1,7 @@
 extends Spatial
 
 func _ready():
+	get_tree().paused = false
 	# player new chunk entered signal
 	Persistent.get_node("player").connect("enteredNewChunk", self, "HandleMeshGeneration");
 

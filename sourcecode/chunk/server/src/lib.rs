@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+};
 
 use crate::generate::ChunkGenerator;
 use chunkcommon::{
@@ -8,7 +11,7 @@ use chunkcommon::{
         ChunkMeshData,
     },
     errors::NotLoadedError,
-    network::encode_and_compress,
+    network::{decode_compressed, encode_and_compress},
     prelude::*,
     vec2,
 };
@@ -16,29 +19,6 @@ use gdnative::prelude::*;
 
 mod features;
 mod generate;
-
-/// Helper struct for `Rect2` -> `(x1, y1, x2, y2)` conversion
-struct PositionRange {
-    x1: isize,
-    y1: isize,
-    x2: isize,
-    y2: isize,
-}
-
-impl From<Rect2> for PositionRange {
-    fn from(rect2: Rect2) -> Self {
-        let x = rect2.position.x as isize;
-        let y = rect2.position.y as isize;
-        let w = rect2.size.x as isize;
-        let h = rect2.size.y as isize;
-        Self {
-            x1: x,
-            y1: y,
-            x2: x + w,
-            y2: y + h,
-        }
-    }
-}
 
 struct ServerChunk {
     data: ChunkData,
@@ -61,17 +41,43 @@ pub struct ServerChunkCreator {
     base: Ref<Spatial, Shared>,
     chunks: HashMap<ChunkPos, ServerChunk>,
     chunk_generator: ChunkGenerator,
-    // #[property]
-    // initial_generation_area: Option<Rect2>,
+    world: PathBuf,
+    modified_chunks: HashSet<ChunkPos>,
 }
 
 #[methods]
 impl ServerChunkCreator {
+    const AUTOSAVE_EVERY: f64 = 15.0;
+
     fn new(base: &Spatial) -> Self {
+        let persistent: TRef<Node> = unsafe { autoload("Persistent") }.unwrap();
+        let save_manager = persistent.get_node("saveManager").unwrap();
+        let world: PathBuf = unsafe { save_manager.assume_safe() }
+            .get("currentWorld")
+            .to::<String>()
+            .unwrap()
+            .into();
+        println!("Current world: {:?}", world);
+        let timer = Timer::new();
+        timer.set_wait_time(Self::AUTOSAVE_EVERY);
+        timer.set_autostart(true);
+        timer
+            .connect(
+                "timeout",
+                unsafe { base.assume_shared() },
+                "save_modified_chunks",
+                VariantArray::new().into_shared(),
+                Timer::TIMER_PROCESS_IDLE,
+            )
+            .unwrap();
+        let timer = timer.into_shared();
+        base.add_child(timer, true);
         Self {
             base: unsafe { base.assume_shared() },
             chunks: HashMap::new(),
             chunk_generator: ChunkGenerator::new(),
+            world,
+            modified_chunks: HashSet::new(),
         }
     }
 
@@ -99,7 +105,21 @@ impl ServerChunkCreator {
         if chunk.data.get(local_position) != 25 {
             chunk.data.set(local_position, to);
         }
+        self.modified_chunks.insert(local_position.chunk);
         Ok(())
+    }
+
+    #[export]
+    fn save_modified_chunks(&mut self, _base: &Spatial) {
+        for position in self.modified_chunks.drain() {
+            let chunk_path = self
+                .world
+                .join(format!("chunk_{}_{}.vgc", position.x, position.z));
+            if let Some(chunk) = self.chunks.get(&position) {
+                std::fs::write(&chunk_path, encode_and_compress(&chunk.data)).unwrap();
+                println!("{} Saved data to {:?}!", position, chunk_path);
+            }
+        }
     }
 
     #[export]
@@ -132,11 +152,18 @@ impl ServerChunkCreator {
 
     /// Loads a chunk from disk, or generates a new one.
     fn load_chunk(&mut self, position: ChunkPos) -> ChunkData {
-        let data = if false {
-            todo!("Implement loading chunks from disk");
-        } else {
-            // The chunk is new.
-            self.chunk_generator.generate_chunk(position)
+        let chunk_path = self
+            .world
+            .join(format!("chunk_{}_{}.vgc", position.x, position.z));
+        let data = match std::fs::read(chunk_path) {
+            Ok(data_encoded) => {
+                println!("{} Loaded from disk.", position);
+                decode_compressed(&data_encoded)
+            }
+            Err(_) => {
+                // The chunk is new.
+                self.chunk_generator.generate_chunk(position)
+            }
         };
         for chunk in self.chunks.values_mut() {
             self.chunk_generator.apply_waitlist_to(&mut chunk.data);
@@ -164,7 +191,7 @@ impl ServerChunkCreator {
     #[export]
     fn chunk_data_encoded(&self, _base: &Spatial, chunk_position: Vector2) -> Option<ByteArray> {
         let chunk_position = ChunkPos::new(chunk_position.x as isize, chunk_position.y as isize);
-        println!("Encoding chunk data for {:?}", chunk_position);
+        println!("{} Encoding chunk data.", chunk_position);
         self.chunks
             .get(&chunk_position)
             .map(|chunk| ByteArray::from_vec(encode_and_compress(&chunk.data)))
