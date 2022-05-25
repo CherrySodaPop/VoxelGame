@@ -9,11 +9,30 @@ func _ready():
 	set_pause_mode(PAUSE_MODE_PROCESS)
 	get_tree().paused = true
 
+func createWorldInfo() -> Dictionary:
+	randomize()
+	return {
+		"seed": randi()
+	}
+
+func writeWorldInfo(world_path: String, world_info: Dictionary):
+	var file = File.new()
+	file.open(world_path + "info.json", File.WRITE)
+	file.store_string(JSON.print(world_info, "\t"));
+	file.close()
+
 func ensureWorldExists(world_name: String):
 	var dir = Directory.new()
-	var make_code = dir.make_dir(WORLDS_PATH + world_name)
-	if not (make_code == OK or make_code == ERR_ALREADY_EXISTS):
+	var world_path = WORLDS_PATH + world_name + "/"
+	var make_code = dir.make_dir(world_path)
+	if make_code == OK:
+		writeWorldInfo(world_path, createWorldInfo())
+	elif make_code == ERR_ALREADY_EXISTS:
+		# That's fine.
+		return
+	else:
 		printerr("Couldn't make directory for world %s, error code %d" % [world_name, make_code])
+
 
 func _on_Button_pressed():
 	var world_name = line_edit.text

@@ -27,10 +27,12 @@ pub struct ChunkGenerator {
 }
 
 impl ChunkGenerator {
-    pub fn new() -> Self {
+    pub fn new(seed: i64) -> Self {
+        let noise = OpenSimplexNoise::new();
+        noise.set_seed(seed);
         let layers = vec![(4, blockid!("dirt")), (8, blockid!("pebbled_dirt"))];
         Self {
-            noise: OpenSimplexNoise::new(),
+            noise,
             config: GenerationConfig {
                 top: blockid!("grass"),
                 layers,

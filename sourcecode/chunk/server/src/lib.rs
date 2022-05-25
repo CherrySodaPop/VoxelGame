@@ -58,6 +58,11 @@ impl ServerChunkCreator {
             .unwrap()
             .into();
         println!("Current world: {:?}", world);
+        let mut world_info: HashMap<String, serde_json::Value> = serde_json::from_str(
+            &std::fs::read_to_string(world.join("info.json")).expect("error reading info.json!"),
+        )
+        .expect("info.json invalid JSON!");
+        let world_seed = world_info.remove("seed").unwrap().as_i64().unwrap();
         let timer = Timer::new();
         timer.set_wait_time(Self::AUTOSAVE_EVERY);
         timer.set_autostart(true);
@@ -75,7 +80,7 @@ impl ServerChunkCreator {
         Self {
             base: unsafe { base.assume_shared() },
             chunks: HashMap::new(),
-            chunk_generator: ChunkGenerator::new(),
+            chunk_generator: ChunkGenerator::new(world_seed),
             world,
             modified_chunks: HashSet::new(),
         }
