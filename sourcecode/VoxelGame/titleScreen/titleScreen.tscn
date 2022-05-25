@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=2]
+[gd_scene load_steps=3 format=2]
 
 [ext_resource path="res://titleScreen/titleScreen.gd" type="Script" id=1]
+[ext_resource path="res://titleScreen/LoadWorldVBC.gd" type="Script" id=2]
 
 [node name="titleScreen" type="Control"]
 anchor_right = 1.0
@@ -18,38 +19,63 @@ anchor_bottom = 1.0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
 margin_left = 262.0
-margin_top = 270.0
+margin_top = 253.0
 margin_right = 762.0
-margin_bottom = 330.0
+margin_bottom = 347.0
+size_flags_vertical = 3
+custom_constants/separation = 16
 
-[node name="Label" type="Label" parent="CenterContainer/VBoxContainer"]
+[node name="LoadWorldVBC" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
+margin_right = 500.0
+margin_bottom = 18.0
+script = ExtResource( 2 )
+
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer/LoadWorldVBC"]
 margin_right = 500.0
 margin_bottom = 14.0
-text = "World Name"
+text = "Load World"
 
-[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/VBoxContainer"]
+[node name="WorldButtons" type="VBoxContainer" parent="CenterContainer/VBoxContainer/LoadWorldVBC"]
+margin_top = 18.0
+margin_bottom = 18.0
+size_flags_horizontal = 0
+
+[node name="NewWorldVBC" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
+margin_top = 34.0
+margin_right = 500.0
+margin_bottom = 94.0
+size_flags_horizontal = 2
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer/NewWorldVBC"]
+margin_right = 500.0
+margin_bottom = 14.0
+text = "New World"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/VBoxContainer/NewWorldVBC"]
 margin_top = 18.0
 margin_right = 500.0
 margin_bottom = 42.0
 rect_min_size = Vector2( 500, 0 )
 
-[node name="LineEdit" type="LineEdit" parent="CenterContainer/VBoxContainer/HBoxContainer"]
-margin_right = 408.0
+[node name="LineEdit" type="LineEdit" parent="CenterContainer/VBoxContainer/NewWorldVBC/HBoxContainer"]
+margin_right = 443.0
 margin_bottom = 24.0
 grow_horizontal = 2
 size_flags_horizontal = 3
+clear_button_enabled = true
 
-[node name="Button" type="Button" parent="CenterContainer/VBoxContainer/HBoxContainer"]
-margin_left = 412.0
+[node name="CreateButton" type="Button" parent="CenterContainer/VBoxContainer/NewWorldVBC/HBoxContainer"]
+margin_left = 447.0
 margin_right = 500.0
 margin_bottom = 24.0
-text = "Load/Create"
+text = "Create"
 
-[node name="NameHint" type="Label" parent="CenterContainer/VBoxContainer"]
+[node name="NameHint" type="Label" parent="CenterContainer/VBoxContainer/NewWorldVBC"]
 margin_top = 46.0
 margin_right = 500.0
 margin_bottom = 60.0
 
-[connection signal="text_changed" from="CenterContainer/VBoxContainer/HBoxContainer/LineEdit" to="." method="_on_LineEdit_text_changed"]
-[connection signal="text_entered" from="CenterContainer/VBoxContainer/HBoxContainer/LineEdit" to="." method="_on_LineEdit_text_entered"]
-[connection signal="pressed" from="CenterContainer/VBoxContainer/HBoxContainer/Button" to="." method="_on_Button_pressed"]
+[connection signal="text_changed" from="CenterContainer/VBoxContainer/NewWorldVBC/HBoxContainer/LineEdit" to="." method="_on_LineEdit_text_changed"]
+[connection signal="text_entered" from="CenterContainer/VBoxContainer/NewWorldVBC/HBoxContainer/LineEdit" to="." method="_on_LineEdit_text_entered"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/NewWorldVBC/HBoxContainer/CreateButton" to="." method="_on_CreateButton_pressed"]
