@@ -28,7 +28,7 @@ config/icon="res://icon.png"
 
 [autoload]
 
-Persistant="*res://objects/persistant/persistant.tscn"
+Persistent="*res://objects/persistent/persistent.tscn"
 
 [input]
 

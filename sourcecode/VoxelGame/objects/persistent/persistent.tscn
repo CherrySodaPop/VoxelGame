@@ -1,0 +1,24 @@
+[gd_scene load_steps=8 format=2]
+
+[ext_resource path="res://objects/persistent/persistent.gd" type="Script" id=1]
+[ext_resource path="res://objects/controllers/controllerNetwork/controllerNetwork.tscn" type="PackedScene" id=2]
+[ext_resource path="res://objects/debugInfo/debugInfo.tscn" type="PackedScene" id=3]
+[ext_resource path="res://objects/player/player.tscn" type="PackedScene" id=4]
+[ext_resource path="res://objects/chunkLoader/chunkLoader.tscn" type="PackedScene" id=5]
+[ext_resource path="res://objects/worldMeshHandler/worldMeshHandler.tscn" type="PackedScene" id=6]
+[ext_resource path="res://objects/blockManager/blockManager.tscn" type="PackedScene" id=7]
+
+[node name="persistent" type="Node"]
+script = ExtResource( 1 )
+
+[node name="player" parent="." instance=ExtResource( 4 )]
+
+[node name="chunkLoader" parent="." instance=ExtResource( 5 )]
+
+[node name="worldMeshHandler" parent="." instance=ExtResource( 6 )]
+
+[node name="blockManager" parent="." instance=ExtResource( 7 )]
+
+[node name="controllerNetwork" parent="." instance=ExtResource( 2 )]
+
+[node name="debugInfo" parent="." instance=ExtResource( 3 )]

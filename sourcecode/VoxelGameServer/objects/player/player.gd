@@ -24,7 +24,7 @@ func UpdateMiscInfo(delta):
 func Network():
 	# todo: make it so it only networks to players in range?
 	# possible but maybe expensive...
-	var network:Node = Persistant.get_node("controllerNetwork");
+	var network:Node = Persistent.get_node("controllerNetwork");
 	if (network.HasTicked()):
 		# DEBUG
 		#var senderID = get_tree().get_rpc_sender_id();
@@ -33,5 +33,5 @@ func Network():
 		#	chunkData = chunkData.compress();
 		#	if chunkData != null:
 		#		network.rpc_unreliable_id(senderID, "ChunkData", chunkData, currentChunk);
-			
+
 		network.rpc("PlayerInfo", networkID, global_transform.origin, camRotation);

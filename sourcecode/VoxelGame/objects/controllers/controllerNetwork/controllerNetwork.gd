@@ -38,7 +38,7 @@ func ClientConnectedToServer():
 	pass
 
 remote func ServerID(id:int):
-	Persistant.get_node("player").networkID = id;
+	Persistent.get_node("player").networkID = id;
 	SendPlayerInfo();
 
 func ClientFailedToConnect():
@@ -76,7 +76,7 @@ remote func PlayerAppearance(objID:int, skinBase64:String):
 
 remote func DisconnectClient(id:int, reason:int):
 	# check if we're disconnecting ourselves, if so, die!
-	if (Persistant.get_node("player").networkID == id):
+	if (Persistent.get_node("player").networkID == id):
 		get_tree().network_peer = null;
 		print("DEBUG: Disconnected by server: %s" % reason);
 		return;
@@ -96,7 +96,7 @@ remote func DisconnectClient(id:int, reason:int):
 
 remote func PlayerInfo(networkID:int, pos:Vector3, camRotation:Vector2):
 	# not our own info
-	if (Persistant.get_node("player").networkID == networkID): return;
+	if (Persistent.get_node("player").networkID == networkID): return;
 	# not a disconnected player's info
 	if (playerDisconnectedInstances.has(networkID)): return;
 	# todo: if their outside the viewdistance dont bother with their info and remove them
@@ -110,4 +110,4 @@ remote func PlayerInfo(networkID:int, pos:Vector3, camRotation:Vector2):
 	obj.camRotation = camRotation;
 
 remote func ChunkData(chunkData:PoolByteArray, chunkPos:Vector2):
-	Persistant.chunkLoader.receive_chunk(chunkData, chunkPos);
+	Persistent.chunkLoader.receive_chunk(chunkData, chunkPos);
