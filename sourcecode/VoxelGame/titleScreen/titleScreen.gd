@@ -8,6 +8,8 @@ func _ready():
 	# Hacky :)
 	set_pause_mode(PAUSE_MODE_PROCESS)
 	get_tree().paused = true
+	
+	line_edit.grab_focus()
 
 func createWorldInfo() -> Dictionary:
 	randomize()
@@ -33,7 +35,6 @@ func ensureWorldExists(world_name: String):
 	else:
 		printerr("Couldn't make directory for world %s, error code %d" % [world_name, make_code])
 
-
 func _on_Button_pressed():
 	var world_name = line_edit.text
 	ensureWorldExists(world_name)
@@ -53,3 +54,6 @@ func _on_LineEdit_text_changed(new_text):
 		name_hint.text = "The world \"%s\" will be loaded." % new_text
 	else:
 		name_hint.text = "A new world \"%s\" will be created." % new_text
+
+func _on_LineEdit_text_entered(new_text):
+	_on_Button_pressed()
