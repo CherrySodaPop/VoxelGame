@@ -38,6 +38,6 @@ func HandleAnimations(delta):
 func HandleDestroyTimeout(delta):
 	timeoutDestroy += delta;
 	if (timeoutDestroy >= timeoutDestroyMax):
-		if (Persistent.get_node("controllerNetwork").playerInstances.has(networkID)):
-			Persistent.get_node("controllerNetwork").playerInstances.erase(networkID);
+		if (Persistent.controllerNetwork.playerInstances.has(networkID)):
+			Persistent.controllerNetwork.playerInstances.erase(networkID);
 			queue_free();

@@ -45,8 +45,8 @@ func ensureWorldExists(world_name: String):
 
 func worldSelected(world_name: String):
 	ensureWorldExists(world_name)
-	Persistent.get_node("controllerNetwork").worldToLoad = world_name
-	Persistent.get_node("controllerNetwork").StartWorld()
+	Persistent.controllerNetwork.worldToLoad = world_name
+	Persistent.controllerNetwork.StartWorld()
 	get_tree().change_scene("res://world/world.tscn")
 
 func checkWorldExists(world_name: String) -> bool:

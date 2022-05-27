@@ -114,12 +114,11 @@ func UpdateMiscInfo(delta):
 	adjacentLookingAtBlock.y = ceil(adjacentLookingAtBlock.y);
 	adjacentLookingAtBlock.z = floor(adjacentLookingAtBlock.z);
 
-func HandleActions(delta):
-	var network = Persistent.get_node("controllerNetwork");
+func HandleActions(_delta):
 	if (Input.is_action_pressed("playerPrimaryAction")):
-		network.rpc_unreliable_id(1, "SetBlock", lookingAtBlock, 0);
+		Persistent.controllerNetwork.rpc_unreliable_id(1, "SetBlock", lookingAtBlock, 0);
 	if (Input.is_action_pressed("playerSecondaryAction")):
-		network.rpc_unreliable_id(1, "SetBlock", adjacentLookingAtBlock, 23);
+		Persistent.controllerNetwork.rpc_unreliable_id(1, "SetBlock", adjacentLookingAtBlock, 23);
 		pass #Persistent.get_node("chunkGeneration").set_block_gd(adjacentLookingAtBlock, 23);
 
 func HandleMovement(delta):
@@ -203,38 +202,30 @@ func HandleAnimation(delta):
 
 	skeleton.set_bone_pose(skeleton.find_bone("head"), headTransform);
 
-func HandleHud(delta):
+func HandleHud(_delta):
 	HandleBlockHighlighting();
 
 func HandleBlockHighlighting():
 	$blockOutlineJoint.global_transform.origin = lookingAtBlock;
 
 func Network():
-	var network = Persistent.get_node("controllerNetwork");
-	if (network.HasTicked()):
-		network.rpc_id(1, "PlayerInfo", global_transform.origin, Vector2($cameraJoint.rotation.x,$cameraJoint.rotation.y));
+	if (Persistent.controllerNetwork.HasTicked()):
+		Persistent.controllerNetwork.rpc_id(
+			1,
+			"PlayerInfo",
+			global_transform.origin,
+			Vector2($cameraJoint.rotation.x, $cameraJoint.rotation.y)
+		);
 
 func HandleCamera(mouseMotion:Vector2):
 	if (Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED):
 		mouseMotion = -mouseMotion * mouseSensitivity;
-		$cameraJoint.rotate_y(deg2rad(mouseMotion.x));
-
-		var allowRotation:bool = true;
-		if (($cameraJoint.rotation.x + deg2rad(mouseMotion.y)) >= PI/2):
-			$cameraJoint.rotation.x = PI/2;
-			allowRotation = false;
-		if (($cameraJoint.rotation.x + deg2rad(mouseMotion.y)) <= -PI/2):
-			$cameraJoint.rotation.x = -PI/2;
-			allowRotation = false;
-		if (allowRotation):
-			$cameraJoint.rotate_object_local(Vector3.RIGHT, deg2rad(mouseMotion.y));
+		mouseMotion = Vector2(deg2rad(mouseMotion.x), deg2rad(mouseMotion.y));
+		$cameraJoint.rotate_y(mouseMotion.x);
+		# Prevent the player from snapping their neck
+		$cameraJoint.rotation.x = clamp($cameraJoint.rotation.x + mouseMotion.y, -PI/2, PI/2);
 
 func CorrectRotation(direction:Vector2):
-	#var OffsetCalc1:Vector2 = Vector2(cos(-$cameraJoint.rotation.y), sin(-$cameraJoint.rotation.y)) * -direction.x;
-	#var OffsetCalc2:Vector2 = Vector2(cos(-$cameraJoint.rotation.y - deg2rad(90)), sin(-$cameraJoint.rotation.y - deg2rad(90))) * direction.y;
-	#var xOffsetCalc = (OffsetCalc1.x + OffsetCalc2.x);
-	#var zOffsetCalc = (OffsetCalc1.y + OffsetCalc2.y);
-	#return Vector2(xOffsetCalc,zOffsetCalc);
 	return direction.rotated(-$cameraJoint.rotation.y + deg2rad(180)).normalized();
 
 func GetVelocityDif(delta) -> float:
