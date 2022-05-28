@@ -19,7 +19,7 @@ const playerCredsPath = "res://gameinfo/player_creds.json";
 var playerCreds:Dictionary;
 
 func DisconnectClient(id:int, reason:int):
-	rpc("DisconnectClient", id, reason);
+	rpc("ClientDisconnected", id, reason);
 
 func ClientConnected(client_id:int):
 	print_debug("DEBUG: Client %s connected." % client_id);
@@ -85,14 +85,18 @@ remote func HandleClientInfo(username, passwordHashed, skinBase64):
 # GAMEPLAY RELATED NETWORKING AFTER THIS POINT!
 ######################################################################
 
-remote func PlayerInfo(pos:Vector3, camRotation:Vector2):
-	rpc("PlayerInfo", sender_id(), pos, camRotation);
+remote func HandlePlayerInfo(pos:Vector3, camRotation:Vector2):
+	var client_id = sender_id();
+	rpc("PlayerInfo", client_id, pos, camRotation);
 
 remote func RequestChunkData(chunkPos: Vector2):
 	emit_signal("chunk_data_requested", sender_id(), chunkPos)
 
 func SendChunkData(toClientID: int, chunkPos: Vector2, data: PoolByteArray):
 	rpc_id(toClientID, "ChunkData", data, chunkPos);
+
+func SendChunkDataAll(chunkPos: Vector2, data: PoolByteArray):
+	rpc("ChunkData", data, chunkPos);
 
 remote func SetBlock(blockPos:Vector3, blockID:int):
 	# TODO: Re-implement the server-side distance checking

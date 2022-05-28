@@ -15,8 +15,11 @@ func chunkPosOf(blockPos: Vector3) -> Vector2:
 	)
 
 func _on_controllerServer_block_set(client_id: int, position: Vector3, block_id: int):
+	var chunkPos = chunkPosOf(position)
+	chunkCreator.load_chunk_gd(chunkPos)
 	chunkCreator.set_block_gd(position, block_id)
-	_on_controllerServer_chunk_data_requested(client_id, chunkPosOf(position))
+	var chunk_data = chunkCreator.chunk_data_encoded(chunkPos)
+	network.SendChunkDataAll(chunkPos, chunk_data)
 
 
 func _on_controllerServer_chunk_data_requested(client_id: int, position: Vector2):

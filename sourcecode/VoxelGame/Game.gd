@@ -14,10 +14,13 @@ func _ready():
 	# TODO: no
 	network.RequestChunkDataAround(Vector2(0, 0))
 
-func _on_controllerNetwork_player_info_updated(client_id: int, position: Vector3, camera_rot: Vector3):
+func _on_controllerNetwork_player_info_updated(client_id: int, position: Vector3, camera_rot: Vector2):
 	if not networkedPlayers.has(client_id):
 		networkedPlayers.add_player(client_id)
 	networkedPlayers.update_player(client_id, position, camera_rot)
+
+func _on_network_player_disconnected(client_id):
+	networkedPlayers.remove_player(client_id)
 
 func _on_controllerNetwork_chunk_data_received(position: Vector2, data: PoolByteArray):
 	chunkLoader.update_chunk(position, data)
@@ -26,7 +29,8 @@ func _physics_process(delta):
 	tick += delta
 	if tick >= TICK_RATE:
 		tick = 0
-		# TODO: Tick stuff
+		var player_info = player.TickInfo()
+		network.SendPlayerInfo(player_info[0], player_info[1])
 
 func _on_player_entered_chunk(chunk_position: Vector2):
 	network.RequestChunkDataAround(chunk_position)

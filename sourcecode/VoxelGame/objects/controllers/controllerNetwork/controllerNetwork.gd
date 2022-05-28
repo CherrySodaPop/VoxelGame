@@ -4,6 +4,7 @@ signal connected
 signal player_info_updated(client_id, position, camera_rot)
 signal chunk_data_received(position, data)
 signal player_appearance_received(client_id, skinBase64)
+signal player_disconnected(client_id)
 
 # secure info
 var username = "Cherry";
@@ -51,6 +52,9 @@ func GetClientInfo() -> Array:
 func SendClientInfo():
 	var client_info = GetClientInfo()
 	rpc_id(1, "HandleClientInfo", client_info[0], client_info[1], client_info[2])
+
+func SendPlayerInfo(position: Vector3, camera_rot: Vector2):
+	rpc_id(1, "HandlePlayerInfo", position, camera_rot)
 
 remote func ClientDisconnected(client_id:int, reason:int):
 	# check if we're disconnecting ourselves, if so, die!

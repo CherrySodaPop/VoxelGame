@@ -1,9 +1,11 @@
 extends Node
 
+const OTHER_PLAYER: PackedScene = preload("res://objects/otherPlayer/otherPlayer.tscn")
+
 var instances: Dictionary = {}
 
-func new_player(id: int):
-	var instance = preload("res://objects/clientPlayer/clientPlayer.tscn").instance()
+func add_player(id: int):
+	var instance = OTHER_PLAYER.instance()
 	instances[id] = instance
 	add_child(instance)
 
@@ -17,8 +19,9 @@ func update_player_appearance(id: int, skin: ImageTexture):
 	mesh.get("material/0").albedo_texture = skin
 	mesh.get("material/1").albedo_texture = skin
 
-func update_player(id: int, position: Vector3, camera_rot: Vector3):
-	pass
+func update_player(id: int, position: Vector3, camera_rot: Vector2):
+	instances[id].global_transform.origin = position
+	instances[id].camRotation = camera_rot
 
 func has(id: int):
 	return instances.has(id)
