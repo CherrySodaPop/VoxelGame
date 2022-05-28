@@ -14,7 +14,6 @@ func _ready():
 
 func _process(delta):
 	HandleAnimations(delta);
-	HandleDestroyTimeout(delta);
 
 func HandleAnimations(delta):
 	var fixedCamRotationY = camRotation.y + deg2rad(180);
@@ -34,10 +33,3 @@ func HandleAnimations(delta):
 
 	skeleton.set_bone_pose(skeleton.find_bone("core"), bodyTransform);
 	skeleton.set_bone_pose(skeleton.find_bone("head"), headTransform);
-
-func HandleDestroyTimeout(delta):
-	timeoutDestroy += delta;
-	if (timeoutDestroy >= timeoutDestroyMax):
-		if (Persistent.controllerNetwork.playerInstances.has(networkID)):
-			Persistent.controllerNetwork.playerInstances.erase(networkID);
-			queue_free();

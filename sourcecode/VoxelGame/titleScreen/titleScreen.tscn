@@ -1,7 +1,6 @@
-[gd_scene load_steps=6 format=2]
+[gd_scene load_steps=5 format=2]
 
 [ext_resource path="res://titleScreen/titleScreen.gd" type="Script" id=1]
-[ext_resource path="res://titleScreen/LoadWorldVBC.gd" type="Script" id=2]
 [ext_resource path="res://assets/textures/ui/titlescreen_bg.png" type="Texture" id=3]
 [ext_resource path="res://assets/fonts/UbuntuMono.ttf" type="DynamicFontData" id=4]
 
@@ -27,71 +26,25 @@ anchor_bottom = 1.0
 margin_right = 700.0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
-margin_left = 100.0
-margin_top = 212.0
-margin_right = 600.0
-margin_bottom = 387.0
+margin_left = 206.0
+margin_top = 249.0
+margin_right = 494.0
+margin_bottom = 350.0
 size_flags_vertical = 3
 custom_constants/separation = 16
 
 [node name="Label" type="Label" parent="CenterContainer/VBoxContainer"]
-margin_right = 500.0
+margin_right = 288.0
 margin_bottom = 65.0
 custom_fonts/font = SubResource( 1 )
 text = "VoxelGame"
 
-[node name="LoadWorldVBC" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
+[node name="ConnectButton" type="Button" parent="CenterContainer/VBoxContainer"]
 margin_top = 81.0
-margin_right = 500.0
-margin_bottom = 99.0
-script = ExtResource( 2 )
-
-[node name="Label" type="Label" parent="CenterContainer/VBoxContainer/LoadWorldVBC"]
-margin_right = 500.0
-margin_bottom = 14.0
-text = "Load World"
-
-[node name="WorldButtons" type="HBoxContainer" parent="CenterContainer/VBoxContainer/LoadWorldVBC"]
-margin_top = 18.0
-margin_bottom = 18.0
+margin_right = 125.0
+margin_bottom = 101.0
 size_flags_horizontal = 0
+text = "Connect to Server"
+align = 0
 
-[node name="NewWorldVBC" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
-margin_top = 115.0
-margin_right = 500.0
-margin_bottom = 175.0
-size_flags_horizontal = 2
-size_flags_vertical = 3
-
-[node name="Label" type="Label" parent="CenterContainer/VBoxContainer/NewWorldVBC"]
-margin_right = 500.0
-margin_bottom = 14.0
-text = "New World"
-
-[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/VBoxContainer/NewWorldVBC"]
-margin_top = 18.0
-margin_right = 500.0
-margin_bottom = 42.0
-rect_min_size = Vector2( 500, 0 )
-
-[node name="LineEdit" type="LineEdit" parent="CenterContainer/VBoxContainer/NewWorldVBC/HBoxContainer"]
-margin_right = 443.0
-margin_bottom = 24.0
-grow_horizontal = 2
-size_flags_horizontal = 3
-clear_button_enabled = true
-
-[node name="CreateButton" type="Button" parent="CenterContainer/VBoxContainer/NewWorldVBC/HBoxContainer"]
-margin_left = 447.0
-margin_right = 500.0
-margin_bottom = 24.0
-text = "Create"
-
-[node name="NameHint" type="Label" parent="CenterContainer/VBoxContainer/NewWorldVBC"]
-margin_top = 46.0
-margin_right = 500.0
-margin_bottom = 60.0
-
-[connection signal="text_changed" from="CenterContainer/VBoxContainer/NewWorldVBC/HBoxContainer/LineEdit" to="." method="_on_LineEdit_text_changed"]
-[connection signal="text_entered" from="CenterContainer/VBoxContainer/NewWorldVBC/HBoxContainer/LineEdit" to="." method="_on_LineEdit_text_entered"]
-[connection signal="pressed" from="CenterContainer/VBoxContainer/NewWorldVBC/HBoxContainer/CreateButton" to="." method="_on_CreateButton_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/ConnectButton" to="." method="_on_ConnectButton_pressed"]

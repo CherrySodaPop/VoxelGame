@@ -94,7 +94,7 @@ impl ClientChunkLoader {
     }
 
     #[export]
-    fn receive_chunk(&mut self, _base: &Node, data: ByteArray, position: Vector2) {
+    fn update_chunk(&mut self, _base: &Node, position: Vector2, data: ByteArray) {
         let position = ChunkPos::new(position.x as isize, position.y as isize);
         let data = data.read();
         let received_chunk_data: ChunkData = decode_compressed(&*data);

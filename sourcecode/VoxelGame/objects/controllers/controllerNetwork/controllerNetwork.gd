@@ -1,5 +1,10 @@
 extends Node
 
+signal connected
+signal player_info_updated(client_id, position, camera_rot)
+signal chunk_data_received(position, data)
+signal player_appearance_received(client_id, skinBase64)
+
 # secure info
 var username = "Cherry";
 var password = "my_password"
@@ -7,111 +12,91 @@ var password = "my_password"
 var peer = NetworkedMultiplayerENet.new();
 var serverAddress = "localhost";
 var serverPort = 25565;
-var networkTickTimer:float = 0.0;
-var networkTick:float = 1/30;
-# instances
-var playerInstances:Dictionary = {};
-var playerDisconnectedInstances:Dictionary = {};
-var objClientPlayer = preload("res://objects/clientPlayer/clientPlayer.tscn");
-var worldToLoad = ""; # Set in the title screen, mildly hacky.
+
+func ConnectedToServer():
+	print("Connected to server!")
+	emit_signal("connected")
+
+func FailedToConnect():
+	print_debug("DEBUG: Failed to connect to %s" % (serverAddress + ":"+ str(serverPort)));
+
+func ServerClosed():
+	printerr("Server closed.")
+	OS.alert("The server has been closed.", "Whoops.")
 
 func _ready():
 	# connect to server
 	peer.create_client(serverAddress, serverPort)
 	get_tree().network_peer = peer;
-	# connect a few base functions
-	get_tree().connect("connected_to_server", self, "ClientConnectedToServer");
-	get_tree().connect("connection_failed", self, "ClientFailedToConnect");
-	get_tree().connect("server_disconnected", self, "ClientServerClosed");
+	# warning-ignore:RETURN_VALUE_DISCARDED
+	get_tree().connect("connected_to_server", self, "ConnectedToServer");
+	# warning-ignore:RETURN_VALUE_DISCARDED
+	get_tree().connect("connection_failed", self, "FailedToConnect");
+	# warning-ignore:RETURN_VALUE_DISCARDED
+	get_tree().connect("server_disconnected", self, "ServerClosed");
 
-func _process(delta):
-	if (HasTicked()): networkTickTimer = 0.0;
-	networkTickTimer += delta;
-
-func HasTicked() -> bool:
-	return (networkTickTimer >= networkTick);
-
-######################################################################
-# first connection type network functions
-######################################################################
-func ClientConnectedToServer():
-	# succesfuly connected
-	pass
-
-func StartWorld():
-	rpc_id(1, "LoadClientWorld", worldToLoad);
-
-remote func ServerID(id:int):
-	Persistent.get_node("player").networkID = id;
-	SendPlayerInfo();
-
-func ClientFailedToConnect():
-	print_debug("DEBUG: Failed to connect to %s" % (serverAddress + ":"+ str(serverPort)));
-
-func ClientServerClosed():
-	pass
-
-func SendPlayerInfo():
-	# password!
-	var passwordHashed = password.sha256_text();
-	# skin!
+func LoadSkin() -> String:
 	var skinPath = "user://skin.png";
 	var skinImage = File.new();
-	var skinBase64 = "";
 	if (!skinImage.file_exists(skinPath)):
 		var defaultSkin:StreamTexture = load("res://assets/models/pm/skin.png");
 		defaultSkin.get_data().save_png("user://skin.png");
 	skinImage.open(skinPath, File.READ);
-	skinBase64 = Marshalls.raw_to_base64(skinImage.get_buffer(skinImage.get_len()));
-	rpc_id(1, "HandlePlayerInfo", username, passwordHashed, skinBase64);
+	return Marshalls.raw_to_base64(skinImage.get_buffer(skinImage.get_len()));
 
-remote func PlayerAppearance(objID:int, skinBase64:String):
-	var obj:Spatial = instance_from_id(objID);
-	var skinImage = Image.new();
-	var skinTexture = ImageTexture.new();
-	skinImage.load_png_from_buffer(Marshalls.base64_to_raw(skinBase64));
-	skinTexture.create_from_image(skinImage, 0);
-	if (is_instance_valid(obj)):
-		var mesh:MeshInstance = obj.get_node("model/PM/Skeleton/PMMeshObj")
-		var under:SpatialMaterial = mesh.get("material/0");
-		var top:SpatialMaterial = mesh.get("material/1");
-		under.albedo_texture = skinTexture;
-		top.albedo_texture = skinTexture;
+func GetClientInfo() -> Array:
+	var passwordHashed = password.sha256_text();
+	return [username, passwordHashed, LoadSkin()];
 
-remote func DisconnectClient(id:int, reason:int):
+func SendClientInfo():
+	var client_info = GetClientInfo()
+	rpc_id(1, "HandleClientInfo", client_info[0], client_info[1], client_info[2])
+
+remote func ClientDisconnected(client_id:int, reason:int):
 	# check if we're disconnecting ourselves, if so, die!
-	if (Persistent.get_node("player").networkID == id):
+	if client_id == get_tree().get_network_unique_id():
 		get_tree().network_peer = null;
 		print("DEBUG: Disconnected by server: %s" % reason);
 		return;
-	# no? we're disconnecting another player then, kill em!
-	if (playerInstances.has(id)):
-		var playerNode:Spatial = playerInstances[id];
-		if (is_instance_valid(playerNode)):
-			playerNode.queue_free();
-			playerInstances.erase(id);
-			playerDisconnectedInstances[id] = true;
-			return;
-	push_warning("controllerNetwork: No client to disconnect!")
+	# no? we're disconnecting another player then, tell the butcher!
+	emit_signal("player_disconnected", client_id)
 
 ######################################################################
 # GAMEPLAY RELATED NETWORKING AFTER THIS POINT!
 ######################################################################
 
-remote func PlayerInfo(networkID:int, pos:Vector3, camRotation:Vector2):
-	# not our own info
-	if (Persistent.get_node("player").networkID == networkID): return;
-	# not a disconnected player's info
-	if (playerDisconnectedInstances.has(networkID)): return;
-	# todo: if their outside the viewdistance dont bother with their info and remove them
-	if (!playerInstances.has(networkID)):
-		var tmpObj = objClientPlayer.instance();
-		get_tree().current_scene.add_child(tmpObj);
-		playerInstances[networkID] = tmpObj;
-		rpc_id(1, "SendPlayerAppearance", tmpObj.get_instance_id(), networkID);
-	var obj:Spatial = playerInstances[networkID];
-	obj.global_transform.origin = pos;
-	obj.camRotation = camRotation;
+func sender_id() -> int:
+	return get_tree().get_rpc_sender_id()
 
-remote func ChunkData(chunkData:PoolByteArray, chunkPos:Vector2):
-	Persistent.chunkLoader.receive_chunk(chunkData, chunkPos);
+remote func PlayerAppearance(client_id: int, skinBase64: String):
+	var skinImage = Image.new();
+	# This data was sent from the server, we don't need to worry
+	# if it's valid or not as the server has already checked it.
+	skinImage.load_png_from_buffer(Marshalls.base64_to_raw(skinBase64));
+	var skinTexture = ImageTexture.new()
+	skinTexture.create_from_image(skinImage, 0);
+	emit_signal("player_appearance_received", client_id, skinTexture)
+
+remote func PlayerInfo(client_id: int, pos:Vector3, camRotation:Vector2):
+	# todo: if their outside the viewdistance dont bother with their info
+	if client_id == get_tree().get_network_unique_id():
+		# This is our own info.
+		return;
+	emit_signal("player_info_updated", client_id, pos, camRotation);
+
+remote func ChunkData(chunkData: PoolByteArray, chunkPos: Vector2):
+	emit_signal("chunk_data_received", chunkPos, chunkData);
+
+func RequestChunkData(chunkPos: Vector2):
+	rpc_id(1, "RequestChunkData", chunkPos)
+
+func RequestChunkDataAround(chunkPos: Vector2):
+	var positions = PoolVector2Array();
+	for x in range(-1, 2):
+		for y in range(-1, 2):
+			positions.push_back(chunkPos + Vector2(x, y));
+	for position in positions:
+		RequestChunkData(position);
+
+func SendSetBlock(blockPos: Vector3, blockType: int):
+	rpc_id(1, "SetBlock", blockPos, blockType)

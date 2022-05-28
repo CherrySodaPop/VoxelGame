@@ -1,0 +1,49 @@
+[gd_scene format=2]
+
+[node name="WorldLights" type="Spatial"]
+
+[node name="SunLight" type="DirectionalLight" parent="."]
+transform = Transform( -0.819152, 0.32899, -0.469847, 0, 0.819152, 0.573576, 0.573577, 0.469846, -0.67101, 0, 0, 0 )
+light_color = Color( 0.752941, 0.596078, 0.564706, 1 )
+light_energy = 7.876
+light_specular = 0.0
+shadow_enabled = true
+
+[node name="TopFaceLight" type="DirectionalLight" parent="."]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, 0 )
+light_color = Color( 0.752941, 0.596078, 0.564706, 1 )
+light_energy = 1.5
+light_specular = 0.0
+shadow_color = Color( 0.603922, 0.603922, 0.603922, 1 )
+
+[node name="BottomFaceLight" type="DirectionalLight" parent="."]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0 )
+light_color = Color( 0.752941, 0.596078, 0.564706, 1 )
+light_energy = 0.5
+light_specular = 0.0
+shadow_color = Color( 0.603922, 0.603922, 0.603922, 1 )
+
+[node name="LeftFaceLight" type="DirectionalLight" parent="."]
+transform = Transform( 1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, 0, 0, 0 )
+light_color = Color( 0.752941, 0.596078, 0.564706, 1 )
+light_specular = 0.0
+shadow_color = Color( 0.603922, 0.603922, 0.603922, 1 )
+
+[node name="RightFaceLight" type="DirectionalLight" parent="."]
+transform = Transform( -4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 0, 0, 0 )
+light_color = Color( 0.752941, 0.596078, 0.564706, 1 )
+light_specular = 0.0
+shadow_color = Color( 0.603922, 0.603922, 0.603922, 1 )
+
+[node name="FrontFaceLight" type="DirectionalLight" parent="."]
+light_color = Color( 0.752941, 0.596078, 0.564706, 1 )
+light_energy = 0.5
+light_specular = 0.0
+shadow_color = Color( 0.603922, 0.603922, 0.603922, 1 )
+
+[node name="BackFaceLight" type="DirectionalLight" parent="."]
+transform = Transform( -1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0 )
+light_color = Color( 0.752941, 0.596078, 0.564706, 1 )
+light_energy = 0.5
+light_specular = 0.0
+shadow_color = Color( 0.603922, 0.603922, 0.603922, 1 )

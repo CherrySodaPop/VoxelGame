@@ -50,9 +50,9 @@ impl ServerChunkCreator {
     const AUTOSAVE_EVERY: f64 = 15.0;
 
     fn new(base: &Spatial) -> Self {
-        let persistent: TRef<Node> = unsafe { autoload("Persistent") }.unwrap();
-        let save_manager = persistent.get_node("saveManager").unwrap();
-        let world: PathBuf = unsafe { save_manager.assume_safe() }
+        println!("About to get an autoload!");
+        let current_world: TRef<Node> = unsafe { autoload("CurrentWorld") }.unwrap();
+        let world: PathBuf = current_world
             .get("currentWorld")
             .to::<String>()
             .unwrap()

@@ -5,4 +5,4 @@ func _ready():
 
 func GenerateChunkMesh(pos:Vector2):
 	print("Entered ", pos);
-	Persistent.controllerNetwork.rpc_id(1, "SendChunkDataAround", pos);
+	Persistent.controllerNetwork.rpc_id(1, "ChunkDataAroundRequested", pos);

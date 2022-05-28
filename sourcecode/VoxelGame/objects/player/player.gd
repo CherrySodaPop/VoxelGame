@@ -1,5 +1,9 @@
 extends KinematicBody
 
+signal block_broken(position)
+signal block_placed(position, block_id)
+signal entered_chunk(chunk_position)
+
 var animationTimer:float = 0.0;
 
 var networkID = -1;
@@ -57,7 +61,6 @@ func _process(delta):
 	HandleMovement(delta);
 	HandleAnimation(delta);
 	HandleHud(delta);
-	Network();
 
 func TogglePerspective():
 	thirdPerson = not thirdPerson
@@ -92,10 +95,10 @@ func _input(event:InputEvent):
 
 func UpdateMiscInfo(delta):
 	# chunk pos update
-	currentChunk.x = floor(global_transform.origin.x / Persistent.chunkSize.x);
-	currentChunk.y = floor(global_transform.origin.z / Persistent.chunkSize.x);
+	currentChunk.x = floor(global_transform.origin.x / Constants.CHUNK_SIZE.x);
+	currentChunk.y = floor(global_transform.origin.z / Constants.CHUNK_SIZE.z);
 	if (currentChunk != prevChunk):
-		emit_signal("enteredNewChunk");
+		emit_signal("entered_chunk", currentChunk)
 		prevChunk = currentChunk;
 
 	$RayCast.rotation = $cameraJoint.rotation;
@@ -116,10 +119,9 @@ func UpdateMiscInfo(delta):
 
 func HandleActions(_delta):
 	if (Input.is_action_pressed("playerPrimaryAction")):
-		Persistent.controllerNetwork.rpc_unreliable_id(1, "SetBlock", lookingAtBlock, 0);
+		emit_signal("block_broken", lookingAtBlock);
 	if (Input.is_action_pressed("playerSecondaryAction")):
-		Persistent.controllerNetwork.rpc_unreliable_id(1, "SetBlock", adjacentLookingAtBlock, 23);
-		pass #Persistent.get_node("chunkGeneration").set_block_gd(adjacentLookingAtBlock, 23);
+		emit_signal("block_placed", adjacentLookingAtBlock, 23);
 
 func HandleMovement(delta):
 	prevPos = global_transform.origin;
@@ -146,6 +148,7 @@ func HandleMovement(delta):
 	velocity = Vector3(storedInterpolateVelocityVec2.x, velocity.y, storedInterpolateVelocityVec2.y);
 	velocity.y -= gravity * delta;
 
+	# warning-ignore:RETURN_VALUE_DISCARDED
 	move_and_slide(velocity, Vector3(0, 1, 0));
 	if (is_on_floor() || is_on_ceiling()):
 		velocity.y = 0.0;
@@ -208,14 +211,11 @@ func HandleHud(_delta):
 func HandleBlockHighlighting():
 	$blockOutlineJoint.global_transform.origin = lookingAtBlock;
 
-func Network():
-	if (Persistent.controllerNetwork.HasTicked()):
-		Persistent.controllerNetwork.rpc_id(
-			1,
-			"PlayerInfo",
-			global_transform.origin,
-			Vector2($cameraJoint.rotation.x, $cameraJoint.rotation.y)
-		);
+func TickInfo() -> Array:
+	return [
+		global_transform.origin,
+		Vector2($cameraJoint.rotation.x, $cameraJoint.rotation.y)
+	];
 
 func HandleCamera(mouseMotion:Vector2):
 	if (Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED):

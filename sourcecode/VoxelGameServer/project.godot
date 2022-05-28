@@ -16,7 +16,7 @@ config/icon="res://icon.png"
 
 [autoload]
 
-Persistent="*res://objects/persistent/persistent.tscn"
+CurrentWorld="*res://objects/persistent/CurrentWorld.tscn"
 
 [display]
 

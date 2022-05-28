@@ -28,7 +28,8 @@ config/icon="res://icon.png"
 
 [autoload]
 
-Persistent="*res://objects/persistent/persistent.tscn"
+BlockManager="*res://objects/blockManager/blockManager.tscn"
+Constants="*res://objects/persistent/Constants.tscn"
 
 [input]
 
