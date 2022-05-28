@@ -1,3 +1,7 @@
+# TODO: Allow for running the server separately again.
+#       It's currently not included as I didn't want to
+#       deal with selecting the world to use.
+
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -127,19 +131,9 @@ def copy_libraries(debug: bool = False) -> bool:
 
 
 def run_game(godot_path: str, stdout: str):
-    server_pipe = subprocess.DEVNULL
     client_pipe = subprocess.DEVNULL
     if stdout == "client":
         client_pipe = None
-    elif stdout == "server":
-        server_pipe = None
-    print("Running game server...", end=" ")
-    server_proc = subprocess.Popen(
-        [godot_path, "--no-window", "--path", SERVER_PATH],
-        stderr=server_pipe,
-        stdout=server_pipe,
-    )
-    print(f"Server {GREEN}running{OFF} with PID {CYAN}{server_proc.pid}{OFF}.")
     print(f"Running client...", end=" ")
     client_proc = subprocess.Popen(
         [godot_path, "--path", CLIENT_PATH], stderr=client_pipe, stdout=client_pipe
@@ -147,10 +141,6 @@ def run_game(godot_path: str, stdout: str):
     print(f"Client {GREEN}running{OFF}.")
     _ = client_proc.communicate()
     print(f"Client has been {RED}closed{OFF}.")
-    print("Killing server...", end=" ")
-    server_proc.kill()
-    server_exit_code = server_proc.wait()
-    print(f"Server {RED}closed{OFF}.")
 
 
 def main():
@@ -182,14 +172,12 @@ def main():
     parser.add_argument(
         "--stdout",
         "-s",
-        help="Specifies whether the server, client, or neither should have its stdout+stderr printed.",
-        choices=["server", "s", "client", "c", "neither"],
+        help="Specifies whether the server (formerly), client, or neither should have its stdout+stderr printed.",
+        choices=["client", "c", "neither"],
         default="neither",
     )
     args = parser.parse_args()
 
-    if args.stdout == "s":
-        args.stdout = "server"
     if args.stdout == "c":
         args.stdout = "client"
 

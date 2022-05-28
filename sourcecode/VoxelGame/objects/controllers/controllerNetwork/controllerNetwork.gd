@@ -82,7 +82,6 @@ remote func PlayerAppearance(client_id: int, skinBase64: String):
 
 remote func PlayerInfo(client_id: int, pos:Vector3, camRotation:Vector2):
 	# todo: if their outside the viewdistance dont bother with their info
-	print(client_id, " ", multiplayer.get_network_unique_id())
 	if client_id == multiplayer.get_network_unique_id():
 		# This is our own info.
 		return;
