@@ -28,9 +28,16 @@ environment = ExtResource( 6 )
 
 [node name="WorldLights" parent="world" instance=ExtResource( 7 )]
 
+[node name="ConnectionTimeout" type="Timer" parent="."]
+wait_time = 4.0
+one_shot = true
+autostart = true
+
 [connection signal="chunk_data_received" from="network" to="." method="_on_controllerNetwork_chunk_data_received"]
+[connection signal="connected" from="network" to="." method="_on_network_connected"]
 [connection signal="player_disconnected" from="network" to="." method="_on_network_player_disconnected"]
 [connection signal="player_info_updated" from="network" to="." method="_on_controllerNetwork_player_info_updated"]
 [connection signal="block_broken" from="world/player" to="." method="_on_player_block_broken"]
 [connection signal="block_placed" from="world/player" to="." method="_on_player_block_placed"]
 [connection signal="entered_chunk" from="world/player" to="." method="_on_player_entered_chunk"]
+[connection signal="timeout" from="ConnectionTimeout" to="." method="_on_ConnectionTimeout_timeout"]

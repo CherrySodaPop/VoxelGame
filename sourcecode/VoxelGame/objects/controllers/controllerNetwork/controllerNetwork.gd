@@ -14,8 +14,11 @@ var peer = NetworkedMultiplayerENet.new();
 var serverAddress = "localhost";
 var serverPort = 25565;
 
+var connected: bool = false
+
 func ConnectedToServer():
 	print("Connected to server!")
+	connected = true
 	emit_signal("connected")
 
 func FailedToConnect():

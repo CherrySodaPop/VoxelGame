@@ -118,9 +118,9 @@ func UpdateMiscInfo(delta):
 	adjacentLookingAtBlock.z = floor(adjacentLookingAtBlock.z);
 
 func HandleActions(_delta):
-	if (Input.is_action_pressed("playerPrimaryAction")):
+	if (Input.is_action_just_pressed("playerPrimaryAction")):
 		emit_signal("block_broken", lookingAtBlock);
-	if (Input.is_action_pressed("playerSecondaryAction")):
+	if (Input.is_action_just_pressed("playerSecondaryAction")):
 		emit_signal("block_placed", adjacentLookingAtBlock, 23);
 
 func HandleMovement(delta):
