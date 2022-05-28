@@ -21,9 +21,12 @@ func _on_network_connected():
 	network.RequestChunkDataAround(Vector2(0, 0))
 
 func _on_controllerNetwork_player_info_updated(client_id: int, position: Vector3, camera_rot: Vector2):
-	if not networkedPlayers.has(client_id):
-		networkedPlayers.add_player(client_id)
+	networkedPlayers.ensure_has(client_id)
 	networkedPlayers.update_player(client_id, position, camera_rot)
+
+func _on_network_player_appearance_received(client_id: int, skin_texture: ImageTexture):
+	networkedPlayers.ensure_has(client_id)
+	networkedPlayers.update_player_appearance(client_id, skin_texture)
 
 func _on_network_player_disconnected(client_id):
 	networkedPlayers.remove_player(client_id)

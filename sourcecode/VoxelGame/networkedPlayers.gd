@@ -4,6 +4,10 @@ const OTHER_PLAYER: PackedScene = preload("res://objects/otherPlayer/otherPlayer
 
 var instances: Dictionary = {}
 
+func ensure_has(id: int):
+	if not (id in instances):
+		add_player(id)
+
 func add_player(id: int):
 	var instance = OTHER_PLAYER.instance()
 	instances[id] = instance

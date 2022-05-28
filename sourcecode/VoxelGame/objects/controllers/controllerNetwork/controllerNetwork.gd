@@ -20,6 +20,7 @@ func ConnectedToServer():
 	print("Connected to server!")
 	connected = true
 	emit_signal("connected")
+	SendClientInfo()
 
 func FailedToConnect():
 	print_debug("DEBUG: Failed to connect to %s" % (serverAddress + ":"+ str(serverPort)));
@@ -48,13 +49,8 @@ func LoadSkin() -> String:
 	skinImage.open(skinPath, File.READ);
 	return Marshalls.raw_to_base64(skinImage.get_buffer(skinImage.get_len()));
 
-func GetClientInfo() -> Array:
-	var passwordHashed = password.sha256_text();
-	return [username, passwordHashed, LoadSkin()];
-
 func SendClientInfo():
-	var client_info = GetClientInfo()
-	rpc_id(1, "HandleClientInfo", client_info[0], client_info[1], client_info[2])
+	rpc_id(1, "HandleClientInfo", username, password.sha256_text(), LoadSkin())
 
 func SendPlayerInfo(position: Vector3, camera_rot: Vector2):
 	rpc_id(1, "HandlePlayerInfo", position, camera_rot)

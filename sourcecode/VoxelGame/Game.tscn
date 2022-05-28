@@ -35,6 +35,7 @@ autostart = true
 
 [connection signal="chunk_data_received" from="network" to="." method="_on_controllerNetwork_chunk_data_received"]
 [connection signal="connected" from="network" to="." method="_on_network_connected"]
+[connection signal="player_appearance_received" from="network" to="." method="_on_network_player_appearance_received"]
 [connection signal="player_disconnected" from="network" to="." method="_on_network_player_disconnected"]
 [connection signal="player_info_updated" from="network" to="." method="_on_controllerNetwork_player_info_updated"]
 [connection signal="block_broken" from="world/player" to="." method="_on_player_block_broken"]
