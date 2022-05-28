@@ -10,6 +10,7 @@ func _ready():
 		Constants.SERVER_PATH + "objects/chunkCreator/chunkCreator.tscn"
 	).instance()
 	call_deferred("add_child", chunkCreator)
+	network.start()
 
 func chunkPosOf(blockPos: Vector3) -> Vector2:
 	return Vector2(
