@@ -1,16 +1,9 @@
 extends Spatial
 
-var networkID:int = -1;
 var username:String = "IvanTheSpaceBiker"
 
 var bodyRotation:float = 0.0;
 var camRotation:Vector2 = Vector2.ZERO;
-
-var timeoutDestroy:float = 0.0;
-var timeoutDestroyMax:float = 100.0;
-
-func _ready():
-	pass
 
 func _process(delta):
 	HandleAnimations(delta);
@@ -21,7 +14,11 @@ func HandleAnimations(delta):
 	var headBodyDifShort = fmod(2 * headBodyDif, TAU) - headBodyDif;
 	var bodyToHeadyRotation = fixedCamRotationY + (headBodyDifShort * 1.0);
 	if (abs(headBodyDifShort) > deg2rad(25)):
-		bodyRotation = lerp_angle(bodyRotation, fixedCamRotationY + deg2rad(-sign(headBodyDifShort) * 25.0), 8.0 * delta);
+		bodyRotation = lerp_angle(
+			bodyRotation,
+			fixedCamRotationY + deg2rad(-sign(headBodyDifShort) * 25.0),
+			8.0 * delta
+		);
 
 	var skeleton:Skeleton = get_node("model").get_node("PM/Skeleton");
 	var bodyTransform = Transform(Vector3.RIGHT, Vector3.UP, Vector3.BACK, Vector3.ZERO);

@@ -8,10 +8,5 @@ script = ExtResource( 1 )
 
 [node name="network" parent="." instance=ExtResource( 2 )]
 
-[node name="Camera" type="Camera" parent="."]
-transform = Transform( 1, 0, 0, 0, 0.973881, 0.227059, 0, -0.227059, 0.973881, 0, 55.5698, 0 )
-current = true
-far = 1000.0
-
 [connection signal="block_set" from="network" to="." method="_on_controllerServer_block_set"]
 [connection signal="chunk_data_requested" from="network" to="." method="_on_controllerServer_chunk_data_requested"]

@@ -4,7 +4,9 @@ onready var network = $network
 var chunkCreator:Node
 
 func _ready():
-	chunkCreator = preload("res://objects/chunkGenerator/chunkCreator.tscn").instance()
+	# This is instantiated in _ready to allow for the "CurrentWorld" autoload
+	# to, well, load.
+	chunkCreator = preload("res://objects/chunkCreator/chunkCreator.tscn").instance()
 	add_child(chunkCreator)
 
 func chunkPosOf(blockPos: Vector3) -> Vector2:

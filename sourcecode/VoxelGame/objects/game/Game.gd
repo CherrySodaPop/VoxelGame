@@ -34,17 +34,6 @@ func _on_network_player_disconnected(client_id):
 func _on_controllerNetwork_chunk_data_received(position: Vector2, data: PoolByteArray):
 	chunkLoader.update_chunk(position, data)
 
-func _physics_process(delta):
-	tick += delta
-	if tick >= TICK_RATE:
-		tick = 0
-	else:
-		return
-	if not network.connected:
-		return
-	var player_info = player.TickInfo()
-	network.SendPlayerInfo(player_info[0], player_info[1])
-
 func _on_player_entered_chunk(chunk_position: Vector2):
 	network.RequestChunkDataAround(chunk_position)
 
@@ -59,3 +48,14 @@ func _on_ConnectionTimeout_timeout():
 		return
 	OS.alert("Couldn't establish a connection to the server.", "Error")
 	get_tree().quit(1)
+
+func _physics_process(delta):
+	tick += delta
+	if tick >= TICK_RATE:
+		tick = 0
+	else:
+		return
+	if not network.connected:
+		return
+	var player_info = player.TickInfo()
+	network.SendPlayerInfo(player_info[0], player_info[1])

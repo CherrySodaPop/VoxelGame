@@ -71,4 +71,5 @@ size_flags_horizontal = 0
 text = "Connect"
 align = 0
 
+[connection signal="text_entered" from="CenterContainer/VBoxContainer/MultiplayerVBC/HBoxContainer/ServerIP" to="." method="_on_ServerIP_text_entered"]
 [connection signal="pressed" from="CenterContainer/VBoxContainer/MultiplayerVBC/HBoxContainer/ConnectButton" to="." method="_on_ConnectButton_pressed"]

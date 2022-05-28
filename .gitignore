@@ -22,3 +22,4 @@ export_presets.cfg
 
 # Ignore multiplayer info
 /sourcecode/VoxelGameServer/gameinfo/*
+!/sourcecode/VoxelGameServer/gameinfo/player_creds.json
