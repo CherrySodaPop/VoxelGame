@@ -28,9 +28,9 @@ func ServerClosed():
 	printerr("Server closed.")
 	OS.alert("The server has been closed.", "Whoops.")
 
-func _ready():
+func connect_to(server_ip: String):
 	# connect to server
-	peer.create_client(serverAddress, serverPort)
+	peer.create_client(server_ip, serverPort)
 	get_tree().network_peer = peer;
 	# warning-ignore:RETURN_VALUE_DISCARDED
 	get_tree().connect("connected_to_server", self, "ConnectedToServer");

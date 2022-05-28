@@ -10,6 +10,10 @@ onready var player = $world/player
 
 var tick: float = 0.0
 
+func _ready():
+	var server_ip = get_tree().get_root().get_meta("server_ip") # Set by the title screen
+	network.connect_to(server_ip)
+
 func _on_network_connected():
 	connectionTimeout.stop()
 	connectionTimeout.queue_free()
