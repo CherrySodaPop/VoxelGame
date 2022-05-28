@@ -53,7 +53,7 @@ impl ServerChunkCreator {
         println!("About to get an autoload!");
         let current_world: TRef<Node> = unsafe { autoload("CurrentWorld") }.unwrap();
         let world: PathBuf = current_world
-            .get("currentWorld")
+            .get("world_path")
             .to::<String>()
             .unwrap()
             .into();

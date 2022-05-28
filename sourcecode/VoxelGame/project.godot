@@ -13,9 +13,15 @@ _global_script_classes=[ {
 "class": "BlockData",
 "language": "GDScript",
 "path": "res://objects/blockManager/BlockData.gd"
+}, {
+"base": "Node",
+"class": "Server",
+"language": "GDScript",
+"path": "res://server/objects/server/serverMultiplayerBase.gd"
 } ]
 _global_script_class_icons={
-"BlockData": ""
+"BlockData": "",
+"Server": ""
 }
 
 [application]
@@ -30,6 +36,7 @@ config/icon="res://icon.png"
 
 BlockManager="*res://objects/blockManager/blockManager.tscn"
 Constants="*res://objects/persistent/Constants.tscn"
+CurrentWorld="*res://server/objects/server/CurrentWorld.tscn"
 
 [input]
 

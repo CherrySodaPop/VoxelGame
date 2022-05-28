@@ -11,7 +11,20 @@ onready var player = $world/player
 var tick: float = 0.0
 
 func _ready():
-	var server_ip = get_tree().get_root().get_meta("server_ip") # Set by the title screen
+	var root = get_tree().get_root()
+	var world_name = root.get_meta("world_name")
+	var server_ip = "localhost"
+	if world_name != null:
+		# A local world was selected on the title screen
+		CurrentWorld.world_path = OS.get_user_data_dir() + "/worlds/" + world_name
+		var local_server = load(
+			Constants.SERVER_PATH + "objects/server/server.tscn"
+		).instance()
+		add_child(local_server)
+		local_server.start()
+	else:
+		# Multiplayer was selected on the title screen
+		server_ip = get_tree().get_root().get_meta("server_ip")
 	network.connect_to(server_ip)
 
 func _on_network_connected():

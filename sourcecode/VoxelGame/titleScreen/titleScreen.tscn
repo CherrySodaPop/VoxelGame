@@ -1,8 +1,10 @@
-[gd_scene load_steps=5 format=2]
+[gd_scene load_steps=7 format=2]
 
 [ext_resource path="res://titleScreen/titleScreen.gd" type="Script" id=1]
+[ext_resource path="res://titleScreen/WorldsList.gd" type="Script" id=2]
 [ext_resource path="res://assets/textures/ui/titlescreen_bg.png" type="Texture" id=3]
 [ext_resource path="res://assets/fonts/UbuntuMono.ttf" type="DynamicFontData" id=4]
+[ext_resource path="res://titleScreen/Worlds.gd" type="Script" id=5]
 
 [sub_resource type="DynamicFont" id=1]
 size = 64
@@ -27,9 +29,9 @@ margin_right = 700.0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
 margin_left = 100.0
-margin_top = 237.0
+margin_top = 190.0
 margin_right = 600.0
-margin_bottom = 362.0
+margin_bottom = 410.0
 size_flags_vertical = 3
 custom_constants/separation = 16
 
@@ -39,10 +41,73 @@ margin_bottom = 65.0
 custom_fonts/font = SubResource( 1 )
 text = "VoxelGame"
 
-[node name="MultiplayerVBC" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
+[node name="SingleplayerVBC" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
 margin_top = 81.0
 margin_right = 500.0
-margin_bottom = 125.0
+margin_bottom = 160.0
+
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer/SingleplayerVBC"]
+margin_right = 500.0
+margin_bottom = 14.0
+text = "Singleplayer/Host"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/VBoxContainer/SingleplayerVBC"]
+margin_top = 18.0
+margin_right = 500.0
+margin_bottom = 79.0
+
+[node name="Worlds" type="VBoxContainer" parent="CenterContainer/VBoxContainer/SingleplayerVBC/VBoxContainer"]
+margin_right = 500.0
+margin_bottom = 37.0
+script = ExtResource( 5 )
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="CenterContainer/VBoxContainer/SingleplayerVBC/VBoxContainer/Worlds"]
+margin_right = 500.0
+margin_bottom = 24.0
+
+[node name="WorldNameLE" type="LineEdit" parent="CenterContainer/VBoxContainer/SingleplayerVBC/VBoxContainer/Worlds/HBoxContainer2"]
+margin_right = 404.0
+margin_bottom = 24.0
+size_flags_horizontal = 3
+placeholder_text = "New world name..."
+
+[node name="CreateWorldButton" type="Button" parent="CenterContainer/VBoxContainer/SingleplayerVBC/VBoxContainer/Worlds/HBoxContainer2"]
+margin_left = 408.0
+margin_right = 500.0
+margin_bottom = 24.0
+text = "Create world"
+
+[node name="WorldsList" type="ItemList" parent="CenterContainer/VBoxContainer/SingleplayerVBC/VBoxContainer/Worlds"]
+margin_top = 28.0
+margin_right = 500.0
+margin_bottom = 37.0
+size_flags_horizontal = 3
+auto_height = true
+script = ExtResource( 2 )
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/VBoxContainer/SingleplayerVBC/VBoxContainer"]
+margin_top = 41.0
+margin_right = 500.0
+margin_bottom = 61.0
+
+[node name="StartButton" type="Button" parent="CenterContainer/VBoxContainer/SingleplayerVBC/VBoxContainer/HBoxContainer"]
+margin_right = 500.0
+margin_bottom = 20.0
+size_flags_horizontal = 3
+text = "Start game"
+align = 0
+
+[node name="BroadcastCB" type="CheckBox" parent="CenterContainer/VBoxContainer/SingleplayerVBC/VBoxContainer/HBoxContainer"]
+visible = false
+margin_left = 365.0
+margin_right = 500.0
+margin_bottom = 24.0
+text = "Broadcast server"
+
+[node name="MultiplayerVBC" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
+margin_top = 176.0
+margin_right = 500.0
+margin_bottom = 220.0
 rect_min_size = Vector2( 500, 0 )
 
 [node name="Label" type="Label" parent="CenterContainer/VBoxContainer/MultiplayerVBC"]
@@ -71,5 +136,10 @@ size_flags_horizontal = 0
 text = "Connect"
 align = 0
 
+[connection signal="world_chosen" from="CenterContainer/VBoxContainer/SingleplayerVBC/VBoxContainer/Worlds" to="." method="_on_Worlds_world_chosen"]
+[connection signal="text_changed" from="CenterContainer/VBoxContainer/SingleplayerVBC/VBoxContainer/Worlds/HBoxContainer2/WorldNameLE" to="CenterContainer/VBoxContainer/SingleplayerVBC/VBoxContainer/Worlds" method="_on_WorldNameLE_text_changed"]
+[connection signal="text_entered" from="CenterContainer/VBoxContainer/SingleplayerVBC/VBoxContainer/Worlds/HBoxContainer2/WorldNameLE" to="CenterContainer/VBoxContainer/SingleplayerVBC/VBoxContainer/Worlds" method="_on_WorldNameLE_text_entered"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/SingleplayerVBC/VBoxContainer/Worlds/HBoxContainer2/CreateWorldButton" to="CenterContainer/VBoxContainer/SingleplayerVBC/VBoxContainer/Worlds" method="_on_CreateWorldButton_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/SingleplayerVBC/VBoxContainer/HBoxContainer/StartButton" to="CenterContainer/VBoxContainer/SingleplayerVBC/VBoxContainer/Worlds" method="_on_StartButton_pressed"]
 [connection signal="text_entered" from="CenterContainer/VBoxContainer/MultiplayerVBC/HBoxContainer/ServerIP" to="." method="_on_ServerIP_text_entered"]
 [connection signal="pressed" from="CenterContainer/VBoxContainer/MultiplayerVBC/HBoxContainer/ConnectButton" to="." method="_on_ConnectButton_pressed"]

@@ -20,7 +20,7 @@ CRATES_ROOT = Path(__file__).parent
 TARGET_PATH = CRATES_ROOT.joinpath("target")
 
 PROJECT_ROOT = CRATES_ROOT.parent.parent
-SERVER_PATH = PROJECT_ROOT.joinpath("sourcecode/VoxelGameServer")
+SERVER_PATH = PROJECT_ROOT.joinpath("sourcecode/VoxelGame/server")
 CLIENT_PATH = PROJECT_ROOT.joinpath("sourcecode/VoxelGame")
 
 # fmt: off
