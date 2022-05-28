@@ -41,14 +41,24 @@ func update_create_button():
 func new_world_requested():
 	var new_world_name = world_name_le.text
 	world_name_le.text = ""
+	update_create_button()
+	var world_path: String = WORLDS_PATH + new_world_name + "/"
 	var dir := Directory.new()
-	var make_code = dir.make_dir(WORLDS_PATH + new_world_name)
+	var make_code = dir.make_dir(world_path)
 	if make_code != OK:
 		var error_text = "Could not create world (error code %d)" % make_code
 		if make_code == ERR_ALREADY_EXISTS:
 			error_text = "That world already exists!"
 		OS.alert(error_text, "Cannot create")
 		return
+	var info_file = File.new()
+	randomize()
+	var world_info = {
+		"seed": randi()
+	}
+	info_file.open(world_path + "info.json", File.WRITE)
+	info_file.store_string(JSON.print(world_info, "\t"))
+	info_file.close()
 	worlds_list.update_list(get_worlds())
 
 func _ready():
