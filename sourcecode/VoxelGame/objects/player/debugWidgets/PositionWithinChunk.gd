@@ -5,19 +5,12 @@ const MIN_SQUARE_WH: float = 64.0
 const TRI_LENGTH: float = 6.0
 const HALF_PI: float = PI / 2.0
 
-var default_font: Font
-
 func _notification(what):
 	if what == NOTIFICATION_RESIZED:
 		rect_size.y = rect_size.x
 
 func _get_minimum_size():
 	return Vector2(MIN_SQUARE_WH, MIN_SQUARE_WH)
-
-func _ready():
-	var label = Label.new()
-	default_font = label.get_font("")
-	label.free()
 
 func _physics_process(_delta):
 	update()
