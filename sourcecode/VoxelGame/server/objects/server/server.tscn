@@ -11,3 +11,5 @@ script = ExtResource( 1 )
 
 [connection signal="block_set" from="network" to="." method="_on_network_block_set"]
 [connection signal="chunk_data_requested" from="network" to="." method="_on_network_chunk_data_requested"]
+[connection signal="client_connected" from="network" to="." method="_on_network_client_connected"]
+[connection signal="client_disconnected" from="network" to="." method="_on_network_client_disconnected"]

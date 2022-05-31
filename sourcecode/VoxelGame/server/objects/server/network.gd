@@ -2,6 +2,8 @@ extends Node
 
 signal block_set(client_id, position, block_id)
 signal chunk_data_requested(client_id, position)
+signal client_disconnected(client_id)
+signal client_connected(client_id)
 
 const PLAYER_CREDS_PATH := Constants.SERVER_PATH + "gameinfo/creds.json"
 
@@ -24,9 +26,11 @@ func broadcast_client_disconnect(client_id: int, reason: int):
 
 func on_client_connected(client_id: int):
 	print_debug("Client %d connected." % client_id)
+	emit_signal("client_connected", client_id)
 
 func on_client_disconnected(client_id: int):
 	broadcast_client_disconnect(client_id, DisconnectType.LEFT)
+	emit_signal("client_disconnected", client_id)
 	print_debug("Client %d disconnected." % client_id)
 
 func load_player_credentials():
@@ -57,6 +61,10 @@ func start():
 		printerr("Could not create server.")
 		return
 	multiplayer.set_network_peer(network)
+
+func stop():
+	network.close_connection()
+	multiplayer.set_network_peer(null)
 
 remote func HandleClientInfo(username, password_hashed, skin_base64):
 	var client_id = sender_id()

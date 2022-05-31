@@ -9,7 +9,6 @@ onready var networkedPlayers = $world/networkedPlayers
 onready var player = $world/player
 
 var tick: float = 0.0
-var server_pid = null
 
 func _ready():
 	var root = get_tree().get_root()
@@ -17,8 +16,9 @@ func _ready():
 	var server_ip = "localhost"
 	if world_name != null:
 		# A local world was selected on the title screen
-		var args = ["--no-window", "--", "--server", world_name]
-		server_pid = OS.execute(OS.get_executable_path(), args, false)
+		var args = ["--no-window", "--world", world_name, "-local_server"]
+		var server_pid = OS.execute(OS.get_executable_path(), args, false)
+		print("Server process started with PID %d." % server_pid)
 	else:
 		# Multiplayer was selected on the title screen
 		server_ip = get_tree().get_root().get_meta("server_ip")
@@ -69,7 +69,3 @@ func _physics_process(delta):
 		return
 	var player_info = player.TickInfo()
 	network.SendPlayerInfo(player_info[0], player_info[1])
-
-func _exit_tree():
-	if server_pid != null:
-		OS.kill(server_pid)
