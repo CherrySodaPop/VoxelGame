@@ -1,12 +1,26 @@
-[gd_scene load_steps=6 format=2]
+[gd_scene load_steps=13 format=2]
 
 [ext_resource path="res://objects/player/player.gd" type="Script" id=1]
 [ext_resource path="res://objects/player/crosshair.png" type="Texture" id=2]
 [ext_resource path="res://assets/models/blockoutline/blockoutline.tscn" type="PackedScene" id=3]
 [ext_resource path="res://assets/models/pm/pm.tscn" type="PackedScene" id=4]
+[ext_resource path="res://objects/player/debugWidgets/ChunkBorders.gd" type="Script" id=5]
+[ext_resource path="res://objects/player/debugWidgets/Compass.gd" type="Script" id=6]
+[ext_resource path="res://objects/player/debugWidgets/PositionWithinChunk.gd" type="Script" id=7]
+[ext_resource path="res://objects/player/debugWidgets/Position.gd" type="Script" id=8]
+[ext_resource path="res://objects/player/debugWidgets/Chunk.gd" type="Script" id=9]
+[ext_resource path="res://objects/player/debugWidgets/FPS.gd" type="Script" id=10]
 
 [sub_resource type="BoxShape" id=1]
 extents = Vector3( 0.3, 0.9, 0.3 )
+
+[sub_resource type="SpatialMaterial" id=2]
+vertex_color_use_as_albedo = true
+emission_enabled = true
+emission = Color( 0, 0, 0, 1 )
+emission_energy = 1.0
+emission_operator = 0
+emission_on_uv2 = false
 
 [node name="player" type="KinematicBody"]
 script = ExtResource( 1 )
@@ -46,3 +60,60 @@ texture = ExtResource( 2 )
 
 [node name="blockoutline" parent="blockOutlineJoint" instance=ExtResource( 3 )]
 transform = Transform( 1.001, 0, 0, 0, 1.001, 0, 0, 0, 1.001, 0.5, -0.5, 0.5 )
+
+[node name="ChunkBorders" type="ImmediateGeometry" parent="."]
+material_override = SubResource( 2 )
+script = ExtResource( 5 )
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+custom_constants/margin_right = 8
+custom_constants/margin_top = 8
+custom_constants/margin_left = 8
+custom_constants/margin_bottom = 8
+
+[node name="DebugWidgets" type="VBoxContainer" parent="MarginContainer"]
+margin_left = 8.0
+margin_top = 8.0
+margin_right = 1016.0
+margin_bottom = 592.0
+custom_constants/separation = 8
+
+[node name="FPS" type="Label" parent="MarginContainer/DebugWidgets"]
+margin_right = 1008.0
+margin_bottom = 14.0
+text = "FPS: ?"
+script = ExtResource( 10 )
+
+[node name="Position" type="Label" parent="MarginContainer/DebugWidgets"]
+margin_top = 22.0
+margin_right = 1008.0
+margin_bottom = 36.0
+text = "Position: ?"
+script = ExtResource( 8 )
+
+[node name="Compass" type="Control" parent="MarginContainer/DebugWidgets"]
+margin_top = 44.0
+margin_right = 64.0
+margin_bottom = 108.0
+rect_min_size = Vector2( 64, 64 )
+size_flags_horizontal = 0
+script = ExtResource( 6 )
+
+[node name="PositionWithinChunk" type="Control" parent="MarginContainer/DebugWidgets"]
+margin_top = 116.0
+margin_right = 64.0
+margin_bottom = 180.0
+size_flags_horizontal = 0
+script = ExtResource( 7 )
+
+[node name="Chunk" type="Label" parent="MarginContainer/DebugWidgets"]
+margin_top = 188.0
+margin_right = 1008.0
+margin_bottom = 202.0
+text = "Chunk: (0, 0)"
+script = ExtResource( 9 )
+
+[connection signal="entered_chunk" from="." to="ChunkBorders" method="_on_player_entered_chunk"]
+[connection signal="entered_chunk" from="." to="MarginContainer/DebugWidgets/Chunk" method="_on_player_entered_chunk"]
