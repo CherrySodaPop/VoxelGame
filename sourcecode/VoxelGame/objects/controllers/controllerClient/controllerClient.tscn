@@ -1,3 +1,6 @@
-[gd_scene format=3 uid="uid://bmgury46k1p3k"]
+[gd_scene load_steps=2 format=3 uid="uid://bmgury46k1p3k"]
 
-[node name="controllerNetworkClient" type="Node"]
+[ext_resource type="Script" path="res://objects/controllers/controllerClient/controllerClient.gd" id="1_xtxbf"]
+
+[node name="controllerClient" type="Node"]
+script = ExtResource("1_xtxbf")

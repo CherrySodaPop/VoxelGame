@@ -1,11 +1,11 @@
-[gd_scene load_steps=3 format=3 uid="uid://ssm4v2hke56y"]
+[gd_scene load_steps=3 format=3 uid="uid://dj2j28e148q0y"]
 
-[ext_resource type="Script" path="res://objects/entities/player/player.gd" id="1_apdnl"]
+[ext_resource type="Script" path="res://objects/entities/entityPlayer/entityPlayer.gd" id="1_apdnl"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_7ki3m"]
 size = Vector3(0.8, 1.75, 0.8)
 
-[node name="player" type="CharacterBody3D"]
+[node name="entityPlayer" type="CharacterBody3D"]
 script = ExtResource("1_apdnl")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
