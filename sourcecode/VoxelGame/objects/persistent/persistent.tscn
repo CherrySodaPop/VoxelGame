@@ -1,3 +1,7 @@
-[gd_scene format=3 uid="uid://dg1bv0bjxv7fg"]
+[gd_scene load_steps=2 format=3 uid="uid://dg1bv0bjxv7fg"]
+
+[ext_resource type="PackedScene" uid="uid://b2plqw81y4kh0" path="res://objects/controllers/controllerBoot/controllerBoot.tscn" id="1_nd82e"]
 
 [node name="persistent" type="Node"]
+
+[node name="controllerBoot" parent="." instance=ExtResource("1_nd82e")]

@@ -11,7 +11,6 @@ config_version=5
 [application]
 
 config/name="VoxelGame"
-run/main_scene="res://world.tscn"
 config/features=PackedStringArray("4.0", "Vulkan Clustered")
 boot_splash/image="res://assets/exactly_one_pixel.png"
 config/icon="res://assets/icon.png"
