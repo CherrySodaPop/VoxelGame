@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://ssm4v2hke56y"]
+
+[ext_resource type="Script" path="res://objects/entities/player/player.gd" id="1_apdnl"]
+
+[node name="player" type="Node3D"]
+script = ExtResource("1_apdnl")
