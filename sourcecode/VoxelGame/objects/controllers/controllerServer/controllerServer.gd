@@ -1,7 +1,9 @@
 extends Node
 
+# working path
+
 # secure info
-var playerCreds:Dictionary = {};
+var playerData:Dictionary = {}; # password hash, world location, items, etc.
 # networking
 var peer = ENetMultiplayerPeer.new();
 enum disconnectTypes {
@@ -22,6 +24,7 @@ func _ready():
 	PrepareGameInfo();
 	# create server
 	peer.create_server(25565, 32);
+	MultiplayerAPI.peer_connected.connect(ClientConnected);
 
 func PrepareGameInfo():
 	# load block info, entity info, etc.
@@ -37,3 +40,15 @@ func PrepareDimensions():
 	var dimensionSubViewport = SubViewport.new();
 	add_child(dimensionViewportContainer)
 	dimensionViewportContainer.add_child(dimensionSubViewport);
+
+######################################################################
+# first connection type network functions
+######################################################################
+func ClientConnected(id:int):
+	rpc_id(id, "InitialHandshake", id);
+
+@rpc(any_peer)
+func HandlePlayerInfo(username, passwordHashed):
+	# newly connecting player?
+	if (!playerData.has(username)):
+		playerData[username]["password"];
