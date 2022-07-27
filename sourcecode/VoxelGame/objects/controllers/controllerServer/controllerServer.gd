@@ -3,7 +3,7 @@ extends Node
 var gamePath = OS.get_executable_path().get_base_dir() + "/";
 
 # secure info
-var playerData:Dictionary = {}; # password hash, world location, items, etc. not to be accessed constantly, just for game saving
+var userData:Dictionary = {}; # username, pass
 # networking
 var peer = ENetMultiplayerPeer.new();
 enum disconnectTypes {
@@ -17,7 +17,8 @@ enum disconnectTypes {
 var networkTickTimer:float = 0.0;
 var networkTick:float = 1.0/30.0;
 # entites
-var playerEntites:Dictionary = {};
+var playerData:Dictionary = {}; # world location, items, etc. not to be accessed constantly, just for game saving
+var playerEntites:Dictionary = {}; # easy access to all player entities
 
 func _ready():
 	# loading phase
@@ -61,10 +62,13 @@ func HandlePlayerInfo(username, passwordHashed, skin):
 		return;
 	
 	# newly connecting player?
-	if (!playerData.has(username)):
-		playerData[username] = {
+	if (!userData.has(username)):
+		userData[username] = {
 			"password" : doubleHashedPass,
 			"skin" : skin,
+		};
+	if (!playerData.has(username)):
+		playerData[username] = {
 			"pos" : Vector3.ZERO,
 			"health" : 20,
 			"items" : {
@@ -72,12 +76,11 @@ func HandlePlayerInfo(username, passwordHashed, skin):
 				"32" : {"count": 64, "metadata": {}},
 			}
 		};
-	# returning player
-	else:
-		# invalid creds
-		if (playerData[username]["password"] != doubleHashedPass):
-			DisconnectPlayer(id, disconnectTypes.INVAILD_CREDS);
-			return;
+	
+	# invalid creds
+	if (userData[username]["password"] != doubleHashedPass):
+		DisconnectPlayer(id, disconnectTypes.INVAILD_CREDS);
+		return;
 	# everything is correct, create player
 	
 
