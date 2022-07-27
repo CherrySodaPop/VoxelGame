@@ -11,9 +11,6 @@ func _ready():
 	$multiplayermenu/cancel.pressed.connect(MultiplayerMenu_Cancel);
 	# settings
 
-func _process(_delta):
-	$overlay/container.size = size;
-
 # multiplayer
 func Enter_MultiplayerMenu():
 	$mainmenu.visible = false;
