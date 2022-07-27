@@ -18,9 +18,14 @@ func _ready():
 	multiplayer.connection_failed.connect(FailedToConnect);
 
 func ConnectToServer():
-	peer = ENetMultiplayerPeer.new();
-	peer.create_client(serverAddress, serverPort);
-	multiplayer.set_multiplayer_peer(peer);
+	if (peer == null):
+		peer = ENetMultiplayerPeer.new();
+		peer.create_client(serverAddress, serverPort);
+		multiplayer.set_multiplayer_peer(peer);
+
+func FreePeer():
+	peer.free();
+	peer = null;
 
 ######################################################################
 # first connection type network functions
@@ -29,7 +34,7 @@ func ConnectedToServer():
 	print("Connected to server")
 
 func FailedToConnect():
-	print("Failed to connect");
+	FreePeer();
 
 @rpc
 func InitialHandshake(id:int):

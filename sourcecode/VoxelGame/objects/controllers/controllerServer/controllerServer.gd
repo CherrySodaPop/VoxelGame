@@ -14,6 +14,7 @@ enum disconnectTypes {
 	ADMIN_KICK,
 	ADMIN_BAN,
 	CHEATING, };
+var maxClients:int = 32;
 var networkTickTimer:float = 0.0;
 var networkTick:float = 1.0/30.0;
 # entites
@@ -24,8 +25,9 @@ func _ready():
 	# loading phase
 	PrepareGameInfo();
 	# create server
-	peer.create_server(25565, 32);
 	peer.peer_connected.connect(ClientConnected);
+	peer.create_server(25565, maxClients);
+	multiplayer.set_multiplayer_peer(peer);
 
 func PrepareGameInfo():
 	# load block info, entity info, etc.

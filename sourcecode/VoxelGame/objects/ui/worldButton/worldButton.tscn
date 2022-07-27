@@ -1,0 +1,60 @@
+[gd_scene format=3 uid="uid://cl7kf8a5s0lmo"]
+
+[node name="worldButton" type="Button"]
+clip_contents = true
+custom_minimum_size = Vector2(0, 104)
+offset_right = 640.0
+offset_bottom = 104.0
+
+[node name="title" type="Label" parent="."]
+anchor_left = 0.012
+anchor_top = 0.077
+anchor_right = 0.487
+anchor_bottom = 0.308
+offset_left = 0.32
+offset_top = -0.00800037
+offset_right = 0.319977
+offset_bottom = 1.968
+text = "World"
+clip_text = true
+text_overrun_behavior = 3
+metadata/_edit_layout_mode = 1
+metadata/_edit_use_custom_anchors = true
+
+[node name="date" type="Label" parent="."]
+modulate = Color(1, 1, 1, 0.392157)
+anchor_left = 0.012
+anchor_top = 0.308
+anchor_right = 0.487
+anchor_bottom = 0.923
+offset_left = 0.32
+offset_top = 7.968
+offset_right = 0.319977
+offset_bottom = 0.00799561
+theme_override_font_sizes/font_size = 11
+text = "Last played - 7/27/2022 - 5:58 PM
+Created - 7/27/2022 - 5:58 PM"
+vertical_alignment = 2
+clip_text = true
+metadata/_edit_layout_mode = 1
+metadata/_edit_use_custom_anchors = true
+
+[node name="info" type="Label" parent="."]
+modulate = Color(1, 1, 1, 0.392157)
+anchor_left = 0.51275
+anchor_top = 0.077
+anchor_right = 0.987
+anchor_bottom = 0.923154
+offset_left = -0.160034
+offset_top = -0.00800037
+offset_right = 0.319946
+offset_bottom = -0.00800323
+theme_override_font_sizes/font_size = 11
+text = "v0.0.0_indev4
+0.0 GB"
+horizontal_alignment = 2
+autowrap_mode = 2
+clip_text = true
+metadata/_edit_use_anchors_ = true
+metadata/_edit_layout_mode = 1
+metadata/_edit_use_custom_anchors = true

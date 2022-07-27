@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://2qwkteig17j3"]
 
 [ext_resource type="Script" path="res://objects/controllers/controllerUI/controllerUI.gd" id="1_8x0qn"]
-[ext_resource type="FontFile" uid="uid://xep73yfkctpp" path="res://assets/fonts/UbuntuMono-Regular.ttf" id="2_xh7wa"]
+[ext_resource type="PackedScene" uid="uid://cl7kf8a5s0lmo" path="res://objects/ui/worldButton/worldButton.tscn" id="2_rhp31"]
 
 [node name="controllerUI" type="Control"]
 clip_contents = true
@@ -10,8 +10,8 @@ anchor_bottom = 1.0
 script = ExtResource("1_8x0qn")
 
 [node name="ingame" type="Control" parent="."]
-offset_right = 40.0
-offset_bottom = 40.0
+anchor_right = 1.0
+anchor_bottom = 1.0
 
 [node name="mainmenu" type="Control" parent="."]
 anchor_right = 1.0
@@ -55,6 +55,72 @@ text = "Settings"
 metadata/_edit_layout_mode = 1
 metadata/_edit_use_custom_anchors = true
 
+[node name="singleplayermenu" type="Control" parent="."]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="ColorRect" type="ColorRect" parent="singleplayermenu"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.0196078, 0, 0.054902, 1)
+
+[node name="scrollContainer" type="ScrollContainer" parent="singleplayermenu"]
+anchor_left = 0.187
+anchor_top = 0.147
+anchor_right = 0.812
+anchor_bottom = 0.853
+offset_left = 0.511993
+offset_top = -0.199997
+offset_right = 0.511963
+offset_bottom = 0.199982
+horizontal_scroll_mode = 0
+metadata/_edit_layout_mode = 1
+metadata/_edit_use_custom_anchors = true
+
+[node name="worldContainer" type="VBoxContainer" parent="singleplayermenu/scrollContainer"]
+offset_right = 640.0
+offset_bottom = 860.0
+size_flags_horizontal = 3
+
+[node name="worldButton0" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_rhp31")]
+offset_right = 632.0
+
+[node name="worldButton1" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_rhp31")]
+offset_top = 108.0
+offset_right = 632.0
+offset_bottom = 212.0
+
+[node name="worldButton2" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_rhp31")]
+offset_top = 216.0
+offset_right = 632.0
+offset_bottom = 320.0
+
+[node name="worldButton3" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_rhp31")]
+offset_top = 324.0
+offset_right = 632.0
+offset_bottom = 428.0
+
+[node name="worldButton4" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_rhp31")]
+offset_top = 432.0
+offset_right = 632.0
+offset_bottom = 536.0
+
+[node name="worldButton5" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_rhp31")]
+offset_top = 540.0
+offset_right = 632.0
+offset_bottom = 644.0
+
+[node name="worldButton6" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_rhp31")]
+offset_top = 648.0
+offset_right = 632.0
+offset_bottom = 752.0
+
+[node name="worldButton7" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_rhp31")]
+offset_top = 756.0
+offset_right = 632.0
+offset_bottom = 860.0
+
 [node name="multiplayermenu" type="Control" parent="."]
 visible = false
 anchor_right = 1.0
@@ -68,15 +134,6 @@ grow_vertical = 2
 color = Color(0.0196078, 0, 0.054902, 1)
 metadata/_edit_layout_mode = 1
 metadata/_edit_use_custom_anchors = true
-
-[node name="Label" type="Label" parent="multiplayermenu"]
-offset_left = 8.0
-offset_top = 8.0
-offset_right = 74.0
-offset_bottom = 31.0
-theme_override_fonts/font = ExtResource("2_xh7wa")
-theme_override_font_sizes/font_size = 12
-text = "Multiplayer"
 
 [node name="address" type="LineEdit" parent="multiplayermenu"]
 anchor_left = 0.312
@@ -164,7 +221,10 @@ vertical_alignment = 1
 clip_contents = true
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
+metadata/_edit_layout_mode = 1
 
 [node name="indev" type="Label" parent="overlay"]
 modulate = Color(1, 1, 1, 0.392157)
@@ -175,7 +235,6 @@ offset_top = 6.0
 offset_right = -8.0
 offset_bottom = 54.0
 grow_horizontal = 0
-theme_override_fonts/font = ExtResource("2_xh7wa")
 theme_override_font_sizes/font_size = 12
 text = "VoxelGame - Indev4
 Unlicensed Copy :(
