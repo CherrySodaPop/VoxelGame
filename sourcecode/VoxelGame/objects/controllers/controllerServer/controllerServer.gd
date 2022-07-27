@@ -49,7 +49,7 @@ func ClientConnected(id:int):
 	rpc_id(id, "InitialHandshake", id);
 
 @rpc(any_peer)
-func HandlePlayerInfo(username, passwordHashed, skin):
+func HandleUserInfo(username, passwordHashed, skin):
 	var id = peer.get_remote_sender_id();
 	var doubleHashedPass = passwordHashed.sha256_text();
 	
@@ -69,12 +69,15 @@ func HandlePlayerInfo(username, passwordHashed, skin):
 		};
 	if (!playerData.has(username)):
 		playerData[username] = {
+			"dimension" : "overworld",
 			"pos" : Vector3.ZERO,
-			"health" : 20,
+			"stats" : {
+				"health" : 20,
+				},
 			"items" : {
 				"0" : {"count": 64, "metadata": {}},
 				"32" : {"count": 64, "metadata": {}},
-			}
+				},
 		};
 	
 	# invalid creds

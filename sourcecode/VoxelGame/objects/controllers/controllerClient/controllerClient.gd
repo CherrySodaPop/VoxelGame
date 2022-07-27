@@ -34,9 +34,9 @@ func FailedToConnect():
 @rpc
 func InitialHandshake(id:int):
 	networkID = id;
-	SendPlayerInfo();
+	SendUserInfo();
 
-func SendPlayerInfo():
+func SendUserInfo():
 	# pass
 	var passwordHashed = password.sha256_text();
 	# skin
@@ -49,4 +49,4 @@ func SendPlayerInfo():
 		defaultSkin.save_png(skinPath);
 	skinImage.open(skinPath, File.READ);
 	skinBase64 = Marshalls.raw_to_base64(skinImage.get_buffer(skinImage.get_length()));
-	rpc_id(1, "HandlePlayerInfo", username, passwordHashed, skinBase64);
+	rpc_id(1, "HandleUserInfo", username, passwordHashed, skinBase64);

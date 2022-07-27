@@ -9,6 +9,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("1_8x0qn")
 
+[node name="ingame" type="Control" parent="."]
+offset_right = 40.0
+offset_bottom = 40.0
+
 [node name="mainmenu" type="Control" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
