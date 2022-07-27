@@ -1,11 +1,13 @@
 extends Node
 
 var initialBootFinished:bool = false;
-var isDedicatedServer:bool = true;
+var isDedicatedServer:bool = false;
 
 # the self contained server instance
 var serverTree:SceneTree = null;
 
+var entityPlayer = preload("res://objects/entities/entityPlayer/entityPlayer.tscn");
+var controllerUI = preload("res://objects/controllers/controllerUI/controllerUI.tscn");
 var controllerClient = preload("res://objects/controllers/controllerClient/controllerClient.tscn");
 var controllerServer = preload("res://objects/controllers/controllerServer/controllerServer.tscn");
 
@@ -28,4 +30,6 @@ func CreateServer():
 	Persistent.serverTree.root.add_child(controllerServer.instantiate());
 
 func ClientStart():
+	add_child(controllerUI.instantiate());
 	add_child(controllerClient.instantiate());
+	add_child(entityPlayer.instantiate());

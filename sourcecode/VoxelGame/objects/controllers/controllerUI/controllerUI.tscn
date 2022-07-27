@@ -1,0 +1,185 @@
+[gd_scene load_steps=3 format=3 uid="uid://2qwkteig17j3"]
+
+[ext_resource type="Script" path="res://objects/controllers/controllerUI/controllerUI.gd" id="1_8x0qn"]
+[ext_resource type="FontFile" uid="uid://xep73yfkctpp" path="res://assets/fonts/UbuntuMono-Regular.ttf" id="2_xh7wa"]
+
+[node name="controllerUI" type="Control"]
+clip_contents = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_8x0qn")
+
+[node name="overlay" type="Node2D" parent="."]
+z_index = 4096
+
+[node name="container" type="Control" parent="overlay"]
+clip_contents = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 1024.0
+offset_bottom = 600.0
+mouse_filter = 2
+
+[node name="indev" type="Label" parent="overlay/container"]
+modulate = Color(1, 1, 1, 0.392157)
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -284.0
+offset_top = 6.0
+offset_right = -8.0
+offset_bottom = 54.0
+grow_horizontal = 0
+theme_override_fonts/font = ExtResource("2_xh7wa")
+theme_override_font_sizes/font_size = 12
+text = "VoxelGame - Indev4
+Unlicensed Copy :(
+Purchase at github.com/cherrysodapop/voxelgame"
+horizontal_alignment = 2
+metadata/_edit_layout_mode = 1
+
+[node name="mainmenu" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="ColorRect" type="ColorRect" parent="mainmenu"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0196078, 0, 0.054902, 1)
+metadata/_edit_layout_mode = 1
+metadata/_edit_use_custom_anchors = true
+
+[node name="multiplayer" type="Button" parent="mainmenu"]
+anchor_left = 0.312
+anchor_top = 0.48
+anchor_right = 0.687
+anchor_bottom = 0.533
+offset_left = 0.511993
+offset_right = 0.511963
+offset_bottom = 0.199982
+grow_horizontal = 2
+grow_vertical = 2
+text = "Multiplayer"
+metadata/_edit_layout_mode = 1
+metadata/_edit_use_anchors_ = true
+metadata/_edit_use_custom_anchors = true
+
+[node name="settings" type="Button" parent="mainmenu"]
+anchor_left = 0.312
+anchor_top = 0.547
+anchor_right = 0.687
+anchor_bottom = 0.6
+offset_left = 0.511993
+offset_top = -0.200043
+offset_right = 0.511963
+grow_horizontal = 2
+grow_vertical = 2
+text = "Settings"
+metadata/_edit_layout_mode = 1
+metadata/_edit_use_custom_anchors = true
+
+[node name="multiplayermenu" type="Control" parent="."]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="ColorRect" type="ColorRect" parent="multiplayermenu"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0196078, 0, 0.054902, 1)
+metadata/_edit_layout_mode = 1
+metadata/_edit_use_custom_anchors = true
+
+[node name="Label" type="Label" parent="multiplayermenu"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 74.0
+offset_bottom = 31.0
+theme_override_fonts/font = ExtResource("2_xh7wa")
+theme_override_font_sizes/font_size = 12
+text = "Multiplayer"
+
+[node name="address" type="LineEdit" parent="multiplayermenu"]
+anchor_left = 0.312
+anchor_top = 0.293
+anchor_right = 0.687
+anchor_bottom = 0.347
+offset_left = 0.511993
+offset_top = 0.199997
+offset_right = 0.511963
+offset_bottom = -0.199997
+grow_horizontal = 2
+grow_vertical = 2
+placeholder_text = "Address"
+metadata/_edit_layout_mode = 1
+metadata/_edit_use_custom_anchors = true
+
+[node name="port" type="LineEdit" parent="multiplayermenu"]
+anchor_left = 0.312
+anchor_top = 0.373
+anchor_right = 0.687
+anchor_bottom = 0.427
+offset_left = 0.511993
+offset_top = 0.199982
+offset_right = 0.511963
+offset_bottom = -0.200012
+text = "25565"
+placeholder_text = "Port"
+metadata/_edit_layout_mode = 1
+metadata/_edit_use_custom_anchors = true
+metadata/_edit_use_anchors_ = true
+
+[node name="join" type="Button" parent="multiplayermenu"]
+anchor_left = 0.328
+anchor_top = 0.653
+anchor_right = 0.484
+anchor_bottom = 0.707
+offset_left = 0.127991
+offset_top = 0.199951
+offset_right = 0.383972
+offset_bottom = -0.200012
+text = "Join"
+metadata/_edit_use_anchors_ = true
+metadata/_edit_layout_mode = 1
+metadata/_edit_use_custom_anchors = true
+
+[node name="cancel" type="Button" parent="multiplayermenu"]
+anchor_left = 0.516
+anchor_top = 0.653
+anchor_right = 0.672
+anchor_bottom = 0.707
+offset_left = -0.384033
+offset_top = 0.199951
+offset_right = -0.128052
+offset_bottom = -0.200012
+text = "Cancel
+"
+metadata/_edit_use_anchors_ = true
+metadata/_edit_layout_mode = 1
+metadata/_edit_use_custom_anchors = true
+
+[node name="joiningscreen" type="Control" parent="multiplayermenu"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="ColorRect" type="ColorRect" parent="multiplayermenu/joiningscreen"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 1)
+
+[node name="status" type="Label" parent="multiplayermenu/joiningscreen"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -56.0
+offset_top = -24.0
+offset_right = 56.0
+offset_bottom = 24.0
+text = "Connecting..."
+horizontal_alignment = 1
+vertical_alignment = 1
