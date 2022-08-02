@@ -54,4 +54,5 @@ func SendUserInfo():
 		defaultSkin.save_png(skinPath);
 	skinImage.open(skinPath, File.READ);
 	skinBase64 = Marshalls.raw_to_base64(skinImage.get_buffer(skinImage.get_length()));
+	skinImage.free();
 	rpc_id(1, "HandleUserInfo", username, passwordHashed, skinBase64);
