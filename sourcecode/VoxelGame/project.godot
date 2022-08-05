@@ -20,3 +20,4 @@ config/icon="res://assets/icon.png"
 [autoload]
 
 Persistent="*res://objects/persistent/persistent.tscn"
+C="*res://objects/persistent/constants.tscn"

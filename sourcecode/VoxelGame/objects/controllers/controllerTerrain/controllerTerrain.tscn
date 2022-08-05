@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bymrfwhh5subp"]
+
+[ext_resource type="Script" path="res://objects/controllers/controllerTerrain/controllerTerrain.gd" id="1_pniku"]
+
+[node name="controllerTerrain" type="Node"]
+script = ExtResource("1_pniku")
