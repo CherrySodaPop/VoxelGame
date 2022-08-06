@@ -30,7 +30,6 @@ func CreateServer():
 	Persistent.serverTree.root.add_child(controllerServer.instantiate());
 
 func ClientStart():
-	# DEBUG
-	# add_child(controllerUI.instantiate());
+	add_child(controllerUI.instantiate());
 	add_child(controllerClient.instantiate());
 	add_child(entityPlayer.instantiate());

@@ -1,0 +1,50 @@
+[gd_scene load_steps=5 format=3 uid="uid://dq2jcwkkgngbl"]
+
+[ext_resource type="Script" path="res://objects/controllers/controllerChunkMesher/controllerChunkMesher.gd" id="1_tms8b"]
+[ext_resource type="PackedScene" uid="uid://bymrfwhh5subp" path="res://objects/controllers/controllerTerrain/controllerTerrain.tscn" id="2_13i6k"]
+
+[sub_resource type="Animation" id="Animation_gtle5"]
+resource_name = "spin"
+length = 5.0
+loop_mode = 1
+step = 1.0
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(0, 0, 0), Vector3(0, 6.28319, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_m17rm"]
+_data = {
+"spin": SubResource("Animation_gtle5")
+}
+
+[node name="controllerChunkMesher" type="Node3D"]
+script = ExtResource("1_tms8b")
+
+[node name="controllerTerrain" parent="." instance=ExtResource("2_13i6k")]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.707107, 0.353553, -0.612372, 0, 0.866025, 0.5, 0.707107, 0.353553, -0.612372, 0, 0, 0)
+shadow_enabled = true
+
+[node name="CameraPivot" type="Node3D" parent="."]
+transform = Transform3D(0.309017, 0, 0.951057, 0, 1, 0, -0.951057, 0, 0.309017, 0, 260, 0)
+
+[node name="Camera3D" type="Camera3D" parent="CameraPivot"]
+transform = Transform3D(1, 0, 0, 0, 0.642788, 0.766044, 0, -0.766044, 0.642788, 0, 20, 200)
+current = true
+fov = 60.0
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="CameraPivot"]
+autoplay = "spin"
+libraries = {
+"": SubResource("AnimationLibrary_m17rm")
+}
