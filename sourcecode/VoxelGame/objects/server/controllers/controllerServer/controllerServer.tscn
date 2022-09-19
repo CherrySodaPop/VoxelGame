@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://biq64wp1ov2ry"]
+
+[ext_resource type="Script" path="res://objects/server/controllers/controllerServer/controllerServer.gd" id="1_bjf73"]
+
+[node name="controllerServer" type="Node"]
+script = ExtResource("1_bjf73")

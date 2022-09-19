@@ -1,23 +1,36 @@
-[gd_scene load_steps=3 format=3 uid="uid://2qwkteig17j3"]
+[gd_scene load_steps=3 format=3 uid="uid://dfhfm8aadq3x3"]
 
-[ext_resource type="Script" path="res://objects/controllers/controllerUI/controllerUI.gd" id="1_8x0qn"]
-[ext_resource type="PackedScene" uid="uid://cl7kf8a5s0lmo" path="res://objects/ui/worldButton/worldButton.tscn" id="2_rhp31"]
+[ext_resource type="Script" path="res://objects/client/controllers/controllerUI/controllerUI.gd" id="1_thg8v"]
+[ext_resource type="PackedScene" uid="uid://cl7kf8a5s0lmo" path="res://objects/client/ui/worldButton/worldButton.tscn" id="2_f61ap"]
 
 [node name="controllerUI" type="Control"]
 clip_contents = true
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-script = ExtResource("1_8x0qn")
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_thg8v")
 
 [node name="ingame" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="mainmenu" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="ColorRect" type="ColorRect" parent="mainmenu"]
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
@@ -27,6 +40,7 @@ metadata/_edit_layout_mode = 1
 metadata/_edit_use_custom_anchors = true
 
 [node name="multiplayer" type="Button" parent="mainmenu"]
+anchors_preset = -1
 anchor_left = 0.312
 anchor_top = 0.48
 anchor_right = 0.687
@@ -42,6 +56,7 @@ metadata/_edit_use_anchors_ = true
 metadata/_edit_use_custom_anchors = true
 
 [node name="settings" type="Button" parent="mainmenu"]
+anchors_preset = -1
 anchor_left = 0.312
 anchor_top = 0.547
 anchor_right = 0.687
@@ -57,15 +72,23 @@ metadata/_edit_use_custom_anchors = true
 
 [node name="singleplayermenu" type="Control" parent="."]
 visible = false
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="ColorRect" type="ColorRect" parent="singleplayermenu"]
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 color = Color(0.0196078, 0, 0.054902, 1)
 
 [node name="scrollContainer" type="ScrollContainer" parent="singleplayermenu"]
+anchors_preset = -1
 anchor_left = 0.187
 anchor_top = 0.147
 anchor_right = 0.812
@@ -79,54 +102,67 @@ metadata/_edit_layout_mode = 1
 metadata/_edit_use_custom_anchors = true
 
 [node name="worldContainer" type="VBoxContainer" parent="singleplayermenu/scrollContainer"]
-offset_right = 640.0
+offset_right = 720.0
 offset_bottom = 860.0
 size_flags_horizontal = 3
 
-[node name="worldButton0" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_rhp31")]
+[node name="worldButton0" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_f61ap")]
+custom_minimum_size = Vector2i(0, 104)
 offset_right = 632.0
 
-[node name="worldButton1" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_rhp31")]
+[node name="worldButton1" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_f61ap")]
+custom_minimum_size = Vector2i(0, 104)
 offset_top = 108.0
 offset_right = 632.0
 offset_bottom = 212.0
 
-[node name="worldButton2" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_rhp31")]
+[node name="worldButton2" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_f61ap")]
+custom_minimum_size = Vector2i(0, 104)
 offset_top = 216.0
 offset_right = 632.0
 offset_bottom = 320.0
 
-[node name="worldButton3" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_rhp31")]
+[node name="worldButton3" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_f61ap")]
+custom_minimum_size = Vector2i(0, 104)
 offset_top = 324.0
 offset_right = 632.0
 offset_bottom = 428.0
 
-[node name="worldButton4" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_rhp31")]
+[node name="worldButton4" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_f61ap")]
+custom_minimum_size = Vector2i(0, 104)
 offset_top = 432.0
 offset_right = 632.0
 offset_bottom = 536.0
 
-[node name="worldButton5" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_rhp31")]
+[node name="worldButton5" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_f61ap")]
+custom_minimum_size = Vector2i(0, 104)
 offset_top = 540.0
 offset_right = 632.0
 offset_bottom = 644.0
 
-[node name="worldButton6" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_rhp31")]
+[node name="worldButton6" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_f61ap")]
+custom_minimum_size = Vector2i(0, 104)
 offset_top = 648.0
 offset_right = 632.0
 offset_bottom = 752.0
 
-[node name="worldButton7" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_rhp31")]
+[node name="worldButton7" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_f61ap")]
+custom_minimum_size = Vector2i(0, 104)
 offset_top = 756.0
 offset_right = 632.0
 offset_bottom = 860.0
 
 [node name="multiplayermenu" type="Control" parent="."]
 visible = false
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="ColorRect" type="ColorRect" parent="multiplayermenu"]
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
@@ -136,6 +172,7 @@ metadata/_edit_layout_mode = 1
 metadata/_edit_use_custom_anchors = true
 
 [node name="address" type="LineEdit" parent="multiplayermenu"]
+anchors_preset = -1
 anchor_left = 0.312
 anchor_top = 0.293
 anchor_right = 0.687
@@ -151,6 +188,7 @@ metadata/_edit_layout_mode = 1
 metadata/_edit_use_custom_anchors = true
 
 [node name="port" type="LineEdit" parent="multiplayermenu"]
+anchors_preset = -1
 anchor_left = 0.312
 anchor_top = 0.373
 anchor_right = 0.687
@@ -166,6 +204,7 @@ metadata/_edit_use_custom_anchors = true
 metadata/_edit_use_anchors_ = true
 
 [node name="join" type="Button" parent="multiplayermenu"]
+anchors_preset = -1
 anchor_left = 0.328
 anchor_top = 0.653
 anchor_right = 0.484
@@ -180,6 +219,7 @@ metadata/_edit_layout_mode = 1
 metadata/_edit_use_custom_anchors = true
 
 [node name="cancel" type="Button" parent="multiplayermenu"]
+anchors_preset = -1
 anchor_left = 0.516
 anchor_top = 0.653
 anchor_right = 0.672
@@ -196,15 +236,23 @@ metadata/_edit_use_custom_anchors = true
 
 [node name="joiningscreen" type="Control" parent="multiplayermenu"]
 visible = false
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="ColorRect" type="ColorRect" parent="multiplayermenu/joiningscreen"]
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 color = Color(0, 0, 0, 1)
 
 [node name="status" type="Label" parent="multiplayermenu/joiningscreen"]
+anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
@@ -213,12 +261,16 @@ offset_left = -56.0
 offset_top = -24.0
 offset_right = 56.0
 offset_bottom = 24.0
+grow_horizontal = 2
+grow_vertical = 2
 text = "Connecting..."
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="overlay" type="Control" parent="."]
 clip_contents = true
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
@@ -228,6 +280,7 @@ metadata/_edit_layout_mode = 1
 
 [node name="indev" type="Label" parent="overlay"]
 modulate = Color(1, 1, 1, 0.392157)
+anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -284.0

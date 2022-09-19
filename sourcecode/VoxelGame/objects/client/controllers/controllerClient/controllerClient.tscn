@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://ckn618d1rolmc"]
+
+[ext_resource type="Script" path="res://objects/client/controllers/controllerClient/controllerClient.gd" id="1_lhhar"]
+
+[node name="controllerClient" type="Node"]
+script = ExtResource("1_lhhar")

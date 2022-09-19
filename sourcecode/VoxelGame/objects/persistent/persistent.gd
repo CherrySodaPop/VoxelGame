@@ -6,10 +6,12 @@ var isDedicatedServer:bool = false;
 # the self contained server instance
 var serverTree:SceneTree = null;
 
-var entityPlayer = preload("res://objects/entities/entityPlayer/entityPlayer.tscn");
-var controllerUI = preload("res://objects/controllers/controllerUI/controllerUI.tscn");
-var controllerClient = preload("res://objects/controllers/controllerClient/controllerClient.tscn");
-var controllerServer = preload("res://objects/controllers/controllerServer/controllerServer.tscn");
+# client
+var player = preload("res://objects/client/entities/player/player.tscn");
+var controllerUI = preload("res://objects/client/controllers/controllerUI/controllerUI.tscn");
+var controllerClient = preload("res://objects/client/controllers/controllerClient/controllerClient.tscn");
+# server
+var controllerServer = preload("res://objects/server/controllers/controllerServer/controllerServer.tscn");
 
 func _ready():
 	InitialBoot();
@@ -32,4 +34,4 @@ func CreateServer():
 func ClientStart():
 	add_child(controllerUI.instantiate());
 	add_child(controllerClient.instantiate());
-	add_child(entityPlayer.instantiate());
+	add_child(player.instantiate());

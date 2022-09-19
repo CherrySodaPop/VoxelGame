@@ -1,6 +1,11 @@
-[gd_scene load_steps=2 format=3 uid="uid://qd0ni62u5mqw"]
+[gd_scene load_steps=2 format=3 uid="uid://evusxy6fu7wu"]
 
-[ext_resource type="Script" path="res://objects/persistent/constants.gd" id="1_gora8"]
+[sub_resource type="GDScript" id="GDScript_1i6fm"]
+script/source = "extends Node
+
+const CHUNK_XZ: int = 32
+const CHUNK_HEIGHT: int = 512
+"
 
 [node name="Constants" type="Node"]
-script = ExtResource("1_gora8")
+script = SubResource("GDScript_1i6fm")
