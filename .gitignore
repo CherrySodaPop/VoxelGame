@@ -1,2 +1,13 @@
-.godot/
 .vscode/
+
+.godot/
+export.cfg
+export_presets.cfg
+
+*.idb
+*.pdb
+*.dblite
+
+sourcecode/core/src/**/*.obj
+sourcecode/voxelgame/bins/win64/
+sourcecode/voxelgame/bins/x11/
