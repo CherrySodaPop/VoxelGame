@@ -4,6 +4,10 @@
 
 using namespace godot;
 
+VGWorld::VGWorld() {
+    noiseTerrain = new FastNoiseLite;
+}
+
 void VGWorld::_bind_methods() {
     
 }

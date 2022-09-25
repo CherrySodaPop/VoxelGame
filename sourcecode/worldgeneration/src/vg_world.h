@@ -2,8 +2,9 @@
 #define VG_WORLD_H
 
 #include <map>
-#include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/core/binder_common.hpp>
+#include <godot_cpp/classes/node.hpp>
+#include <godot_cpp/classes/fast_noise_lite.hpp>
 #include "vg_chunk.h"
 
 using namespace std;
@@ -16,6 +17,7 @@ protected:
     static void _bind_methods();
 
 private:
+    FastNoiseLite *noiseTerrain;
     map<int[], VGChunk> chunks;
 
 public:
