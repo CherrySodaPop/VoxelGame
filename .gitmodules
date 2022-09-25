@@ -1,3 +1,3 @@
-[submodule "sourcecode/worldgeneration/godot-cpp"]
-	path = sourcecode/worldgeneration/godot-cpp
+[submodule "sourcecode/core/godot-cpp"]
+	path = sourcecode/core/godot-cpp
 	url = https://github.com/godotengine/godot-cpp

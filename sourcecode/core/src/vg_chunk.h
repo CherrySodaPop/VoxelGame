@@ -1,5 +1,5 @@
-#ifndef CHUNK_H
-#define CHUNK_H
+#ifndef VG_CHUNK_H
+#define VG_CHUNK_H
 
 #include <godot_cpp/core/binder_common.hpp>
 #include <godot_cpp/classes/node3d.hpp>
@@ -22,4 +22,4 @@ public:
     void gd_set_block(const Vector3 vector, int block_id);
 };
 
-#endif CHUNK_H
+#endif VG_CHUNK_H
