@@ -1,20 +1,26 @@
-#ifndef VG_CHUNK_H
-#define VG_CHUNK_H
+#ifndef CHUNK_H
+#define CHUNK_H
 
 #include <godot_cpp/core/binder_common.hpp>
 #include <godot_cpp/classes/node3d.hpp>
+#include <godot_cpp/classes/mesh_instance3d.hpp>
+#include <godot_cpp/classes/static_body3d.hpp>
 #include <godot_cpp/variant/vector3.hpp>
-#include "vg_shared.h"
+#include "shared.h"
 
 using namespace godot;
 
-class VGChunk : public Node3D {
-    GDCLASS(VGChunk, Node3D);
+namespace voxelgame {
+
+class Chunk : public Node3D {
+    GDCLASS(Chunk, Node3D);
 
 protected:
     static void _bind_methods();
 
 private:
+    StaticBody3D *collision;
+    MeshInstance3D *mesh;
     int blocks[CHUNK_WIDTH_LENGTH][CHUNK_WIDTH_LENGTH][CHUNK_HEIGHT];
 
 public:
@@ -22,4 +28,6 @@ public:
     void gd_set_block(const Vector3 vector, int block_id);
 };
 
-#endif VG_CHUNK_H
+};
+
+#endif // CHUNK_H

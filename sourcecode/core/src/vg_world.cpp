@@ -3,6 +3,7 @@
 #include <godot_cpp/core/class_db.hpp>
 
 using namespace godot;
+using namespace voxelgame;
 
 VGWorld::VGWorld() {
     noiseTerrain = new FastNoiseLite;
