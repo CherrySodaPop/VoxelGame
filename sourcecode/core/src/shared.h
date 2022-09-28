@@ -25,8 +25,8 @@ enum BLOCK_IDS {
     GRASS,
     LIMESTONE,
     SHALE,
-    WOOD,
-    LEAVES,
+    OAK_WOOD_LOG,
+    OAK_LEAVES,
     BLOCK_LAST,
 };
 
