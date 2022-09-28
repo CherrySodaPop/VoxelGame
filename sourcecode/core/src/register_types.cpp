@@ -7,7 +7,7 @@
 #include <godot_cpp/godot.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
-#include "vg_world.h"
+#include "world.h"
 #include "chunk.h"
 
 using namespace godot;
@@ -18,7 +18,7 @@ void initialize_core_module(ModuleInitializationLevel p_level) {
 		return;
 	}
 
-	ClassDB::register_class<VGWorld>();
+	ClassDB::register_class<World>();
     ClassDB::register_class<Chunk>();
 }
 

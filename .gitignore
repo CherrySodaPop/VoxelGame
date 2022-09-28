@@ -9,5 +9,6 @@ export_presets.cfg
 *.dblite
 
 sourcecode/core/src/**/*.obj
+sourcecode/core/src/**/*.os
 sourcecode/voxelgame/bins/win64/
 sourcecode/voxelgame/bins/x11/
