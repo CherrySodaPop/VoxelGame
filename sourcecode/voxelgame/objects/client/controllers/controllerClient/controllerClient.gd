@@ -46,13 +46,12 @@ func SendUserInfo():
 	var passwordHashed = password.sha256_text();
 	# skin
 	var skinPath:String = Persistent.gamePath + "data/client/skin.png";
-	var skinImage:File = File.new();
 	var skinBase64 = "";
 	# default skin fallback
-	if (!skinImage.file_exists(skinPath)):
+	if not FileAccess.file_exists(skinPath):
 		var defaultSkin:Image = load("res://assets/models/player/skin.png");
 		defaultSkin.save_png(skinPath);
-	skinImage.open(skinPath, File.READ);
+	var skinImage = FileAccess.open(skinPath, FileAccess.READ);
 	skinBase64 = Marshalls.raw_to_base64(skinImage.get_buffer(skinImage.get_length()));
 	skinImage.free();
 	rpc_id(1, "HandleUserInfo", username, passwordHashed, skinBase64);
