@@ -119,9 +119,9 @@ elif env["platform"] == "windows":
         env.Append(CPPDEFINES=["TYPED_METHOD_BIND"])
 
 if env["target"] in ("debug", "d"):
-    cpp_library += ".debug"
+    cpp_library += ".template_debug"
 else:
-    cpp_library += ".release"
+    cpp_library += ".template_release"
 
 cpp_library += ".x86_" + str(bits)
 
