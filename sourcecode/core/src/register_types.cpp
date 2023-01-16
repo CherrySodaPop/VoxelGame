@@ -1,14 +1,15 @@
-#include "register_types.h"
+#include "register_types.hpp"
 
-#include <godot/gdnative_interface.h>
+#include <gdextension_interface.h>
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
-#include "world.h"
-#include "chunk.h"
+#include "gamedata.hpp"
+#include "world.hpp"
+#include "chunk.hpp"
 
 using namespace godot;
 using namespace voxelgame;
@@ -18,6 +19,7 @@ void initialize_core_module(ModuleInitializationLevel p_level) {
 		return;
 	}
 
+	ClassDB::register_class<Database>();
 	ClassDB::register_class<World>();
     ClassDB::register_class<Chunk>();
 }
@@ -30,9 +32,7 @@ void uninitialize_core_module(ModuleInitializationLevel p_level) {
 
 extern "C" {
 // Initialization.
-GDNativeBool GDN_EXPORT core_lib_init(const GDNativeInterface *p_interface,
-										const GDNativeExtensionClassLibraryPtr p_library,
-										GDNativeInitialization *r_initialization) {
+GDExtensionBool GDE_EXPORT core_library_init(const GDExtensionInterface *p_interface, GDExtensionClassLibraryPtr p_library, GDExtensionInitialization *r_initialization) {
 	godot::GDExtensionBinding::InitObject init_obj(p_interface, p_library, r_initialization);
 
 	init_obj.register_initializer(initialize_core_module);

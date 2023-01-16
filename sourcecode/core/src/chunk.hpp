@@ -8,11 +8,16 @@
 #include <godot_cpp/classes/collision_shape3d.hpp>
 #include <godot_cpp/variant/vector3.hpp>
 
-#include "shared.h"
+#include "shared.hpp"
+#include "world.hpp"
 
 using namespace godot;
 
 namespace voxelgame {
+
+struct block {
+    String block_id;
+};
 
 class Chunk : public StaticBody3D {
     GDCLASS(Chunk, Node3D);
@@ -25,13 +30,13 @@ private:
     MeshInstance3D *mesh;
 
 public:
-    int blocks[CHUNK_WIDTH_LENGTH][CHUNK_WIDTH_LENGTH][CHUNK_HEIGHT];
+    block blocks[CHUNK_WIDTH_LENGTH][CHUNK_WIDTH_LENGTH][CHUNK_HEIGHT];
 
 public:
     Chunk();
     ~Chunk();
 
-    void set_block(int x, int y, int z, int block_id);
+    void set_block(int x, int y, int z, block &_block);
 };
 
 };

@@ -1,8 +1,9 @@
-#include "world.h"
+#include "world.hpp"
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
-#include "shared.h"
+
+#include "shared.hpp"
 
 using namespace godot;
 using namespace voxelgame;
@@ -15,11 +16,7 @@ World::~World() {
 
 }
 
-void World::_bind_methods() {
-    
-}
-
-void World::_init() {
+void World::_ready() {
     noiseTerrain = new FastNoiseLite;
     noiseBiome = new FastNoiseLite;
 }
@@ -46,7 +43,12 @@ Chunk *World::generate_chunk(int x, int y) {
             int xpos = xx + (x * CHUNK_WIDTH_LENGTH);
             int ypos = yy + (y * CHUNK_WIDTH_LENGTH);
             for (int zz = 0; zz < CHUNK_HEIGHT; zz++) {
-                BLOCK_IDS _block = generate_block_type(xpos, ypos, zz);
+                // gather block data
+                String _block_id = generate_block_type(xpos, ypos, zz);
+                // pack it
+                block _block;
+                _block.block_id = _block_id;
+                // send it to hell
                 _chunk->blocks[xx][yy][zz] = _block;
             }
         }
@@ -54,13 +56,13 @@ Chunk *World::generate_chunk(int x, int y) {
     return _chunk;
 }
 
-BLOCK_IDS World::generate_block_type(int x, int y, int z) {
+String World::generate_block_type(int x, int y, int z) const {
     // todo: figures out the block to be placed here depending on biome, height, etc.
-    BLOCK_IDS _block = BLOCK_IDS::AIR;
+    String _block = "voxelgame:air";
 
     int terrain_height = int(noiseTerrain->get_noise_2d(x, y));
     if ((z > terrain_height) == false) {
-        _block = BLOCK_IDS::OAK_WOOD_LOG; // todo: replace me :)
+        _block = "voxelgame:dirt"; // todo: replace me :)
     }
 
     return _block;
