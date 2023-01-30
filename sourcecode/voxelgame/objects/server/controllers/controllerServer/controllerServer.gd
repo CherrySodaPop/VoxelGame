@@ -50,7 +50,7 @@ func PrepareDimensions():
 func ClientConnected(id:int):
 	rpc_id(id, "InitialHandshake", id)
 
-@rpc(any_peer)
+@rpc("any_peer")
 func HandleUserInfo(username, passwordHashed, skin):
 	var id = peer.get_remote_sender_id()
 	var doubleHashedPass = passwordHashed.sha256_text()

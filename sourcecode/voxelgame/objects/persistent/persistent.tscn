@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://dg1bv0bjxv7fg"]
-
-[ext_resource type="Script" path="res://objects/persistent/persistent.gd" id="1_1tst1"]
-
-[node name="persistent" type="Node"]
-script = ExtResource("1_1tst1")

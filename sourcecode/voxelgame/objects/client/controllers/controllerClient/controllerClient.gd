@@ -43,7 +43,7 @@ func SendUserInfo():
 	# pass
 	var passwordHashed = password.sha256_text()
 	# skin
-	var skinPath:String = Persistent.gamePath + "data/client/skin.png"
+	var skinPath:String = pPersistent.gamePath + "data/client/skin.png"
 	var skinBase64 = ""
 	# default skin fallback
 	if not FileAccess.file_exists(skinPath):

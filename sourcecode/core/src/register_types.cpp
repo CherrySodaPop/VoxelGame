@@ -7,7 +7,7 @@
 #include <godot_cpp/godot.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
-#include "gamedata.hpp"
+#include "database.hpp"
 #include "world.hpp"
 #include "chunk.hpp"
 
