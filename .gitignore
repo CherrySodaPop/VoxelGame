@@ -10,5 +10,5 @@ export_presets.cfg
 
 sourcecode/core/src/**/*.obj
 sourcecode/core/src/**/*.os
-sourcecode/voxelgame/bins/win64/
-sourcecode/voxelgame/bins/x11/
+sourcecode/voxelgame/bins/*.dll
+sourcecode/voxelgame/bins/*.so
