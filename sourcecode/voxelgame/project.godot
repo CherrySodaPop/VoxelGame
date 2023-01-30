@@ -8,28 +8,41 @@
 
 config_version=5
 
-_global_script_classes=[{
-"base": "Node",
-"class": &"controllerServer",
-"language": &"GDScript",
-"path": "res://objects/server/controllers/controllerServer/controllerServer.gd"
-}]
-_global_script_class_icons={
-"controllerServer": ""
-}
-
 [application]
 
 config/name="VoxelGame"
 run/main_scene="res://world.tscn"
 config/features=PackedStringArray("4.0")
-boot_splash/show_image=false
 boot_splash/bg_color=Color(0, 0, 0, 1)
+boot_splash/show_image=false
 config/icon="res://assets/icon.png"
 
 [autoload]
 
-pPersistent="*res://objects/persistent/persistent.tscn"
+pGlobal="*res://objects/shared/global/global.tscn"
+pControllerDatabase="*res://objects/shared/controllers/controllerDatabase/controllerDatabase.tscn"
+
+[importer_defaults]
+
+texture={
+"compress/bptc_ldr": 0,
+"compress/channel_pack": 0,
+"compress/hdr_compression": 1,
+"compress/lossy_quality": 0.7,
+"compress/mode": 0,
+"compress/normal_map": 0,
+"detect_3d/compress_to": 0,
+"mipmaps/generate": false,
+"mipmaps/limit": -1,
+"process/fix_alpha_border": false,
+"process/hdr_as_srgb": false,
+"process/hdr_clamp_exposure": false,
+"process/normal_map_invert_y": false,
+"process/premult_alpha": false,
+"process/size_limit": 0,
+"roughness/mode": 1,
+"roughness/src_normal": ""
+}
 
 [physics]
 
