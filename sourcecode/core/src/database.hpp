@@ -5,6 +5,7 @@
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/classes/image_texture.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
+#include <godot_cpp/classes/standard_material3d.hpp>
 
 using namespace godot;
 
@@ -37,6 +38,7 @@ public:
     void parse_datapack(const String &_datapack_title);
 
     Ref<ImageTexture> load_texture(const String &_texture_path);
+    void apply_material_info_dictionary(StandardMaterial3D *_material, Dictionary _dictionary, String _pack_path);
 
     String get_game_path() { return game_path; }
     Dictionary get_game_data () { return game_data; }

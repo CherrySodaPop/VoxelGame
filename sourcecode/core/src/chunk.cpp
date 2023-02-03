@@ -13,12 +13,9 @@ Chunk::~Chunk() {
 
 }
 
-void Chunk::_bind_methods() {
-
-}
-
 void Chunk::set_block(int x, int y, int z, block &_block) {
     if (x >= CHUNK_WIDTH_LENGTH || y >= CHUNK_WIDTH_LENGTH || z >= CHUNK_HEIGHT || 0 > x || 0 > y || 0 > z) {
+        UtilityFunctions::push_error(String("Attempted to set block outside chunk size! (%s)") % Vector3i(x,y,z));
         return;
     }
     // todo: update_chunk()

@@ -15,15 +15,18 @@ using namespace godot;
 
 namespace voxelgame {
 
+// internal block info holder
 struct block {
-    String block_id;
+    String id;
+    Dictionary data;
 };
 
+// the physical chunk, mesh, and block data
 class Chunk : public StaticBody3D {
     GDCLASS(Chunk, Node3D);
 
 protected:
-    static void _bind_methods();
+    static void _bind_methods() {}
 
 private:
     CollisionShape3D *collision;
@@ -36,6 +39,10 @@ public:
     Chunk();
     ~Chunk();
 
+    // generation
+    void generate();
+
+    // after generation
     void set_block(int x, int y, int z, block &_block);
 };
 

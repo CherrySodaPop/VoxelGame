@@ -17,6 +17,7 @@ World::~World() {
 }
 
 void World::_ready() {
+    GAME_LOGIC_CHECK
     noiseTerrain = new FastNoiseLite;
     noiseBiome = new FastNoiseLite;
 }
@@ -30,13 +31,11 @@ void World::load_chunk(int x, int y) {
     // if (chunk_file_exists) {}
     // else
     Chunk *_chunk = generate_chunk(x, y);
-    if (_chunk != nullptr) {
-        this->add_child(_chunk);
-    }
+    this->add_child(_chunk);
 }
 
 Chunk *World::generate_chunk(int x, int y) {
-    if (chunks.count(Vector2i(x,y)) == false) return nullptr;
+    // base terrain
     Chunk *_chunk = new Chunk;
     for (int xx = 0; xx < CHUNK_WIDTH_LENGTH; xx++) {
         for (int yy = 0; yy < CHUNK_WIDTH_LENGTH; yy++) {
@@ -47,7 +46,7 @@ Chunk *World::generate_chunk(int x, int y) {
                 String _block_id = generate_block_type(xpos, ypos, zz);
                 // pack it
                 block _block;
-                _block.block_id = _block_id;
+                _block.id = _block_id;
                 // send it to hell
                 _chunk->blocks[xx][yy][zz] = _block;
             }
@@ -59,11 +58,9 @@ Chunk *World::generate_chunk(int x, int y) {
 String World::generate_block_type(int x, int y, int z) const {
     // todo: figures out the block to be placed here depending on biome, height, etc.
     String _block = "voxelgame:air";
-
     int terrain_height = int(noiseTerrain->get_noise_2d(x, y));
     if ((z > terrain_height) == false) {
         _block = "voxelgame:dirt"; // todo: replace me :)
     }
-
     return _block;
 }
