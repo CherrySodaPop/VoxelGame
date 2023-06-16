@@ -42,25 +42,22 @@ Chunk *World::generate_chunk(int x, int y) {
             int xpos = xx + (x * CHUNK_WIDTH_LENGTH);
             int ypos = yy + (y * CHUNK_WIDTH_LENGTH);
             for (int zz = 0; zz < CHUNK_HEIGHT; zz++) {
-                // gather block data
-                String _block_id = generate_block_type(xpos, ypos, zz);
-                // pack it
-                block _block;
-                _block.id = _block_id;
                 // send it to hell
-                _chunk->blocks[xx][yy][zz] = _block;
+                _chunk->blocks[xx][yy][zz] = generator_block_type(xpos, ypos, zz);
             }
         }
     }
     return _chunk;
 }
 
-String World::generate_block_type(int x, int y, int z) const {
+block World::generator_block_type(int x, int y, int z) const {
+    block _block;
+    _block.datapack = String("voxelgame");
+    _block.id = String("air");
     // todo: figures out the block to be placed here depending on biome, height, etc.
-    String _block = "voxelgame:air";
     int terrain_height = int(noiseTerrain->get_noise_2d(x, y));
     if ((z > terrain_height) == false) {
-        _block = "voxelgame:dirt"; // todo: replace me :)
+        _block.id = String("dirt"); // todo: replace me :)
     }
     return _block;
 }

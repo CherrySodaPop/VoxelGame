@@ -1,9 +1,9 @@
-[gd_scene load_steps=3 format=3 uid="uid://dfhfm8aadq3x3"]
+[gd_scene load_steps=3 format=3]
 
-[ext_resource type="Script" path="res://objects/client/controllers/controllerUI/controllerUI.gd" id="1_thg8v"]
-[ext_resource type="PackedScene" uid="uid://cl7kf8a5s0lmo" path="res://objects/client/ui/worldButton/worldButton.tscn" id="2_f61ap"]
+[ext_resource type="Script" path="res://objects/client/ux/uxHead/uxHead.gd" id="1_uqr5v"]
+[ext_resource type="PackedScene" uid="uid://cl7kf8a5s0lmo" path="res://objects/client/ux/uxWorldButton/uxWorldButton.tscn" id="2_jwfqt"]
 
-[node name="controllerUI" type="Control"]
+[node name="uxHead" type="Control"]
 clip_contents = true
 layout_mode = 3
 anchors_preset = 15
@@ -11,7 +11,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_thg8v")
+script = ExtResource("1_uqr5v")
 
 [node name="ingame" type="Control" parent="."]
 visible = false
@@ -23,7 +23,6 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="mainmenu" type="Control" parent="."]
-visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -107,28 +106,28 @@ metadata/_edit_use_custom_anchors = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="worldButton0" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_f61ap")]
+[node name="uxWorldButton0" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_jwfqt")]
 layout_mode = 2
 
-[node name="worldButton1" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_f61ap")]
+[node name="uxWorldButton1" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_jwfqt")]
 layout_mode = 2
 
-[node name="worldButton2" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_f61ap")]
+[node name="uxWorldButton2" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_jwfqt")]
 layout_mode = 2
 
-[node name="worldButton3" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_f61ap")]
+[node name="uxWorldButton3" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_jwfqt")]
 layout_mode = 2
 
-[node name="worldButton4" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_f61ap")]
+[node name="uxWorldButton4" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_jwfqt")]
 layout_mode = 2
 
-[node name="worldButton5" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_f61ap")]
+[node name="uxWorldButton5" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_jwfqt")]
 layout_mode = 2
 
-[node name="worldButton6" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_f61ap")]
+[node name="uxWorldButton6" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_jwfqt")]
 layout_mode = 2
 
-[node name="worldButton7" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_f61ap")]
+[node name="uxWorldButton7" parent="singleplayermenu/scrollContainer/worldContainer" instance=ExtResource("2_jwfqt")]
 layout_mode = 2
 
 [node name="multiplayermenu" type="Control" parent="."]

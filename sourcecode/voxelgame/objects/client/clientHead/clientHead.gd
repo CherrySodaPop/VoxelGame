@@ -1,4 +1,5 @@
 extends Node
+class_name clientHead
 
 # secure info
 var username:String = "Cherry"
@@ -22,7 +23,6 @@ func ConnectToServer():
 		multiplayer.set_multiplayer_peer(peer)
 
 func FreePeer():
-	peer.free()
 	peer = null
 
 ######################################################################
@@ -43,7 +43,7 @@ func SendUserInfo():
 	# pass
 	var passwordHashed = password.sha256_text()
 	# skin
-	var skinPath:String = pPersistent.gamePath + "data/client/skin.png"
+	var skinPath:String = pGlobal.gamePath + "data/client/skin.png"
 	var skinBase64 = ""
 	# default skin fallback
 	if not FileAccess.file_exists(skinPath):

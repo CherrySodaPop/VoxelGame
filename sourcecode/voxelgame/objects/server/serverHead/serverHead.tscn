@@ -1,0 +1,20 @@
+[gd_scene load_steps=4 format=3 uid="uid://c7l73b4g60l77"]
+
+[ext_resource type="Script" path="res://objects/server/serverHead/serverHead.gd" id="1_bjf73"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_6uoyy"]
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_x1t08"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/sync = true
+
+[node name="serverHead" type="Node"]
+script = ExtResource("1_bjf73")
+
+[node name="MeshInstance2D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.29968, 0)
+mesh = SubResource("BoxMesh_6uoyy")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="MeshInstance2D"]
+replication_config = SubResource("SceneReplicationConfig_x1t08")

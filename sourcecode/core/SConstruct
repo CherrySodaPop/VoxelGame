@@ -23,11 +23,39 @@ else:
     if env["debug_symbols"]:
         env.Append(CCFLAGS=["-g2"])
 
+# Try to detect the host platform automatically.
+# This is used if no `platform` argument is passed
+if sys.platform.startswith("linux"):
+    default_platform = "linux"
+elif sys.platform == "darwin":
+    default_platform = "macos"
+elif sys.platform == "win32" or sys.platform == "msys":
+    default_platform = "windows"
+elif ARGUMENTS.get("platform", ""):
+    default_platform = ARGUMENTS.get("platform")
+else:
+    raise ValueError("Could not detect platform automatically, please specify with platform=<platform>")
+
+platforms = ("linux", "windows")
+opts.Add(
+    EnumVariable(
+        "platform",
+        "Target platform",
+        default_platform,
+        allowed_values=platforms,
+        ignorecase=2,
+    )
+)
+
 env.Append(CPPPATH=["src/"])
-sources = Glob("src/*.cpp")
+sources = []
+sources.append(Glob("src/*.cpp"))
+sources.append(Glob("src/client/*.cpp"))
+sources.append(Glob("src/server/*.cpp"))
+sources.append(Glob("src/shared/*.cpp"))
 
 library = env.SharedLibrary(
-        "../voxelgame/bins/core",
+        "../voxelgame/bins/core-%s" % env["platform"],
         source=sources,
     )
 

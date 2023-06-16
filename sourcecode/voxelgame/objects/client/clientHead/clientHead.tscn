@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bcu188nuejkml"]
+
+[ext_resource type="Script" path="res://objects/client/clientHead/clientHead.gd" id="1_lhhar"]
+
+[node name="clientHead" type="Node"]
+script = ExtResource("1_lhhar")

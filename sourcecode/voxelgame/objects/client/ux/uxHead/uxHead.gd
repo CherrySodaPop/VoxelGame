@@ -19,7 +19,7 @@ func Enter_MultiplayerMenu():
 func MultiplayerMenu_JoinServer():
 	if ($multiplayermenu/port.text.is_valid_int()):
 		$multiplayermenu/joiningscreen.visible = true;
-		var controller = pGlobal.get_node("controllerClient");
+		var controller = pGlobal.get_node("clientHead");
 		controller.serverAddress = $multiplayermenu/address.text;
 		controller.serverPort = $multiplayermenu/port.text.to_int();
 		controller.ConnectToServer();

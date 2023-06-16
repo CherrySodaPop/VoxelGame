@@ -20,7 +20,7 @@ config/icon="res://assets/icon.png"
 [autoload]
 
 pGlobal="*res://objects/shared/global/global.tscn"
-pControllerDatabase="*res://objects/shared/controllers/controllerDatabase/controllerDatabase.tscn"
+pDatabase="*res://objects/shared/database/database.tscn"
 
 [importer_defaults]
 

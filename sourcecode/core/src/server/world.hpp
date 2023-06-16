@@ -40,7 +40,7 @@ public:
     void load_chunk(int x, int y);
     //Chunk *file_load_chunk(int x, int y);
     Chunk *generate_chunk(int x, int y);
-    String generate_block_type(int x, int y, int z) const;
+    block generator_block_type(int x, int y, int z) const;
 };
 
 }

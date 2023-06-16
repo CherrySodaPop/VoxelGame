@@ -17,6 +17,7 @@ namespace voxelgame {
 
 // internal block info holder
 struct block {
+    String datapack;
     String id;
     Dictionary data;
 };

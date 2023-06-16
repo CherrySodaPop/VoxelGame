@@ -33,12 +33,13 @@ public:
     void _ready() override;
 
     PackedStringArray datapack_search();
-    void load_datapacks(const PackedStringArray &_datapack_paths);
-    void load_datapack(const String &_datapack_path);
-    void parse_datapack(const String &_datapack_title);
+    void load_datapacks(const PackedStringArray &_pack_folders);
+    bool can_parse_datapack(const String &_pack_path);
+    void parse_datapack(const String &_pack_title);
 
     Ref<ImageTexture> load_texture(const String &_texture_path);
     void apply_material_info_dictionary(StandardMaterial3D *_material, Dictionary _dictionary, String _pack_path);
+    Dictionary parse_json_filepath(const String &_path);
 
     String get_game_path() { return game_path; }
     Dictionary get_game_data () { return game_data; }

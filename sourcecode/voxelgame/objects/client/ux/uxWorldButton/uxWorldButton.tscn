@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cl7kf8a5s0lmo"]
 
-[node name="worldButton" type="Button"]
+[node name="uxWorldButton" type="Button"]
 clip_contents = true
 custom_minimum_size = Vector2(0, 104)
 offset_right = 640.0

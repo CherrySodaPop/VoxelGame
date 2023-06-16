@@ -1,5 +1,5 @@
 extends Node
-class_name controllerServer
+class_name serverHead
 
 # secure info
 var userData:Dictionary = {} # username, pass
@@ -21,12 +21,14 @@ var playerEntites:Dictionary = {} # easy access to all player entities
 # save data
 var playerData:Dictionary = {} # everything about the player, only modified on server boot (load previous session info), player disconnect (save disconnecting player info), and server shutdown (save data)
 
+var DEBUG_OUTPUT:Error
+
 func _ready():
 	# loading phase
 	PrepareGameInfo()
 	# create server
 	peer.peer_connected.connect(ClientConnected)
-	peer.create_server(25565, maxClients)
+	DEBUG_OUTPUT = peer.create_server(25565, maxClients)
 	multiplayer.set_multiplayer_peer(peer)
 
 func PrepareGameInfo():

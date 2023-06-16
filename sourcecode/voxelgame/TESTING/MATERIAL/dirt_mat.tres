@@ -1,5 +1,0 @@
-[gd_resource type="StandardMaterial3D" format=3 uid="uid://b5yhbfkmrkqxw"]
-
-[resource]
-metallic_specular = 0.0
-texture_filter = 0

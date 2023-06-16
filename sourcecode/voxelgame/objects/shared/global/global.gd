@@ -9,10 +9,10 @@ var isDedicatedServer:bool = false
 var serverTree:SceneTree = null
 
 # client
-var scene_controllerUI = preload("res://objects/client/controllers/controllerUI/controllerUI.tscn")
-var scene_controllerClient = preload("res://objects/client/controllers/controllerClient/controllerClient.tscn")
+var scene_uxHead = preload("res://objects/client/ux/uxHead/uxHead.tscn")
+var scene_clientHead = preload("res://objects/client/clientHead/clientHead.tscn")
 # server
-var scene_controllerServer = preload("res://objects/server/controllers/controllerServer/controllerServer.tscn")
+var scene_serverHead = preload("res://objects/server/serverHead/serverHead.tscn")
 
 func _ready():
 	InitialBoot()
@@ -30,8 +30,8 @@ func InitialBoot():
 
 func CreateServer():
 	pGlobal.serverTree = SceneTree.new()
-	pGlobal.serverTree.root.add_child(controllerServer.instantiate())
+	pGlobal.serverTree.root.add_child(scene_serverHead.instantiate())
 
 func ClientStart():
-	add_child(scene_controllerUI.instantiate())
-	add_child(scene_controllerClient.instantiate())
+	add_child(scene_uxHead.instantiate())
+	add_child(scene_clientHead.instantiate())
