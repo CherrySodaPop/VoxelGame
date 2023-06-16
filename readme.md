@@ -1,3 +1,9 @@
+# IMPORTANT (June 2023)
+**This repository is dead!**
+
+But the project lives on and is being replaced by something cooler in silence.
+The latest version of this codebase is ``gd4-refactor``.
+
 # Voxel Game
 This is a very early development of a "voxel based Animal Crossing" sandbox game in Godot.
 
